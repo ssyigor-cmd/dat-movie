@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <!-- Metadados do documento -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Título da página -->
+    <title>DAT-MOVIE</title>
+    <!-- Link para o arquivo de estilo CSS -->
+    <link rel="stylesheet" href="style.css" />
+    <!-- Inclui o estilo CSS -->
+  </head>
+  <body>
+    <!-- Cabeçalho da página -->
+    <div class="header">
+      <h1>DAT-MOVIE</h1>
+      <!-- Título principal da página -->
+    </div>
+
+    <h2></h2>
+    <!-- Espaço reservado para um possível título secundário -->
+
+    <!-- Formulário de adição de séries ou animes -->
+    <label class="inline-input" for="tipo">Tipo:</label>
+    <!-- Rótulo para o campo de seleção de tipo -->
+    <select class="inline-input" id="tipo">
+      <!-- Campo de seleção de tipo (Anime ou Série) -->
+      <option value="anime">Anime</option>
+      <!-- Opção de Anime -->
+      <option value="serie">Série</option>
+      <!-- Opção de Série -->
+    </select>
+    <br />
+
+    <label class="inline-input" for="nome">Nome:</label>
+    <!-- Rótulo para o campo de entrada de nome -->
+    <input
+      type="text"
+      class="inline-input"
+      id="nome"
+      placeholder="Digite o nome da série ou anime"
+    />
+    <!-- Campo de entrada de nome -->
+    <div id="suggestions"></div>
+    <!-- Div para exibir sugestões de nomes -->
+    <br />
+
+    <label class="inline-input" for="temporada">Temporada:</label>
+    <!-- Rótulo para o campo de entrada de temporada -->
+    <input type="number" class="inline-input" id="temporada" />
+    <!-- Campo de entrada de temporada -->
+    <br />
+
+    <label class="inline-input" for="episodio">Episódio:</label>
+    <!-- Rótulo para o campo de entrada de episódio -->
+    <input type="number" class="inline-input" id="episodio" />
+    <!-- Campo de entrada de episódio -->
+    <br />
+
+    <button onclick="adicionar()">Adicionar</button>
+    <!-- Botão para adicionar o item ao formulário -->
+
+    <!-- Tabelas para listar os animes e séries -->
+    <div class="table-wrapper">
+      <div class="table-container">
+        <h2>Animes</h2>
+        <!-- Título da tabela de Animes -->
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <!-- Cabeçalho da coluna Tipo -->
+              <th>Nome</th>
+              <!-- Cabeçalho da coluna Nome -->
+              <th>Temporada</th>
+              <!-- Cabeçalho da coluna Temporada -->
+              <th>Episódio</th>
+              <!-- Cabeçalho da coluna Episódio -->
+              <th>Imagem</th>
+              <!-- Cabeçalho da coluna Imagem -->
+              <th>Editar</th>
+              <!-- Cabeçalho da coluna Editar -->
+            </tr>
+          </thead>
+          <tbody id="animesLista">
+            <!-- Corpo da tabela de Animes -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-container">
+        <h2>Séries</h2>
+        <!-- Título da tabela de Séries -->
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <!-- Cabeçalho da coluna Tipo -->
+              <th>Nome</th>
+              <!-- Cabeçalho da coluna Nome -->
+              <th>Temporada</th>
+              <!-- Cabeçalho da coluna Temporada -->
+              <th>Episódio</th>
+              <!-- Cabeçalho da coluna Episódio -->
+              <th>Imagem</th>
+              <!-- Cabeçalho da coluna Imagem -->
+              <th>Editar</th>
+              <!-- Cabeçalho da coluna Editar -->
+            </tr>
+          </thead>
+          <tbody id="seriesLista">
+            <!-- Corpo da tabela de Séries -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Script para manipulação dos dados -->
+    <script src="script.js"></script>
+    <!-- Inclui o script de manipulação de dados -->
+  </body>
+</html>
