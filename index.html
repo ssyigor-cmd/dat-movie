@@ -1,122 +1,182 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <!-- Metadados do documento -->
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Título da página -->
-    <title>DAT-MOVIE</title>
-    <!-- Link para o arquivo de estilo CSS -->
-    <link rel="stylesheet" href="style.css" />
-    <!-- Inclui o estilo CSS -->
-  </head>
-  <body>
-    <!-- Cabeçalho da página -->
-    <div class="header">
-      <h1>DAT-MOVIE</h1>
-      <!-- Título principal da página -->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dat-Movie · Catálogo</title>
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Toggle Tema -->
+  <button class="theme-toggle" id="themeToggle" aria-label="Alternar entre tema claro e escuro">
+    <i class="fas fa-moon"></i>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" role="navigation" aria-label="Navegação principal">
+    <div class="sidebar-header">
+      <h2><i class="fas fa-film"></i> Dat-Movie</h2>
     </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="anime" aria-label="Filtrar animes">
+        <i class="fas fa-tv"></i> <span>Animes</span>
+      </button>
+      <button class="nav-item" data-tab="animacao" aria-label="Filtrar animações">
+        <i class="fas fa-paint-brush"></i> <span>Animações</span>
+      </button>
+      <button class="nav-item" data-tab="serie" aria-label="Filtrar séries">
+        <i class="fas fa-video"></i> <span>Séries</span>
+      </button>
+      <button class="nav-item" data-tab="all" aria-label="Mostrar todos">
+        <i class="fas fa-th"></i> <span>Todos</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="exportBtn" class="nav-item" aria-label="Exportar dados"><i class="fas fa-download"></i> <span>Exportar</span></button>
+      <button id="importBtn" class="nav-item" aria-label="Importar dados"><i class="fas fa-upload"></i> <span>Importar</span></button>
+    </div>
+  </aside>
 
-    <h2></h2>
-    <!-- Espaço reservado para um possível título secundário -->
-
-    <!-- Formulário de adição de séries ou animes -->
-    <label class="inline-input" for="tipo">Tipo:</label>
-    <!-- Rótulo para o campo de seleção de tipo -->
-    <select class="inline-input" id="tipo">
-      <!-- Campo de seleção de tipo (Anime ou Série) -->
-      <option value="anime">Anime</option>
-      <!-- Opção de Anime -->
-      <option value="serie">Série</option>
-      <!-- Opção de Série -->
-    </select>
-    <br />
-
-    <label class="inline-input" for="nome">Nome:</label>
-    <!-- Rótulo para o campo de entrada de nome -->
-    <input
-      type="text"
-      class="inline-input"
-      id="nome"
-      placeholder="Digite o nome da série ou anime"
-    />
-    <!-- Campo de entrada de nome -->
-    <div id="suggestions"></div>
-    <!-- Div para exibir sugestões de nomes -->
-    <br />
-
-    <label class="inline-input" for="temporada">Temporada:</label>
-    <!-- Rótulo para o campo de entrada de temporada -->
-    <input type="number" class="inline-input" id="temporada" />
-    <!-- Campo de entrada de temporada -->
-    <br />
-
-    <label class="inline-input" for="episodio">Episódio:</label>
-    <!-- Rótulo para o campo de entrada de episódio -->
-    <input type="number" class="inline-input" id="episodio" />
-    <!-- Campo de entrada de episódio -->
-    <br />
-
-    <button onclick="adicionar()">Adicionar</button>
-    <!-- Botão para adicionar o item ao formulário -->
-
-    <!-- Tabelas para listar os animes e séries -->
-    <div class="table-wrapper">
-      <div class="table-container">
-        <h2>Animes</h2>
-        <!-- Título da tabela de Animes -->
-        <table>
-          <thead>
-            <tr>
-              <th>Tipo</th>
-              <!-- Cabeçalho da coluna Tipo -->
-              <th>Nome</th>
-              <!-- Cabeçalho da coluna Nome -->
-              <th>Temporada</th>
-              <!-- Cabeçalho da coluna Temporada -->
-              <th>Episódio</th>
-              <!-- Cabeçalho da coluna Episódio -->
-              <th>Imagem</th>
-              <!-- Cabeçalho da coluna Imagem -->
-              <th>Editar</th>
-              <!-- Cabeçalho da coluna Editar -->
-            </tr>
-          </thead>
-          <tbody id="animesLista">
-            <!-- Corpo da tabela de Animes -->
-          </tbody>
-        </table>
+  <!-- Conteúdo principal -->
+  <main class="main-content" role="main">
+    <header class="main-header">
+      <div>
+        <h1>Meu Catálogo</h1>
+        <p class="subtitle">Gerencie animes, animações e séries</p>
       </div>
+      <div class="stats" role="status" aria-live="polite">
+        <div class="stat-item"><span class="stat-number" id="totalCount">0</span><span class="stat-label">Total</span></div>
+        <div class="stat-item"><span class="stat-number" id="animeCount">0</span><span class="stat-label">Animes</span></div>
+        <div class="stat-item"><span class="stat-number" id="animacaoCount">0</span><span class="stat-label">Animações</span></div>
+        <div class="stat-item"><span class="stat-number" id="serieCount">0</span><span class="stat-label">Séries</span></div>
+      </div>
+    </header>
 
-      <div class="table-container">
-        <h2>Séries</h2>
-        <!-- Título da tabela de Séries -->
-        <table>
-          <thead>
-            <tr>
-              <th>Tipo</th>
-              <!-- Cabeçalho da coluna Tipo -->
-              <th>Nome</th>
-              <!-- Cabeçalho da coluna Nome -->
-              <th>Temporada</th>
-              <!-- Cabeçalho da coluna Temporada -->
-              <th>Episódio</th>
-              <!-- Cabeçalho da coluna Episódio -->
-              <th>Imagem</th>
-              <!-- Cabeçalho da coluna Imagem -->
-              <th>Editar</th>
-              <!-- Cabeçalho da coluna Editar -->
-            </tr>
-          </thead>
-          <tbody id="seriesLista">
-            <!-- Corpo da tabela de Séries -->
-          </tbody>
-        </table>
+    <!-- Toolbar com busca, filtros e ordenação -->
+    <div class="toolbar">
+      <div class="search-wrapper">
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input type="text" id="searchInput" placeholder="Buscar título..." aria-label="Buscar títulos" />
+      </div>
+      <div class="filter-wrapper">
+        <select id="filterStatus" aria-label="Filtrar por status">
+          <option value="todos">Todos</option>
+          <option value="assistindo">Assistindo</option>
+          <option value="concluido">Concluído</option>
+          <option value="planejado">Planejado</option>
+          <option value="pausado">Pausado</option>
+        </select>
+        <select id="sortOrder" aria-label="Ordenar por">
+          <option value="nome-asc">Nome (A–Z)</option>
+          <option value="nome-desc">Nome (Z–A)</option>
+          <option value="progresso-asc">Progresso ↑</option>
+          <option value="progresso-desc">Progresso ↓</option>
+          <option value="data-asc">Mais antigo</option>
+          <option value="data-desc" selected>Mais recente</option>
+          <option value="nota-asc">Nota ↑</option>
+          <option value="nota-desc">Nota ↓</option>
+          <option value="temporada-asc">Temporada ↑</option>
+          <option value="temporada-desc">Temporada ↓</option>
+        </select>
+      </div>
+      <div class="toolbar-actions">
+        <button id="viewToggle" class="tool-btn" aria-label="Alternar visualização (grade/lista)">
+          <i class="fas fa-th"></i>
+        </button>
+        <button id="openFormBtn" class="tool-btn primary" aria-label="Adicionar novo título">
+          <i class="fas fa-plus"></i> Adicionar
+        </button>
       </div>
     </div>
 
-    <!-- Script para manipulação dos dados -->
-    <script src="script.js"></script>
-    <!-- Inclui o script de manipulação de dados -->
-  </body>
+    <!-- Grid -->
+    <section class="grid-section">
+      <div id="grid" class="grid" role="list"></div>
+    </section>
+  </main>
+
+  <!-- Modal de edição/adicionar -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle"><i class="fas fa-pen"></i> Adicionar título</h2>
+        <button class="modal-close" id="modalClose" aria-label="Fechar modal"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="form" autocomplete="off">
+        <div class="form-group">
+          <label for="tipo">Tipo</label>
+          <select id="tipo" required aria-required="true">
+            <option value="anime">Anime</option>
+            <option value="animacao">Animação</option>
+            <option value="serie">Série</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="nome">Nome</label>
+          <input type="text" id="nome" placeholder="Ex: Scavengers Reign" required aria-required="true" />
+          <div id="suggestions" class="suggestions" role="listbox"></div>
+          <div id="posterPreview" class="poster-preview">
+            <img id="previewImg" src="" alt="Pré-visualização do pôster" style="display:none;" />
+            <span id="previewPlaceholder">Nenhuma imagem</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="temporada">Temporada</label>
+            <select id="temporada" required aria-required="true">
+              <option value="">Selecione</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="episodio">Episódio Atual</label>
+            <input type="number" id="episodio" min="1" value="1" required aria-required="true" />
+            <small id="episodioMaxHint" class="ep-hint">Máximo: --</small>
+          </div>
+        </div>
+        <!-- Novos campos: status e nota -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" required aria-required="true">
+              <option value="assistindo">Assistindo</option>
+              <option value="concluido">Concluído</option>
+              <option value="planejado">Planejado</option>
+              <option value="pausado">Pausado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="nota">Nota (1–5)</label>
+            <select id="nota" aria-required="true">
+              <option value="">Selecione</option>
+              <option value="1">⭐</option>
+              <option value="2">⭐⭐</option>
+              <option value="3">⭐⭐⭐</option>
+              <option value="4">⭐⭐⭐⭐</option>
+              <option value="5">⭐⭐⭐⭐⭐</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="btnSubmit"><i class="fas fa-save"></i> Salvar</button>
+          <button type="button" id="btnCancel" class="secondary"><i class="fas fa-times"></i> Cancelar</button>
+        </div>
+        <!-- Loading spinner -->
+        <div id="formLoading" class="form-loading" style="display:none;">
+          <i class="fas fa-spinner fa-spin"></i> Carregando...
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <script src="script.js"></script>
+</body>
 </html>
