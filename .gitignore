@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+.vite/
+dist/
+build/
+
+# Arquivos de ambiente (contêm chaves sensíveis)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de backup
+*.bak
+*.tmp
