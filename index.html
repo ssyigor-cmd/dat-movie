@@ -140,7 +140,7 @@
     </section>
   </main>
 
-  <!-- ==================== MODAL DE ADIÇÃO / EDIÇÃO ==================== -->
+  <!-- ==================== MODAL DE ADIÇÃO / EDIÇÃO (reformulado com steppers) ==================== -->
   <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true">
     <div class="modal modal-add">
       <div class="modal-header">
@@ -164,38 +164,19 @@
           </div>
         </div>
 
-        <!-- Campos em grade 2x2 -->
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="tipo">Tipo</label>
-            <select id="tipo" required>
+        <!-- Blocos informativos: Tipo, Tier, Status (cards) -->
+        <div class="add-info-blocks">
+          <div class="info-block">
+            <span class="info-label">TIPO</span>
+            <select id="tipo" class="info-value" required>
               <option value="anime">Anime</option>
               <option value="animacao">Animação</option>
               <option value="serie">Série</option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="temporada">Temporada</label>
-            <select id="temporada" required>
-              <option value="">Selecione</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="episodio">Episódio</label>
-            <select id="episodio" required></select>
-          </div>
-          <div class="form-group">
-            <label for="status">Status</label>
-            <select id="status" required>
-              <option value="assistindo">Assistindo</option>
-              <option value="concluido">Concluído</option>
-              <option value="planejado">Planejado</option>
-              <option value="pausado">Pausado</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="tierForm">Tier</label>
-            <select id="tierForm">
+          <div class="info-block">
+            <span class="info-label">TIER</span>
+            <select id="tierForm" class="info-value">
               <option value="">Selecione</option>
               <option value="S+">S+</option>
               <option value="S">S</option>
@@ -205,14 +186,55 @@
               <option value="D">D</option>
             </select>
           </div>
-          <div class="form-group align-end">
-            <button type="button" id="btnConcluido" class="btn-concluido">
-              <i class="fas fa-check"></i> Concluído
-            </button>
+          <div class="info-block">
+            <span class="info-label">STATUS</span>
+            <select id="status" class="info-value" required>
+              <option value="assistindo">Assistindo</option>
+              <option value="concluido">Concluído</option>
+              <option value="planejado">Planejado</option>
+              <option value="pausado">Pausado</option>
+            </select>
           </div>
         </div>
 
-        <!-- Botões de ação -->
+        <!-- Steppers: Temporada e Episódio -->
+        <div class="add-steppers">
+          <div class="stepper" id="addStepperTemporada">
+            <span class="stepper-label">TEMPORADA</span>
+            <div class="stepper-controls">
+              <button class="stepper-btn stepper-down" data-target="addTemporada" data-step="-1" data-type="temp">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <span class="stepper-value" id="addTemporadaDisplay">1</span>
+              <button class="stepper-btn stepper-up" data-target="addTemporada" data-step="1" data-type="temp">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+            </div>
+            <input type="hidden" id="addTemporada" value="1" />
+          </div>
+          <div class="stepper" id="addStepperEpisodio">
+            <span class="stepper-label">EPISÓDIO</span>
+            <div class="stepper-controls">
+              <button class="stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <span class="stepper-value" id="addEpisodioDisplay">1</span>
+              <button class="stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep">
+                <i class="fas fa-arrow-up"></i>
+              </button>
+            </div>
+            <input type="hidden" id="addEpisodio" value="1" />
+          </div>
+        </div>
+
+        <!-- Botão Concluído -->
+        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+          <button type="button" id="btnConcluido" class="btn-concluido">
+            <i class="fas fa-check"></i> Concluído
+          </button>
+        </div>
+
+        <!-- Botões de ação centralizados -->
         <div class="form-actions">
           <button type="submit" id="btnSubmit"><i class="fas fa-save"></i> Salvar</button>
           <button type="button" id="btnCancel" class="secondary"><i class="fas fa-times"></i> Cancelar</button>
@@ -228,15 +250,21 @@
   <div class="modal-overlay" id="detailModal" role="dialog" aria-modal="true">
     <div class="modal modal-detail">
       <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="detail-title-group">
           <div id="detailTierBadge" class="tier-badge-large" style="display: none;">S</div>
-          <h2 id="detailTitle"><i class="fas fa-info-circle"></i> Detalhes</h2>
+          <div>
+            <h2 id="detailTitle"><i class="fas fa-info-circle"></i> Detalhes</h2>
+          </div>
         </div>
         <button class="modal-close" id="detailClose"><i class="fas fa-times"></i></button>
       </div>
-      <div class="modal-body">
 
-        <!-- Imagem + Sinopse -->
+      <div class="detail-meta-top">
+        <span><i class="fas fa-calendar-alt"></i> <span id="detailStartYear">--</span> — <span id="detailEndYear">--</span></span>
+        <span class="detail-status"><span id="detailStatusLabel">--</span></span>
+      </div>
+
+      <div class="modal-body">
         <div class="detail-media">
           <div class="detail-poster">
             <img id="detailPosterImg" src="" alt="Pôster" />
@@ -250,61 +278,70 @@
           </div>
         </div>
 
-        <!-- Metadados (anos e status) -->
-        <div class="detail-meta">
-          <span><i class="fas fa-calendar-alt"></i> <span id="detailStartYear">--</span> – <span id="detailEndYear">--</span></span>
-          <span><i class="fas fa-clock"></i> <span id="detailStatusLabel">--</span></span>
+        <div class="detail-info-blocks">
+          <div class="info-block">
+            <span class="info-label">TIPO</span>
+            <select id="detailTipo" class="info-value">
+              <option value="anime">Anime</option>
+              <option value="animacao">Animação</option>
+              <option value="serie">Série</option>
+            </select>
+          </div>
+          <div class="info-block tier-block" id="detailTierBlock">
+            <span class="info-label">TIER</span>
+            <select id="detailTier" class="info-value tier-select">
+              <option value="">Selecione</option>
+              <option value="S+">S+</option>
+              <option value="S">S</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+            </select>
+          </div>
+          <div class="info-block">
+            <span class="info-label">STATUS</span>
+            <select id="detailStatus" class="info-value">
+              <option value="assistindo">Assistindo</option>
+              <option value="concluido">Concluído</option>
+              <option value="planejado">Planejado</option>
+              <option value="pausado">Pausado</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Formulário de edição -->
-        <div class="detail-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="detailTemporada"><i class="fas fa-layer-group"></i> Temporada</label>
-              <select id="detailTemporada"></select>
+        <div class="detail-steppers">
+          <div class="stepper" id="stepperTemporada">
+            <span class="stepper-label">TEMPORADA</span>
+            <div class="stepper-controls">
+              <button class="stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <span class="stepper-value" id="detailTemporadaDisplay">1</span>
+              <button class="stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp">
+                <i class="fas fa-arrow-up"></i>
+              </button>
             </div>
-            <div class="form-group">
-              <label for="detailEpisodio"><i class="fas fa-play"></i> Episódio</label>
-              <select id="detailEpisodio"></select>
-            </div>
+            <input type="hidden" id="detailTemporada" value="1" />
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="detailStatus"><i class="fas fa-flag-checkered"></i> Status</label>
-              <select id="detailStatus">
-                <option value="assistindo">Assistindo</option>
-                <option value="concluido">Concluído</option>
-                <option value="planejado">Planejado</option>
-                <option value="pausado">Pausado</option>
-              </select>
+          <div class="stepper" id="stepperEpisodio">
+            <span class="stepper-label">EPISÓDIO</span>
+            <div class="stepper-controls">
+              <button class="stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep">
+                <i class="fas fa-arrow-down"></i>
+              </button>
+              <span class="stepper-value" id="detailEpisodioDisplay">1</span>
+              <button class="stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep">
+                <i class="fas fa-arrow-up"></i>
+              </button>
             </div>
-            <div class="form-group">
-              <label for="detailTier"><i class="fas fa-medal"></i> Tier</label>
-              <select id="detailTier">
-                <option value="">Selecione</option>
-                <option value="S+">S+</option>
-                <option value="S">S</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-              </select>
-            </div>
+            <input type="hidden" id="detailEpisodio" value="1" />
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="detailTipo"><i class="fas fa-tag"></i> Tipo</label>
-              <select id="detailTipo">
-                <option value="anime">Anime</option>
-                <option value="animacao">Animação</option>
-                <option value="serie">Série</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" id="detailDelete"><i class="fas fa-trash"></i> Remover</button>
-            <button type="button" id="detailSave"><i class="fas fa-save"></i> Salvar alterações</button>
-          </div>
+        </div>
+
+        <div class="detail-actions">
+          <button type="button" id="detailDelete"><i class="fas fa-trash"></i> Remover</button>
+          <button type="button" id="detailSave"><i class="fas fa-save"></i> Salvar alterações</button>
         </div>
       </div>
     </div>

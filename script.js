@@ -25,8 +25,6 @@ const modalTitle = $('modalTitle');
 const form = $('form');
 const tipo = $('tipo');
 const nome = $('nome');
-const temporada = $('temporada');
-const episodio = $('episodio');
 const statusSelect = $('status');
 const tierForm = $('tierForm');
 const btnSubmit = $('btnSubmit');
@@ -39,18 +37,28 @@ const toast = $('toast');
 const densitySelect = $('densitySelect');
 const groupToggle = $('groupToggle');
 
+// ADD MODAL (com steppers)
+const addTemporadaInput = $('addTemporada');
+const addEpisodioInput = $('addEpisodio');
+const addTemporadaDisplay = $('addTemporadaDisplay');
+const addEpisodioDisplay = $('addEpisodioDisplay');
+const addStepperBtns = document.querySelectorAll('#modalOverlay .stepper-btn');
+
 // DETAIL MODAL
 const detailModal = $('detailModal');
 const detailClose = $('detailClose');
 const detailTitle = $('detailTitle');
 const detailSinopse = $('detailSinopse');
 const detailLoading = $('detailLoading');
-const detailTemporada = $('detailTemporada');
-const detailEpisodio = $('detailEpisodio');
+const detailTemporadaInput = $('detailTemporada');
+const detailEpisodioInput = $('detailEpisodio');
+const detailTemporadaDisplay = $('detailTemporadaDisplay');
+const detailEpisodioDisplay = $('detailEpisodioDisplay');
 const detailStatus = $('detailStatus');
 const detailTier = $('detailTier');
 const detailTipo = $('detailTipo');
 const detailTierBadge = $('detailTierBadge');
+const detailTierBlock = $('detailTierBlock');
 const detailSave = $('detailSave');
 const detailDelete = $('detailDelete');
 const detailPosterImg = $('detailPosterImg');
@@ -58,6 +66,7 @@ const detailBackdropBlur = $('detailBackdropBlur');
 const detailStartYear = $('detailStartYear');
 const detailEndYear = $('detailEndYear');
 const detailStatusLabel = $('detailStatusLabel');
+const detailStepperBtns = document.querySelectorAll('#detailModal .stepper-btn');
 
 // ========== ESTADO GLOBAL ==========
 let items = [];
@@ -67,11 +76,12 @@ let cachedShowDetails = null;
 let selectedTmdbId = null;
 let selectedMediaType = null;
 let selectedPosterPath = null;
-let selectedAno = null; // para desambiguação
+let selectedAno = null;
 let gridDensity = parseInt(localStorage.getItem('gridDensity')) || 8;
 let groupingActive = localStorage.getItem('groupingActive') === 'true' || false;
 let detailCurrentIndex = null;
-let detailCachedShowDetails = null;
+let detailSeasonLimits = {};
+let addSeasonLimits = {};
 
 const TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D'];
 const TIER_COLORS = {
@@ -152,7 +162,7 @@ async function fetchItemsFromSupabase() {
     seasonEpisodesMap: item.season_episodes_map || {}, status: item.status, nota: item.nota,
     imagem: item.imagem, dataCriacao: item.data_criacao, dataAtualizacao: item.data_atualizacao,
     tmdb_id: item.tmdb_id, tier: item.tier || null,
-    ano: item.ano || null // campo para desambiguação
+    ano: item.ano || null
   }));
 }
 
@@ -225,27 +235,6 @@ async function callTMDB(endpoint, params = {}, lang = 'pt-BR') {
   const { data, error } = await supabase.functions.invoke('clever-endpoint', { body: { endpoint, params: finalParams } });
   if (error) throw new Error(error.message);
   return data;
-}
-
-// ========== POPULAR EPISÓDIOS (SELECT) ==========
-function populateEpisodeSelect(seasonNumber, targetSelect) {
-  targetSelect.innerHTML = '';
-  if (!cachedShowDetails) return;
-  const season = cachedShowDetails.seasons.find(s => s.season_number === seasonNumber);
-  if (!season) {
-    const opt = document.createElement('option');
-    opt.value = 1;
-    opt.textContent = '1';
-    targetSelect.appendChild(opt);
-    return;
-  }
-  const totalEp = season.episode_count || 1;
-  for (let i = 1; i <= totalEp; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i;
-    targetSelect.appendChild(opt);
-  }
 }
 
 // ========== RENDER ==========
@@ -391,16 +380,7 @@ async function fetchImageAndUpdate(nome, index, posterPath = null) {
 }
 
 function populateSeasons(seasons) {
-  temporada.innerHTML = '<option value="">Selecione</option>';
-  seasons.forEach(s => {
-    if (s.season_number === 0) return;
-    const opt = document.createElement('option');
-    opt.value = s.season_number;
-    opt.textContent = `Temporada ${s.season_number}`;
-    temporada.appendChild(opt);
-  });
-  const firstSeason = seasons.find(s => s.season_number !== 0);
-  if (firstSeason) { temporada.value = firstSeason.season_number; }
+  // Não usado no novo modal com steppers
 }
 
 function clearPreview() {
@@ -421,12 +401,153 @@ function setLoading(show) {
   btnCancel.disabled = show;
 }
 
+// ========== FUNÇÕES DE STEPPER (compartilhadas) ==========
+function updateStepperValue(btn, type) {
+  const targetId = btn.dataset.target;
+  const step = parseInt(btn.dataset.step);
+  const hiddenInput = document.getElementById(targetId);
+  const displaySpan = document.getElementById(targetId + 'Display');
+  if (!hiddenInput || !displaySpan) return;
+  let current = parseInt(hiddenInput.value) || 1;
+  let newVal = current + step;
+  const stepperType = btn.dataset.type; // 'temp' ou 'ep'
+  let limits;
+  if (type === 'add') {
+    limits = addSeasonLimits;
+  } else {
+    limits = detailSeasonLimits;
+  }
+
+  if (stepperType === 'temp') {
+    const maxTemp = limits.maxTemp || 1;
+    if (newVal < 1) newVal = 1;
+    if (newVal > maxTemp) newVal = maxTemp;
+    hiddenInput.value = newVal;
+    displaySpan.textContent = newVal;
+    updateEpisodeLimit(stepperType, newVal, limits, type);
+    // Reset episódio para 1
+    let epInput, epDisplay;
+    if (type === 'add') {
+      epInput = addEpisodioInput;
+      epDisplay = addEpisodioDisplay;
+    } else {
+      epInput = detailEpisodioInput;
+      epDisplay = detailEpisodioDisplay;
+    }
+    if (epInput && epDisplay) {
+      epInput.value = 1;
+      epDisplay.textContent = 1;
+    }
+  } else if (stepperType === 'ep') {
+    let currentTemp;
+    if (type === 'add') {
+      currentTemp = parseInt(addTemporadaInput.value) || 1;
+    } else {
+      currentTemp = parseInt(detailTemporadaInput.value) || 1;
+    }
+    const maxEp = limits.maxEpByTemp?.[currentTemp] || 1;
+    if (newVal < 1) newVal = 1;
+    if (newVal > maxEp) newVal = maxEp;
+    hiddenInput.value = newVal;
+    displaySpan.textContent = newVal;
+  }
+}
+
+function updateEpisodeLimit(stepperType, temp, limits, modalType) {
+  const maxEp = limits.maxEpByTemp?.[temp] || 1;
+  let epInput, epDisplay;
+  if (modalType === 'add') {
+    epInput = addEpisodioInput;
+    epDisplay = addEpisodioDisplay;
+  } else {
+    epInput = detailEpisodioInput;
+    epDisplay = detailEpisodioDisplay;
+  }
+  const currentEp = parseInt(epInput.value) || 1;
+  if (currentEp > maxEp) {
+    epInput.value = maxEp;
+    epDisplay.textContent = maxEp;
+  }
+}
+
+function setupSteppers(containerSelector, modalType) {
+  const btns = document.querySelectorAll(containerSelector);
+  btns.forEach(btn => {
+    btn.removeEventListener('click', handleStepperClick);
+    btn.removeEventListener('mousedown', startHold);
+    btn.removeEventListener('mouseup', stopHold);
+    btn.removeEventListener('mouseleave', stopHold);
+    btn.removeEventListener('touchstart', startHoldTouch);
+    btn.removeEventListener('touchend', stopHold);
+    btn.addEventListener('click', handleStepperClick);
+    btn.addEventListener('mousedown', startHold);
+    btn.addEventListener('mouseup', stopHold);
+    btn.addEventListener('mouseleave', stopHold);
+    btn.addEventListener('touchstart', startHoldTouch);
+    btn.addEventListener('touchend', stopHold);
+    // Guarda o tipo de modal (add/detail) no dataset
+    btn.dataset.modalType = modalType;
+  });
+}
+
+function handleStepperClick(e) {
+  const btn = e.currentTarget;
+  const modalType = btn.dataset.modalType || 'detail';
+  updateStepperValue(btn, modalType);
+}
+
+// ===== CONTROLE DE HOLD =====
+let holdTimeout = null;
+let holdInterval = null;
+let holdBtn = null;
+
+function startHold(e) {
+  const btn = e.currentTarget;
+  startHoldTimer(btn);
+}
+
+function startHoldTouch(e) {
+  const btn = e.currentTarget;
+  e.preventDefault();
+  startHoldTimer(btn);
+}
+
+function startHoldTimer(btn) {
+  if (holdBtn === btn && (holdTimeout || holdInterval)) return;
+  clearHold();
+  holdBtn = btn;
+  holdTimeout = setTimeout(() => {
+    const modalType = btn.dataset.modalType || 'detail';
+    updateStepperValue(btn, modalType);
+    holdInterval = setInterval(() => {
+      updateStepperValue(btn, modalType);
+    }, 100);
+    holdTimeout = null;
+  }, 300);
+}
+
+function stopHold() {
+  clearHold();
+}
+
+function clearHold() {
+  if (holdTimeout) {
+    clearTimeout(holdTimeout);
+    holdTimeout = null;
+  }
+  if (holdInterval) {
+    clearInterval(holdInterval);
+    holdInterval = null;
+  }
+  holdBtn = null;
+}
+
 // ========== ADICIONAR/EDITAR ==========
 async function addItem(e) {
   e.preventDefault();
   const nomeVal = nome.value.trim();
-  const tempVal = parseInt(temporada.value);
-  const epVal = parseInt(episodio.value);
+  const tempVal = parseInt(addTemporadaInput.value);
+  const epVal = parseInt(addEpisodioInput.value);
   const statusVal = statusSelect.value;
   const tierVal = tierForm.value || null;
 
@@ -440,7 +561,6 @@ async function addItem(e) {
   if (cachedShowDetails && cachedShowDetails.totalEpisodes > 0) {
     totalEp = cachedShowDetails.totalEpisodes;
     cachedShowDetails.seasons.forEach(s => { if (s.season_number !== 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; });
-    // Extrair ano (para desambiguação)
     if (cachedShowDetails.first_air_date) {
       ano = parseInt(cachedShowDetails.first_air_date.substring(0,4));
     } else if (cachedShowDetails.release_date) {
@@ -457,20 +577,17 @@ async function addItem(e) {
   }
   if (totalEp === 0) { showToast('Não foi possível obter o total de episódios. Tente novamente.'); return; }
 
-  // Verificação de duplicata: usa tmdb_id se disponível, senão fallback para nome+tipo+ano
+  // Verificação de duplicata
   const duplicate = items.some((it, i) => {
     if (i === editingIndex) return false;
     const sameName = it.nome.toLowerCase() === nomeVal.toLowerCase();
     const sameType = it.tipo === tipoVal;
-    // Se ambos têm tmdb_id, compara por ID
     if (it.tmdb_id && selectedTmdbId) {
       return sameName && sameType && it.tmdb_id === selectedTmdbId;
     }
-    // Fallback: usa nome+tipo+ano (se ano disponível)
     if (it.ano && ano) {
       return sameName && sameType && it.ano === ano;
     }
-    // Último fallback: apenas nome+tipo (comportamento antigo)
     return sameName && sameType;
   });
   if (duplicate) { showToast('Este título já existe no seu catálogo.'); return; }
@@ -510,8 +627,6 @@ async function addItem(e) {
   render();
   closeModal();
   form.reset();
-  temporada.value = '';
-  episodio.innerHTML = '';
   clearPreview();
   cachedShowDetails = null;
   suggestions.classList.remove('active');
@@ -520,6 +635,11 @@ async function addItem(e) {
   selectedMediaType = null;
   selectedPosterPath = null;
   selectedAno = null;
+  addTemporadaInput.value = 1;
+  addTemporadaDisplay.textContent = 1;
+  addEpisodioInput.value = 1;
+  addEpisodioDisplay.textContent = 1;
+  addSeasonLimits = {};
 }
 
 // ========== MODAL DE DETALHES ==========
@@ -537,6 +657,24 @@ function openDetailModal(index) {
   detailStartYear.textContent = '--';
   detailEndYear.textContent = '--';
   detailStatusLabel.textContent = '--';
+
+  const seasonMap = item.seasonEpisodesMap || {};
+  const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
+  const maxTemp = tempKeys.length ? Math.max(...tempKeys) : 1;
+  detailSeasonLimits = {
+    maxTemp: maxTemp,
+    maxEpByTemp: seasonMap
+  };
+
+  const tempVal = Math.min(item.temporada || 1, maxTemp);
+  const maxEp = seasonMap[tempVal] || 1;
+  const epVal = Math.min(item.episodio || 1, maxEp);
+
+  detailTemporadaInput.value = tempVal;
+  detailTemporadaDisplay.textContent = tempVal;
+  detailEpisodioInput.value = epVal;
+  detailEpisodioDisplay.textContent = epVal;
+  updateEpisodeLimit('detail', tempVal, detailSeasonLimits, 'detail');
 
   const imagemUrl = item.imagem || null;
   if (imagemUrl) {
@@ -569,12 +707,16 @@ function openDetailModal(index) {
   }
 
   updateTierBadge(item.tier);
+  updateTierBlock(item.tier);
+
   detailModal.classList.add('active');
   document.body.style.overflow = 'hidden';
   const modalElem = detailModal.querySelector('.modal');
   window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
 
   fetchFullDetailsAndPopulate(item);
+
+  setupSteppers('#detailModal .stepper-btn', 'detail');
 }
 
 function updateTierBadge(tier) {
@@ -585,6 +727,14 @@ function updateTierBadge(tier) {
     badge.style.display = 'flex';
     window.anime({ targets: badge, scale: [0.5, 1.2, 1], duration: 400, easing: 'easeOutQuad' });
   } else { badge.style.display = 'none'; }
+}
+
+function updateTierBlock(tier) {
+  const block = detailTierBlock;
+  block.className = 'info-block tier-block';
+  if (tier && TIER_COLORS[tier]) {
+    block.classList.add(getTierClass(tier));
+  }
 }
 
 async function fetchFullDetailsAndPopulate(item) {
@@ -617,7 +767,6 @@ async function fetchFullDetailsAndPopulate(item) {
       }
     }
 
-    // Sinopse e imagem
     let overview = detailsData?.overview || 'Sinopse não disponível.';
     if (imagesData && imagesData.posters && imagesData.posters.length > 0) {
       const poster = imagesData.posters.reduce((a, b) => (a.vote_count || 0) > (b.vote_count || 0) ? a : b);
@@ -631,7 +780,6 @@ async function fetchFullDetailsAndPopulate(item) {
       }
     }
 
-    // Metadados (anos e status traduzido)
     if (detailsData) {
       const start = detailsData.first_air_date
         ? detailsData.first_air_date.substring(0, 4)
@@ -647,12 +795,9 @@ async function fetchFullDetailsAndPopulate(item) {
           end = start;
         }
       }
-      // Se a série não estiver finalizada, 'end' permanece '--'
-
       detailStartYear.textContent = start;
       detailEndYear.textContent = end;
 
-      // Tradução dos status
       const statusMap = {
         'Returning Series': 'Em exibição',
         'Ended': 'Finalizada',
@@ -663,100 +808,36 @@ async function fetchFullDetailsAndPopulate(item) {
       detailStatusLabel.textContent = statusMap[detailsData.status] || detailsData.status || '--';
     }
 
-    // Preencher selects de temporada e episódio
-    if (detailsData && detailsData.seasons) {
-      detailCachedShowDetails = { seasons: detailsData.seasons };
-      populateDetailSeasonsAndEpisodes(item);
-    } else {
-      detailTemporada.innerHTML = `<option value="${item.temporada}">Temporada ${item.temporada}</option>`;
-      const epOpt = document.createElement('option');
-      epOpt.value = item.episodio;
-      epOpt.textContent = item.episodio;
-      detailEpisodio.innerHTML = '';
-      detailEpisodio.appendChild(epOpt);
-    }
-
     detailSinopse.textContent = overview;
     detailLoading.style.display = 'none';
   } catch (e) {
     console.warn('Erro ao buscar detalhes completos:', e);
     detailSinopse.textContent = 'Erro ao carregar sinopse.';
     detailLoading.style.display = 'none';
-    detailTemporada.innerHTML = `<option value="${item.temporada}">Temporada ${item.temporada}</option>`;
-    const epOpt = document.createElement('option');
-    epOpt.value = item.episodio;
-    epOpt.textContent = item.episodio;
-    detailEpisodio.innerHTML = '';
-    detailEpisodio.appendChild(epOpt);
   }
 }
 
-function populateDetailSeasonsAndEpisodes(item) {
-  const seasons = detailCachedShowDetails.seasons || [];
-  const seasonSelect = detailTemporada;
-  const episodeSelect = detailEpisodio;
-
-  seasonSelect.innerHTML = '';
-  seasons.forEach(s => {
-    if (s.season_number === 0) return;
-    const opt = document.createElement('option');
-    opt.value = s.season_number;
-    opt.textContent = `Temporada ${s.season_number}`;
-    seasonSelect.appendChild(opt);
-  });
-
-  if (item.temporada && seasonSelect.querySelector(`option[value="${item.temporada}"]`)) {
-    seasonSelect.value = item.temporada;
-  } else if (seasonSelect.options.length > 0) {
-    seasonSelect.selectedIndex = 0;
-  }
-
-  const currentSeason = parseInt(seasonSelect.value) || 1;
-  populateDetailEpisodeSelect(currentSeason, item.episodio);
-
-  seasonSelect.addEventListener('change', function() {
-    const val = parseInt(this.value);
-    if (val) populateDetailEpisodeSelect(val);
-  });
-}
-
-function populateDetailEpisodeSelect(seasonNumber, currentEp) {
-  const targetSelect = detailEpisodio;
-  targetSelect.innerHTML = '';
-  const seasons = detailCachedShowDetails.seasons || [];
-  const season = seasons.find(s => s.season_number === seasonNumber);
-  if (!season) {
-    const opt = document.createElement('option');
-    opt.value = 1;
-    opt.textContent = '1';
-    targetSelect.appendChild(opt);
-    return;
-  }
-  const totalEp = season.episode_count || 1;
-  for (let i = 1; i <= totalEp; i++) {
-    const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i;
-    targetSelect.appendChild(opt);
-  }
-  if (currentEp && targetSelect.querySelector(`option[value="${currentEp}"]`)) {
-    targetSelect.value = currentEp;
-  }
-}
-
-// ========== SALVAR ALTERAÇÕES NO MODAL DE DETALHES ==========
+// ========== SALVAR ALTERAÇÕES ==========
 async function saveDetailChanges() {
   const index = detailCurrentIndex;
   if (index === null) return;
   const item = items[index];
-  const newTemporada = parseInt(detailTemporada.value);
-  const newEpisodio = parseInt(detailEpisodio.value);
+  const newTemporada = parseInt(detailTemporadaInput.value);
+  const newEpisodio = parseInt(detailEpisodioInput.value);
   const newStatus = detailStatus.value;
   const newTier = detailTier.value || null;
   const newTipo = detailTipo.value;
 
-  if (isNaN(newTemporada) || newTemporada < 1) { showToast('Selecione uma temporada válida.', 2000); return; }
-  if (isNaN(newEpisodio) || newEpisodio < 1) { showToast('Selecione um episódio válido.', 2000); return; }
+  const maxTemp = detailSeasonLimits.maxTemp || 1;
+  const maxEp = detailSeasonLimits.maxEpByTemp?.[newTemporada] || 1;
+  if (newTemporada < 1 || newTemporada > maxTemp) {
+    showToast(`Temporada deve estar entre 1 e ${maxTemp}.`, 2500);
+    return;
+  }
+  if (newEpisodio < 1 || newEpisodio > maxEp) {
+    showToast(`Episódio deve estar entre 1 e ${maxEp} para a temporada ${newTemporada}.`, 2500);
+    return;
+  }
 
   try {
     const updates = { temporada: newTemporada, episodio: newEpisodio, status: newStatus, tier: newTier, tipo: newTipo };
@@ -786,17 +867,29 @@ function closeDetailModal() {
   detailModal.classList.remove('active');
   document.body.style.overflow = '';
   detailCurrentIndex = null;
-  detailCachedShowDetails = null;
+  detailSeasonLimits = {};
+  clearHold();
 }
 
-// ========== ANIMAÇÕES NOS SELECTS ==========
-document.querySelectorAll('.detail-form select, .detail-form input').forEach(el => {
-  el.addEventListener('focus', () => { window.anime({ targets: el, scale: 1.02, duration: 200, easing: 'easeOutQuad' }); });
-  el.addEventListener('blur', () => { window.anime({ targets: el, scale: 1, duration: 200, easing: 'easeOutQuad' }); });
+// ========== EVENTOS ==========
+detailTier.addEventListener('change', function() {
+  const tier = this.value;
+  updateTierBadge(tier);
+  updateTierBlock(tier);
 });
-detailTier.addEventListener('change', function() { updateTierBadge(this.value); });
 
-// ========== SUGESTÕES RICAS ==========
+detailClose.addEventListener('click', closeDetailModal);
+detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (detailModal.classList.contains('active')) closeDetailModal();
+    else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
+  }
+});
+detailSave.addEventListener('click', saveDetailChanges);
+detailDelete.addEventListener('click', deleteFromDetail);
+
+// ========== SUGESTÕES ==========
 let suggestionTimeout = null;
 nome.addEventListener('input', () => {
   clearTimeout(suggestionTimeout);
@@ -839,29 +932,38 @@ nome.addEventListener('input', () => {
             const tvId = div.dataset.id;
             callTMDB(`tv/${tvId}`, {}, 'pt-BR').then(details => {
               cachedShowDetails = { totalEpisodes: details.number_of_episodes || 0, seasons: details.seasons || [] };
-              // Extrair ano para desambiguação
               if (details.first_air_date) {
                 selectedAno = parseInt(details.first_air_date.substring(0,4));
               } else if (details.release_date) {
                 selectedAno = parseInt(details.release_date.substring(0,4));
               }
-              populateSeasons(cachedShowDetails.seasons);
-              if (temporada.value) {
-                const seasonNum = parseInt(temporada.value);
-                populateEpisodeSelect(seasonNum, episodio);
-              }
+              // Preencher limites dos steppers de adição
+              const seasonMap = {};
+              details.seasons.forEach(s => { if (s.season_number !== 0) seasonMap[s.season_number] = s.episode_count || 0; });
+              const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
+              const maxTemp = tempKeys.length ? Math.max(...tempKeys) : 1;
+              addSeasonLimits = { maxTemp, maxEpByTemp: seasonMap };
+              // Resetar steppers para 1
+              addTemporadaInput.value = 1;
+              addTemporadaDisplay.textContent = 1;
+              addEpisodioInput.value = 1;
+              addEpisodioDisplay.textContent = 1;
               showToast(`Total de episódios: ${cachedShowDetails.totalEpisodes}`, 2000);
               setLoading(false);
             }).catch(() => { showToast('Não foi possível buscar detalhes.', 2000); setLoading(false); });
           } else {
             cachedShowDetails = { totalEpisodes: 1, seasons: [{ season_number: 1, episode_count: 1 }] };
             selectedAno = parseInt(year) || null;
-            populateSeasons(cachedShowDetails.seasons);
-            temporada.value = 1;
-            populateEpisodeSelect(1, episodio);
+            addSeasonLimits = { maxTemp: 1, maxEpByTemp: {1: 1} };
+            addTemporadaInput.value = 1;
+            addTemporadaDisplay.textContent = 1;
+            addEpisodioInput.value = 1;
+            addEpisodioDisplay.textContent = 1;
             showToast('Filme único (1 episódio)', 1500);
             setLoading(false);
           }
+          // Configurar steppers da adição
+          setupSteppers('#modalOverlay .stepper-btn', 'add');
         });
         suggestions.appendChild(div);
       });
@@ -871,47 +973,18 @@ nome.addEventListener('input', () => {
 });
 document.addEventListener('click', (e) => { if (!e.target.closest('.form-group')) suggestions.classList.remove('active'); });
 
-// ========== EVENTO MUDANÇA DE TEMPORADA (ADIÇÃO) ==========
-temporada.addEventListener('change', function() {
-  const val = parseInt(this.value);
-  if (val && cachedShowDetails) {
-    populateEpisodeSelect(val, episodio);
-  } else {
-    episodio.innerHTML = '';
-  }
-});
-
-// ========== BOTÃO CONCLUÍDO ==========
-document.getElementById('btnConcluido').addEventListener('click', async function() {
-  const nomeVal = nome.value.trim();
-  if (!nomeVal) { showToast('Digite o nome do título primeiro.', 3000); return; }
-  if (!cachedShowDetails || !cachedShowDetails.seasons) {
-    setLoading(true);
-    try {
-      await fetchDetailsAndThen(nomeVal, selectedTmdbId, selectedMediaType);
-      if (cachedShowDetails && cachedShowDetails.seasons) {
-        populateSeasons(cachedShowDetails.seasons);
-        const firstSeason = cachedShowDetails.seasons.find(s => s.season_number !== 0);
-        if (firstSeason) {
-          temporada.value = firstSeason.season_number;
-          populateEpisodeSelect(firstSeason.season_number, episodio);
-        }
-      }
-    } catch (e) { showToast('Erro ao buscar detalhes. Tente novamente.', 3000); setLoading(false); return; }
-    setLoading(false);
-  }
-  const seasons = cachedShowDetails.seasons.filter(s => s.season_number !== 0);
-  if (seasons.length === 0) { showToast('Nenhuma temporada encontrada.', 3000); return; }
-  const lastSeason = seasons.reduce((a, b) => a.season_number > b.season_number ? a : b);
-  const lastSeasonNumber = lastSeason.season_number;
-  const lastEpisodeCount = lastSeason.episode_count || 0;
-  if (lastEpisodeCount === 0) { showToast('Não foi possível determinar o número de episódios.', 3000); return; }
-  temporada.value = lastSeasonNumber;
-  populateEpisodeSelect(lastSeasonNumber, episodio);
-  episodio.value = lastEpisodeCount;
+// ========== BOTÃO CONCLUÍDO (modal de adição) ==========
+document.getElementById('btnConcluido').addEventListener('click', function() {
+  const maxTemp = addSeasonLimits.maxTemp || 1;
+  if (maxTemp === 0) { showToast('Selecione um título primeiro.', 2000); return; }
+  const maxEp = addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
+  addTemporadaInput.value = maxTemp;
+  addTemporadaDisplay.textContent = maxTemp;
+  addEpisodioInput.value = maxEp;
+  addEpisodioDisplay.textContent = maxEp;
   statusSelect.value = 'concluido';
   btnSubmit.focus();
-  showToast(`Concluído! T${lastSeasonNumber} • Ep ${lastEpisodeCount}`, 2500);
+  showToast(`Concluído! T${maxTemp} • Ep ${maxEp}`, 2500);
 });
 
 // ========== NAVEGAÇÃO ==========
@@ -924,19 +997,22 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
-// ========== TOOLBAR ==========
 openFormBtn.addEventListener('click', () => {
   if (editingIndex !== null) cancelEdit();
   clearPreview();
   cachedShowDetails = null;
-  temporada.innerHTML = '<option value="">Selecione</option>';
-  episodio.innerHTML = '';
   statusSelect.value = 'assistindo';
   tierForm.value = '';
   selectedTmdbId = null;
   selectedMediaType = null;
   selectedPosterPath = null;
   selectedAno = null;
+  addTemporadaInput.value = 1;
+  addTemporadaDisplay.textContent = 1;
+  addEpisodioInput.value = 1;
+  addEpisodioDisplay.textContent = 1;
+  addSeasonLimits = {};
+  setupSteppers('#modalOverlay .stepper-btn', 'add');
   openModal();
 });
 modalClose.addEventListener('click', () => { cancelEdit(); closeModal(); });
@@ -946,7 +1022,6 @@ filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
-// ========== DENSIDADE E AGRUPAMENTO ==========
 densitySelect.value = gridDensity;
 densitySelect.addEventListener('change', function() {
   gridDensity = parseInt(this.value);
@@ -961,19 +1036,6 @@ groupToggle.addEventListener('click', () => {
   render();
 });
 
-// ========== DETAIL EVENTS ==========
-detailClose.addEventListener('click', closeDetailModal);
-detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (detailModal.classList.contains('active')) closeDetailModal();
-    else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
-  }
-});
-detailSave.addEventListener('click', saveDetailChanges);
-detailDelete.addEventListener('click', deleteFromDetail);
-
-// ========== MODAL ADIÇÃO ==========
 function openModal() {
   modalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -989,8 +1051,6 @@ function cancelEdit() {
   modalTitle.innerHTML = '<i class="fas fa-pen"></i> Adicionar título';
   btnCancel.style.display = 'inline-flex';
   form.reset();
-  temporada.value = '';
-  episodio.innerHTML = '';
   clearPreview();
   cachedShowDetails = null;
   suggestions.classList.remove('active');
@@ -1000,17 +1060,19 @@ function cancelEdit() {
   selectedMediaType = null;
   selectedPosterPath = null;
   selectedAno = null;
+  addTemporadaInput.value = 1;
+  addTemporadaDisplay.textContent = 1;
+  addEpisodioInput.value = 1;
+  addEpisodioDisplay.textContent = 1;
+  addSeasonLimits = {};
 }
 
-// ========== EXPORT / IMPORT ==========
 document.getElementById('exportBtn').style.display = 'none';
 document.getElementById('importBtn').style.display = 'none';
 
-// ========== EVENTOS DO FORM ==========
 form.addEventListener('submit', addItem);
 btnCancel.addEventListener('click', cancelEdit);
 
-// ========== TEMA ==========
 themeToggle.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme');
   const newTheme = current === 'dark' ? 'light' : 'dark';
