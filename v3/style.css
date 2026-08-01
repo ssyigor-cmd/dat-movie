@@ -184,7 +184,7 @@ body {
 .stat-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
 
 /* ================================================================
-   BENTO "CONTINUANDO" – OPÇÃO 1 (grid uniforme)
+   BENTO "CONTINUANDO"
    ================================================================ */
 .continue-section { margin-bottom: 28px; }
 .section-heading {
@@ -198,68 +198,22 @@ body {
   gap: 8px;
 }
 .section-heading i { color: var(--accent); font-size: 0.8rem; }
-
-/* Grid uniforme com 3 colunas, cards horizontais */
 .continue-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.continue-grid .card {
-  flex-direction: row;
-  align-items: center;
-  padding: 12px 16px;
-  min-height: 100px;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 108px;
   gap: 14px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--glass-border);
 }
-.continue-grid .card-img {
-  width: 80px;
-  height: 120px;
-  flex-shrink: 0;
-  aspect-ratio: 2/3;
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-.continue-grid .card-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.continue-grid .card-body {
-  flex: 1;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.continue-grid .card-body .badge {
-  font-size: 0.55rem;
-  padding: 1px 6px;
-}
-.continue-grid .card-body h3 {
-  font-size: 0.9rem;
-  white-space: normal;
-  line-height: 1.3;
-}
-.continue-grid .card-body .info {
-  font-size: 0.65rem;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-}
-.continue-grid .progress-wrap {
-  margin-top: 4px;
-  height: 4px;
-}
-.continue-grid .card-hero,
-.continue-grid .card-hero-full,
-.continue-grid .card-tall {
-  grid-column: auto;
-  grid-row: auto;
-}
+.continue-grid .card-hero { grid-column: span 2; grid-row: span 2; }
+.continue-grid .card-hero-full { grid-column: span 4; grid-row: span 2; }
+.continue-grid .card-tall { grid-column: span 1; grid-row: span 2; }
+.continue-grid .card { height: 100%; }
+.continue-grid .card-img { aspect-ratio: auto; flex: 1; min-height: 0; }
+.continue-grid .card-hero .card-body, .continue-grid .card-hero-full .card-body { padding: 16px 18px; }
+.continue-grid .card-hero h3, .continue-grid .card-hero-full h3 { font-size: 1.1rem; white-space: normal; }
+.continue-grid .card-hero .info, .continue-grid .card-hero-full .info { font-size: 0.78rem; }
+.continue-grid .card-tall .card-body { padding: 10px 12px; }
+.continue-grid .card-tall h3 { font-size: 0.78rem; }
 
 /* ================================================================
    TOOLBAR
@@ -757,23 +711,6 @@ button.secondary:hover { background: var(--bg-elevated-hover); color: var(--text
   .suggestions-wrapper { flex-direction: column; min-height: unset; }
   .poster-preview { width: 100%; height: 160px; flex-shrink: unset; }
   .modal-add .modal { padding: 16px; }
-
-  /* Continuando responsivo */
-  .continue-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-  .continue-grid .card {
-    padding: 10px 12px;
-    min-height: 80px;
-  }
-  .continue-grid .card-img {
-    width: 60px;
-    height: 90px;
-  }
-  .continue-grid .card-body h3 {
-    font-size: 0.8rem;
-  }
 }
 @media (max-width: 700px) {
   body { flex-direction: column; }
@@ -791,6 +728,7 @@ button.secondary:hover { background: var(--bg-elevated-hover); color: var(--text
   .stat-item:first-child { grid-column: 1 / 3; grid-row: auto; padding: 12px 14px; }
   .stat-item:first-child .stat-number { font-size: 1.8rem; }
   .continue-grid { grid-template-columns: repeat(2, 1fr); }
+  .continue-grid .card-hero, .continue-grid .card-hero-full { grid-column: 1 / 3; }
   .toolbar { flex-direction: column; align-items: stretch; }
   .filter-wrapper { width: 100%; justify-content: space-between; }
   .filter-wrapper select { flex: 1; min-width: 0; }
@@ -804,21 +742,11 @@ button.secondary:hover { background: var(--bg-elevated-hover); color: var(--text
   .card-body { padding: 10px; }
   .card-body h3 { font-size: 0.75rem; }
   .stats { gap: 8px; }
-  .continue-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  .continue-grid { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .continue-grid .card-hero, .continue-grid .card-hero-full, .continue-grid .card-tall {
+    grid-column: 1 / -1; grid-row: auto;
   }
-  .continue-grid .card {
-    padding: 8px 12px;
-    min-height: 70px;
-  }
-  .continue-grid .card-img {
-    width: 50px;
-    height: 75px;
-  }
-  .continue-grid .card-body h3 {
-    font-size: 0.75rem;
-  }
+  .continue-grid .card-img { aspect-ratio: 2/3; flex: none; }
 }
 
 button:focus-visible, input:focus-visible, select:focus-visible {
