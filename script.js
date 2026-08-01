@@ -36,6 +36,28 @@ const formLoading = $('formLoading');
 const toast = $('toast');
 const densitySelect = $('densitySelect');
 const groupToggle = $('groupToggle');
+const logoutBtn = $('logoutBtn');
+
+// ========== SEGURANÇA: escape de HTML ==========
+// Usado sempre que um valor digitado pelo usuário (ou vindo de uma API externa)
+// é inserido via innerHTML, para evitar XSS armazenado.
+function escapeHTML(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+// Mostra uma mensagem genérica para o usuário e loga o erro real só no console,
+// evitando expor detalhes internos (mensagens do Supabase/JS) na interface.
+function showErrorToast(userMessage, error, duration = 3000) {
+  if (error) console.error(userMessage, error);
+  showToast(userMessage, duration);
+}
 
 // ADD MODAL (com steppers)
 const addTemporadaInput = $('addTemporada');
@@ -114,7 +136,6 @@ async function checkSession() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     setAuthUI(false);
-    console.log('Usuário logado:', session.user.email);
     await loadItems();
   } else {
     setAuthUI(true);
@@ -126,8 +147,18 @@ authLoginBtn.addEventListener('click', async (e) => {
   const email = authEmail.value.trim();
   const password = authPassword.value.trim();
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+  authLoginBtn.disabled = true;
+  authSignupBtn.disabled = true;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) { authMessage.textContent = 'Erro: ' + error.message; } else { authMessage.textContent = 'Login realizado!'; await checkSession(); }
+  authLoginBtn.disabled = false;
+  authSignupBtn.disabled = false;
+  if (error) {
+    console.error('Erro de login:', error);
+    authMessage.textContent = 'Não foi possível entrar. Verifique seu email e senha.';
+  } else {
+    authMessage.textContent = 'Login realizado!';
+    await checkSession();
+  }
 });
 
 authSignupBtn.addEventListener('click', async (e) => {
@@ -135,18 +166,23 @@ authSignupBtn.addEventListener('click', async (e) => {
   const email = authEmail.value.trim();
   const password = authPassword.value.trim();
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+  authLoginBtn.disabled = true;
+  authSignupBtn.disabled = true;
   const { error } = await supabase.auth.signUp({ email, password });
-  if (error) { authMessage.textContent = 'Erro: ' + error.message; } else { authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.'; }
+  authLoginBtn.disabled = false;
+  authSignupBtn.disabled = false;
+  if (error) {
+    console.error('Erro de cadastro:', error);
+    authMessage.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
+  } else {
+    authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.';
+  }
 });
 
-const logoutBtn = document.createElement('button');
-logoutBtn.className = 'nav-item';
-logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> <span>Sair</span>';
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
   await checkSession();
 });
-document.querySelector('.sidebar-footer').appendChild(logoutBtn);
 
 checkSession();
 
@@ -300,7 +336,7 @@ function render() {
       if (itemsInTier.length === 0) continue;
       const header = document.createElement('div');
       header.className = `group-header ${tier ? getTierClass(tier) : 'tier-null'}`;
-      header.innerHTML = `<h3>${tier || 'Sem tier'}</h3><span class="group-count">${itemsInTier.length}</span>`;
+      header.innerHTML = `<h3>${escapeHTML(tier) || 'Sem tier'}</h3><span class="group-count">${itemsInTier.length}</span>`;
       fragment.appendChild(header);
       itemsInTier.forEach((item) => fragment.appendChild(createCardElement(item)));
     }
@@ -319,16 +355,18 @@ function createCardElement(item) {
   const card = document.createElement('div');
   card.className = 'card';
   card.dataset.index = realIndex;
-  const tierBadgeHtml = item.tier ? `<div class="card-tier-badge ${getTierClass(item.tier)}">${item.tier}</div>` : '';
+  const tierBadgeHtml = item.tier ? `<div class="card-tier-badge ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>` : '';
   const anoDisplay = item.ano ? ` (${item.ano})` : '';
+  const safeNome = escapeHTML(item.nome); // evita XSS armazenado: "nome" é digitado pelo usuário
+  const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';
   card.innerHTML = `
     <div class="card-img" data-index="${realIndex}">
-      ${item.imagem ? `<img src="${item.imagem}" alt="${item.nome}" loading="lazy" />` : `<i class="fas ${icon}" style="font-size:1.8rem; opacity:0.3;"></i>`}
+      ${safeImagem ? `<img src="${safeImagem}" alt="${safeNome}" loading="lazy" />` : `<i class="fas ${icon}" style="font-size:1.8rem; opacity:0.3;"></i>`}
       ${tierBadgeHtml}
     </div>
     <div class="card-body">
       <span class="badge">${tipoLabel}</span>
-      <h3 title="${item.nome}${anoDisplay}">${item.nome}${anoDisplay}</h3>
+      <h3 title="${safeNome}${anoDisplay}">${safeNome}${anoDisplay}</h3>
       <div class="info"><span>T${item.temporada} • Ep ${item.episodio}/${item.totalEpisodios}</span><span>${progress}%</span></div>
       <div class="progress-wrap"><div class="progress-bar" style="width:${progress}%;"></div></div>
     </div>
@@ -552,6 +590,7 @@ async function addItem(e) {
   const tierVal = tierForm.value || null;
 
   if (!nomeVal) { showToast('Digite o nome.'); return; }
+  if (nomeVal.length > 150) { showToast('Nome muito longo (máx. 150 caracteres).'); return; }
   if (isNaN(tempVal) || tempVal < 1) { showToast('Selecione uma temporada válida.'); return; }
   if (isNaN(epVal) || epVal < 1) { showToast('Selecione um episódio válido.'); return; }
   const tipoVal = tipo.value;
@@ -622,7 +661,7 @@ async function addItem(e) {
       showToast('Item adicionado!');
       await fetchImageAndUpdate(nomeVal, items.length - 1, selectedPosterPath);
     }
-  } catch (error) { showToast('Erro: ' + error.message, 3000); console.error(error); return; }
+  } catch (error) { showErrorToast('Não foi possível salvar o item. Tente novamente.', error); return; }
 
   render();
   closeModal();
@@ -846,7 +885,7 @@ async function saveDetailChanges() {
     render();
     showToast('Alterações salvas!', 2000);
     closeDetailModal();
-  } catch (error) { showToast('Erro ao salvar: ' + error.message, 3000); }
+  } catch (error) { showErrorToast('Não foi possível salvar as alterações.', error); }
 }
 
 async function deleteFromDetail() {
@@ -860,7 +899,7 @@ async function deleteFromDetail() {
     render();
     showToast('Item removido.', 2000);
     closeDetailModal();
-  } catch (error) { showToast('Erro ao remover: ' + error.message, 3000); }
+  } catch (error) { showErrorToast('Não foi possível remover o item.', error); }
 }
 
 function closeDetailModal() {
@@ -910,10 +949,11 @@ nome.addEventListener('input', () => {
         div.dataset.id = res.id;
         div.dataset.mediaType = res.media_type;
         div.dataset.poster = res.poster_path || '';
+        const safeName = escapeHTML(name); // dado externo (TMDB); escapado por precaução
         div.innerHTML = `
-          <img src="${poster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${name}" />
+          <img src="${poster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${safeName}" />
           <div class="info">
-            <div class="title">${name}</div>
+            <div class="title">${safeName}</div>
             <div class="sub">
               <span class="year">${year || '--'}</span>
               <span class="type">${mediaType}</span>
@@ -1067,9 +1107,6 @@ function cancelEdit() {
   addSeasonLimits = {};
 }
 
-document.getElementById('exportBtn').style.display = 'none';
-document.getElementById('importBtn').style.display = 'none';
-
 form.addEventListener('submit', addItem);
 btnCancel.addEventListener('click', cancelEdit);
 
@@ -1087,4 +1124,3 @@ const icon = themeToggle.querySelector('i');
 icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 
 window.items = items;
-console.log('Script carregado com sucesso!');
