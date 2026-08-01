@@ -12,7 +12,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   <!--
     NOTA DE SEGURANÇA: adicione o atributo "integrity" (SRI) aqui assim que
     gerar o hash correto em https://www.srihash.org/ para esta versão exata
@@ -89,6 +89,11 @@
         <div class="stat-item"><span class="stat-number" id="serieCount">0</span><span class="stat-label">Séries</span></div>
       </div>
     </header>
+
+    <section class="continue-section" id="continueSection" style="display:none;">
+      <h2 class="section-heading"><i class="fas fa-play"></i> Continuando</h2>
+      <div id="continueGrid" class="continue-grid"></div>
+    </section>
 
     <div class="toolbar">
       <div class="search-wrapper">

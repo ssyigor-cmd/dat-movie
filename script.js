@@ -37,6 +37,8 @@ const toast = $('toast');
 const densitySelect = $('densitySelect');
 const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
+const continueSection = $('continueSection');
+const continueGrid = $('continueGrid');
 
 // ========== SEGURANÇA: escape de HTML ==========
 // Usado sempre que um valor digitado pelo usuário (ou vindo de uma API externa)
@@ -273,8 +275,36 @@ async function callTMDB(endpoint, params = {}, lang = 'pt-BR') {
   return data;
 }
 
+// ========== BENTO "CONTINUANDO" ==========
+// Destaca até 3 títulos com status "assistindo" do tab atual, em tiles de
+// tamanhos variados (o primeiro maior). É um recorte fixo (não afetado por
+// busca/ordenação) para não brigar com a listagem principal, que continua
+// uniforme para poder ser filtrada/ordenada sem ficar bagunçada visualmente.
+function renderContinueWatching() {
+  let pool = items.slice();
+  if (currentTab !== 'all') pool = pool.filter(i => i.tipo === currentTab);
+  pool = pool.filter(i => i.status === 'assistindo');
+  pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
+  const top = pool.slice(0, 3);
+
+  continueGrid.innerHTML = '';
+  if (!top.length) { continueSection.style.display = 'none'; return; }
+  continueSection.style.display = '';
+
+  const fragment = document.createDocumentFragment();
+  top.forEach((item, i) => {
+    let variant;
+    if (top.length === 1) variant = 'hero-full';
+    else if (top.length === 2) variant = 'hero';
+    else variant = i === 0 ? 'hero' : 'tall';
+    fragment.appendChild(createCardElement(item, variant));
+  });
+  continueGrid.appendChild(fragment);
+}
+
 // ========== RENDER ==========
 function render() {
+  renderContinueWatching();
   const tab = currentTab;
   const search = searchInput.value.toLowerCase().trim();
   const statusFilter = filterStatus.value;
@@ -347,22 +377,22 @@ function render() {
 }
 
 // ========== CRIAR CARD ==========
-function createCardElement(item) {
+function createCardElement(item, variant = null) {
   const realIndex = items.indexOf(item);
   const progress = calcularProgresso(item);
   const icon = item.tipo === 'anime' ? 'fa-tv' : item.tipo === 'animacao' ? 'fa-paint-brush' : 'fa-video';
   const tipoLabel = item.tipo === 'anime' ? 'Anime' : item.tipo === 'animacao' ? 'Animação' : 'Série';
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = variant ? `card card-${variant}` : 'card';
   card.dataset.index = realIndex;
-  const tierBadgeHtml = item.tier ? `<div class="card-tier-badge ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>` : '';
+  const tierStampHtml = item.tier ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>` : '';
   const anoDisplay = item.ano ? ` (${item.ano})` : '';
   const safeNome = escapeHTML(item.nome); // evita XSS armazenado: "nome" é digitado pelo usuário
   const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';
   card.innerHTML = `
     <div class="card-img" data-index="${realIndex}">
       ${safeImagem ? `<img src="${safeImagem}" alt="${safeNome}" loading="lazy" />` : `<i class="fas ${icon}" style="font-size:1.8rem; opacity:0.3;"></i>`}
-      ${tierBadgeHtml}
+      ${tierStampHtml}
     </div>
     <div class="card-body">
       <span class="badge">${tipoLabel}</span>
