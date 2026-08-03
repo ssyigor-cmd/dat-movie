@@ -3,45 +3,56 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-````markdown
-# Dat-Movie
+# 🎬 Dat-Movie
 
-Catálogo pessoal de animes, animações e séries – com filtros, ordenação, temas claro/escuro e busca automática de informações via API TMDb.
+Catálogo pessoal de animes, animações e séries – com autenticação, busca estilo IMDb, tier system e persistência na nuvem com Supabase.
 
-## Como usar
-
-1. Clone o repositório ou baixe os arquivos:
-   git clone https://github.com/seu-usuario/dat-movie.git
-   cd dat-movie
-
-2. Abra o projeto com um servidor local (recomendado para funcionamento da API):
-   npx live-server
-   ou simplesmente abra o arquivo index.html no navegador.
+---
 
 ## Funcionalidades
 
-- Adicionar animes, animações e séries com nome, temporada, episódio atual, status e nota (1–5)
-- Busca automática de pôster, total de episódios e temporadas via API TMDb
-- Filtros por status (Assistindo, Concluído, Planejado, Pausado)
-- Ordenação por nome, progresso, data de adição, nota e temporada
-- Visualização em grade ou lista
-- Temas claro e escuro
-- Barra de progresso com cálculo acumulado (temporadas anteriores + atual)
-- Pré-visualização do pôster ao selecionar um título
-- Exportar e importar dados (backup em JSON)
-- Persistência local com localStorage
-- Design moderno com paleta Red-Purple e efeito glassmorphism
+- Autenticação (login/cadastro) com Supabase
+- Busca de títulos com sugestões (pôster, ano, tipo)
+- Tiers de qualidade (S+ a D) com selo visual nos cards
+- Modal de detalhes com sinopse, imagem, steppers (clicar e segurar) e edição de temporada/episódio
+- Filtros por status, tier, ordenação e agrupamento
+- Seção "Continuando" com os títulos em andamento
+- Temas claro/escuro
+- Barra de progresso acumulado
+- Animações com anime.js
 
-## Arquivos principais
+---
 
-- index.html : Estrutura da página e formulário
-- style.css : Estilos, temas, responsividade e animações
-- script.js : Toda a lógica, API, filtros, ordenação, persistência e acessibilidade
+## Tecnologias
 
-## Deploy
+- HTML, CSS (variáveis, grid, glassmorphism), JavaScript (ES modules)
+- Vite (build)
+- Supabase (PostgreSQL + Auth + RLS)
+- TMDb (via Edge Function)
+- anime.js, Font Awesome, Google Fonts
 
-Para gerar uma versão estática (pode ser hospedada no GitHub Pages, Netlify, Vercel, etc.), basta enviar a pasta com os três arquivos para o serviço de sua preferência.
+---
 
-## Licença
+## Como rodar
 
+```bash
+git clone https://github.com/ssyigor-cmd/dat-movie.git
+cd dat-movie
+npm install
+```
+
+
+Crie um arquivo .env:
+
+```env
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon
+```
+Inicie o servidor:
+
+```bash
+npm run dev
+```
+
+Licença
 MIT
