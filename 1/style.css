@@ -477,11 +477,8 @@ body {
   flex-direction: column;
   position: relative;
   will-change: transform;
-  cursor: pointer;
 }
 .card:hover { transform: translateY(-8px) scale(1.01); border-color: var(--glass-border-strong); box-shadow: var(--shadow-lg); }
-.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; transform: translateY(-8px) scale(1.01); border-color: var(--glass-border-strong); box-shadow: var(--shadow-lg); }
-.card-img { cursor: default; } /* o clique agora é tratado pelo .card inteiro, não só pela imagem */
 
 /* ---- Selo de tier ---- */
 .tier-stamp {
@@ -585,7 +582,7 @@ body {
 .modal-overlay.active .modal { transform: translateY(0); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-header h2 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-.modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; }
 .modal-close:hover { color: var(--text-primary); transform: rotate(90deg); }
 
 /* ================================================================
@@ -758,9 +755,6 @@ body {
   align-items: center;
   gap: 8px;
 }
-.season-header {
-  min-height: 44px;
-}
 .season-toggle {
   background: transparent;
   border: none;
@@ -775,11 +769,6 @@ body {
   align-items: center;
   justify-content: center;
 }
-.season-header:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
 .season-toggle.collapsed {
   transform: rotate(-90deg);
 }
@@ -791,8 +780,7 @@ body {
   opacity: 0;
 }
 .season-episodes.expanded {
-  /* max-height real é calculado e aplicado via JS (scrollHeight), pois um valor fixo
-     cortava temporadas com muitos episódios. Este valor é só um fallback de segurança. */
+  max-height: 2000px;
   opacity: 1;
   transition: max-height 0.6s ease, opacity 0.4s ease;
 }
@@ -897,7 +885,7 @@ body {
 }
 .stepper-controls { display: flex; align-items: center; gap: 12px; }
 .stepper-btn {
-  width: 44px; height: 44px; border-radius: 50%; border: none; display: flex; align-items: center;
+  width: 36px; height: 36px; border-radius: 50%; border: none; display: flex; align-items: center;
   justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.1s;
   background: rgba(var(--bg-elevated-rgb), 0.6); color: var(--text-muted); font-size: 0.9rem; border: 1px solid var(--glass-border);
 }
@@ -1173,17 +1161,9 @@ button.secondary:hover { background: var(--bg-elevated-hover); color: var(--text
     position: sticky; top: 0; border-right: none; border-bottom: 1px solid var(--glass-border);
   }
   .sidebar.collapsed { width: 100%; padding: 8px 12px; }
-  /* Especificidade reforçada (mesma cadeia .sidebar.collapsed usada na regra que oculta os
-     rótulos) para garantir que, mesmo que o estado "colapsado" tenha ficado salvo de uma
-     sessão em desktop, os rótulos voltem a aparecer no layout mobile — o botão de alternar
-     fica oculto aqui embaixo, então sem isso o usuário ficaria preso sem rótulos e sem
-     como reverter. O JS também limpa esse estado ao entrar nesse breakpoint (ver script.js). */
-  .sidebar.collapsed .sidebar-brand .brand-text,
-  .sidebar.collapsed .nav-item span,
   .sidebar .sidebar-brand .brand-text,
   .sidebar .nav-item span { display: inline; }
   .sidebar .nav-item { padding: 6px 10px; font-size: 0.75rem; }
-  .sidebar.collapsed .sidebar-footer .nav-item span,
   .sidebar .sidebar-footer .nav-item span { display: inline; }
   .sidebar .sidebar-toggle { display: none; }
   .main-content { max-width: 100%; padding: 12px; }
@@ -1198,7 +1178,7 @@ button.secondary:hover { background: var(--bg-elevated-hover); color: var(--text
   .grid-cols-10, .grid-cols-8, .grid-cols-6 { grid-template-columns: repeat(3, 1fr); }
   .modal { padding: 20px; max-width: 100%; }
   .form-row { flex-direction: column; gap: 10px; }
-  .theme-toggle { top: 8px; right: 10px; width: 44px; height: 44px; font-size: 1rem; }
+  .theme-toggle { top: 8px; right: 10px; width: 32px; height: 32px; font-size: 0.9rem; }
   .profile-dropdown { bottom: 50px; left: -10px; right: -10px; }
   .detail-links {
     flex-direction: column;
