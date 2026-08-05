@@ -3,7 +3,6 @@ import { supabase } from './src/lib/supabase.js';
 // ========== ELEMENTOS DOM ==========
 const $ = (id) => document.getElementById(id);
 const authContainer = $('authContainer');
-const authForm = $('authForm');
 const authEmail = $('authEmail');
 const authPassword = $('authPassword');
 const authLoginBtn = $('authLoginBtn');
@@ -14,6 +13,10 @@ const searchInput = $('searchInput');
 const filterStatus = $('filterStatus');
 const filterTier = $('filterTier');
 const sortOrder = $('sortOrder');
+const totalCount = $('totalCount');
+const animeCount = $('animeCount');
+const animacaoCount = $('animacaoCount');
+const serieCount = $('serieCount');
 const themeToggle = $('themeToggle');
 const openFormBtn = $('openFormBtn');
 const modalOverlay = $('modalOverlay');
@@ -159,35 +162,18 @@ function initOrb() {
 initOrb();
 
 // ========== SIDEBAR TOGGLE ==========
-// Abaixo de 700px a sidebar vira uma barra horizontal fixa e o botão de colapsar
-// fica oculto (CSS). Se o estado "collapsed" (salvo de uma sessão desktop) for
-// aplicado nessa largura, o usuário fica preso sem rótulos e sem como reverter.
-// Por isso ignoramos/limpamos o estado colapsado nesses breakpoints.
-const mobileLayoutQuery = window.matchMedia('(max-width: 700px)');
-
 function toggleSidebar() {
-  if (mobileLayoutQuery.matches) return; // botão já fica oculto via CSS nesta largura, mas garante no JS também
   const collapsed = sidebar.classList.toggle('collapsed');
   localStorage.setItem('sidebarCollapsed', collapsed);
   sidebarToggleIcon.className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
 }
 sidebarToggle.addEventListener('click', toggleSidebar);
 
-function applySidebarCollapseForViewport() {
-  const savedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-  if (mobileLayoutQuery.matches) {
-    // Nunca deixa a sidebar colapsada no layout mobile
-    sidebar.classList.remove('collapsed');
-  } else if (savedCollapsed) {
-    sidebar.classList.add('collapsed');
-    sidebarToggleIcon.className = 'fas fa-chevron-right';
-  } else {
-    sidebar.classList.remove('collapsed');
-    sidebarToggleIcon.className = 'fas fa-chevron-left';
-  }
+const savedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+if (savedCollapsed) {
+  sidebar.classList.add('collapsed');
+  sidebarToggleIcon.className = 'fas fa-chevron-right';
 }
-applySidebarCollapseForViewport();
-mobileLayoutQuery.addEventListener('change', applySidebarCollapseForViewport);
 
 // ADD MODAL
 const addTemporadaInput = $('addTemporada');
@@ -245,49 +231,6 @@ const TIER_COLORS = {
   'D': 'tier-D'
 };
 
-// ========== FOCUS TRAP (ACESSIBILIDADE DE MODAIS) ==========
-let activeFocusTrapHandler = null;
-let lastFocusedBeforeModal = null;
-
-function trapFocus(modalRoot) {
-  releaseFocusTrap();
-  lastFocusedBeforeModal = document.activeElement;
-
-  const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
-
-  activeFocusTrapHandler = function(e) {
-    if (e.key !== 'Tab') return;
-    const focusable = Array.from(modalRoot.querySelectorAll(focusableSelector))
-      .filter(el => el.offsetParent !== null);
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
-  document.addEventListener('keydown', activeFocusTrapHandler);
-
-  // Move o foco para dentro do modal
-  const firstFocusable = modalRoot.querySelector(focusableSelector);
-  if (firstFocusable) setTimeout(() => firstFocusable.focus(), 50);
-}
-
-function releaseFocusTrap() {
-  if (activeFocusTrapHandler) {
-    document.removeEventListener('keydown', activeFocusTrapHandler);
-    activeFocusTrapHandler = null;
-  }
-  if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === 'function') {
-    lastFocusedBeforeModal.focus();
-  }
-  lastFocusedBeforeModal = null;
-}
-
 // ========== TOAST ==========
 let toastTimer = null;
 function showToast(msg, duration = 2800) {
@@ -306,43 +249,30 @@ function setAuthUI(showLogin) {
 }
 
 async function checkSession() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      setAuthUI(false);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        profileEmail.textContent = user.email.split('@')[0] || user.email;
-        profileEmailFull.textContent = user.email;
-      }
-      await loadItems();
-    } else {
-      setAuthUI(true);
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    setAuthUI(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      profileEmail.textContent = user.email.split('@')[0] || user.email;
+      profileEmailFull.textContent = user.email;
     }
-  } catch (error) {
-    console.error('Erro ao verificar sessão:', error);
+    await loadItems();
+  } else {
     setAuthUI(true);
-    authMessage.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
   }
 }
 
-const authLoginBtnDefaultHTML = authLoginBtn.innerHTML;
-const authSignupBtnDefaultHTML = authSignupBtn.innerHTML;
-
-function setAuthLoading(show) {
-  authLoginBtn.disabled = show;
-  authSignupBtn.disabled = show;
-  authLoginBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i> Entrando...' : authLoginBtnDefaultHTML;
-  authSignupBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : authSignupBtnDefaultHTML;
-}
-
-async function handleLogin() {
+authLoginBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
   const email = authEmail.value.trim();
-  const password = authPassword.value;
+  const password = authPassword.value.trim();
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
-  setAuthLoading(true);
+  authLoginBtn.disabled = true;
+  authSignupBtn.disabled = true;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  setAuthLoading(false);
+  authLoginBtn.disabled = false;
+  authSignupBtn.disabled = false;
   if (error) {
     console.error('Erro de login:', error);
     authMessage.textContent = 'Não foi possível entrar. Verifique seu email e senha.';
@@ -350,29 +280,25 @@ async function handleLogin() {
     authMessage.textContent = 'Login realizado!';
     await checkSession();
   }
-}
+});
 
-async function handleSignup() {
+authSignupBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
   const email = authEmail.value.trim();
-  const password = authPassword.value;
+  const password = authPassword.value.trim();
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
-  setAuthLoading(true);
+  authLoginBtn.disabled = true;
+  authSignupBtn.disabled = true;
   const { error } = await supabase.auth.signUp({ email, password });
-  setAuthLoading(false);
+  authLoginBtn.disabled = false;
+  authSignupBtn.disabled = false;
   if (error) {
     console.error('Erro de cadastro:', error);
     authMessage.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
   } else {
     authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.';
   }
-}
-
-// Cobre clique no botão "Entrar" (type=submit)
-authLoginBtn.addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });
-// Cobre clique no botão "Cadastrar" (type=button)
-authSignupBtn.addEventListener('click', (e) => { e.preventDefault(); handleSignup(); });
-// Cobre a tecla Enter no formulário (dispara "submit" nativo direto, sem passar pelo clique do botão)
-authForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); });
+});
 
 profileToggle.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -631,9 +557,6 @@ function createCardElement(item, variant = null) {
   const card = document.createElement('div');
   card.className = variant ? `card card-${variant}` : 'card';
   card.dataset.index = realIndex;
-  card.setAttribute('role', 'listitem');
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);
   const tierStampHtml = item.tier ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>` : '';
   const anoDisplay = item.ano ? ` (${item.ano})` : '';
   const safeNome = escapeHTML(item.nome);
@@ -653,16 +576,9 @@ function createCardElement(item, variant = null) {
       <div class="progress-wrap"><div class="progress-bar" style="width:${progress}%;"></div></div>
     </div>
   `;
-  // O card inteiro é clicável (não só a imagem) e também operável via teclado (Enter/Espaço)
-  card.addEventListener('click', () => {
+  card.querySelector('.card-img').addEventListener('click', () => {
     const index = parseInt(card.dataset.index);
     openDetailModal(index);
-  });
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openDetailModal(parseInt(card.dataset.index));
-    }
   });
   return card;
 }
@@ -863,15 +779,8 @@ function clearHold() {
 }
 
 // ========== ADICIONAR/EDITAR ==========
-let addItemRetryCount = 0;
-let addItemInFlight = false;
-
 async function addItem(e) {
   e.preventDefault();
-
-  // Trava contra duplo clique/duplo submit enquanto uma gravação está em andamento
-  if (addItemInFlight) return;
-
   const nomeVal = nome.value.trim();
   const tempVal = parseInt(addTemporadaInput.value);
   const epVal = parseInt(addEpisodioInput.value);
@@ -887,7 +796,6 @@ async function addItem(e) {
   let totalEp = 0, seasonEpisodesMap = {};
   let ano = null;
   if (cachedShowDetails && cachedShowDetails.totalEpisodes > 0) {
-    addItemRetryCount = 0;
     totalEp = cachedShowDetails.totalEpisodes;
     cachedShowDetails.seasons.forEach(s => { if (s.season_number !== 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; });
     if (cachedShowDetails.first_air_date) {
@@ -896,14 +804,6 @@ async function addItem(e) {
       ano = parseInt(cachedShowDetails.release_date.substring(0,4));
     }
   } else {
-    // Evita loop infinito: só tenta buscar os detalhes automaticamente uma vez
-    if (addItemRetryCount >= 1) {
-      addItemRetryCount = 0;
-      showToast('Não foi possível obter o total de episódios deste título. Tente selecioná-lo novamente na busca.', 3500);
-      setLoading(false);
-      return;
-    }
-    addItemRetryCount++;
     showToast('Buscando informações da série...', 2000);
     setLoading(true);
     await fetchDetailsAndThen(nomeVal, selectedTmdbId, selectedMediaType);
@@ -913,9 +813,6 @@ async function addItem(e) {
     return;
   }
   if (totalEp === 0) { showToast('Não foi possível obter o total de episódios. Tente novamente.'); return; }
-
-  addItemInFlight = true;
-  setLoading(true);
 
   const duplicate = items.some((it, i) => {
     if (i === editingIndex) return false;
@@ -929,12 +826,7 @@ async function addItem(e) {
     }
     return sameName && sameType;
   });
-  if (duplicate) {
-    showToast('Este título já existe no seu catálogo.');
-    addItemInFlight = false;
-    setLoading(false);
-    return;
-  }
+  if (duplicate) { showToast('Este título já existe no seu catálogo.'); return; }
 
   try {
     if (editingIndex !== null) {
@@ -966,12 +858,7 @@ async function addItem(e) {
       showToast('Item adicionado!');
       await fetchImageAndUpdate(nomeVal, items.length - 1, selectedPosterPath);
     }
-  } catch (error) {
-    showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
-    addItemInFlight = false;
-    setLoading(false);
-    return;
-  }
+  } catch (error) { showErrorToast('Não foi possível salvar o item. Tente novamente.', error); return; }
 
   render();
   closeModal();
@@ -980,7 +867,6 @@ async function addItem(e) {
   cachedShowDetails = null;
   suggestions.classList.remove('active');
   setLoading(false);
-  addItemInFlight = false;
   selectedTmdbId = null;
   selectedMediaType = null;
   selectedPosterPath = null;
@@ -1077,7 +963,6 @@ function openDetailModal(index) {
   document.body.style.overflow = 'hidden';
   const modalElem = detailModal.querySelector('.modal');
   window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-  trapFocus(modalElem);
 
   fetchFullDetailsAndPopulate(item);
 
@@ -1210,7 +1095,6 @@ async function openEpisodesModal(index) {
 
   const modalElem = episodesModal.querySelector('.modal');
   window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-  trapFocus(modalElem);
 
   try {
     let tmdbId = item.tmdb_id;
@@ -1251,8 +1135,8 @@ async function openEpisodesModal(index) {
       const episodeCount = seasonData.episodes ? seasonData.episodes.length : 0;
       
       html += `<div class="season-container">`;
-      html += `<div class="season-header" data-season="${seasonNum}" tabindex="0" role="button" aria-expanded="false" aria-label="Expandir/recolher ${escapeHTML(seasonName)}">`;
-      html += `<button class="season-toggle collapsed" data-season="${seasonNum}" tabindex="-1" aria-hidden="true"><i class="fas fa-chevron-down"></i></button>`;
+      html += `<div class="season-header" data-season="${seasonNum}">`;
+      html += `<button class="season-toggle collapsed" data-season="${seasonNum}"><i class="fas fa-chevron-down"></i></button>`;
       html += `<h3><i class="fas fa-tag"></i> ${escapeHTML(seasonName)} <span style="font-size:0.7rem;color:var(--text-muted);">${episodeCount} episódios</span></h3>`;
       html += `</div>`;
       html += `<div class="season-episodes collapsed" data-season="${seasonNum}">`;
@@ -1292,50 +1176,15 @@ async function openEpisodesModal(index) {
     episodesLoading.style.display = 'none';
     episodesContent.style.display = 'block';
 
-    function toggleSeason(header) {
-      const seasonNum = header.dataset.season;
-      const toggle = header.querySelector('.season-toggle');
-      const episodes = document.querySelector(`.season-episodes[data-season="${seasonNum}"]`);
-      if (!episodes) return;
-      const isCurrentlyExpanded = episodes.classList.contains('expanded');
-
-      if (isCurrentlyExpanded) {
-        // Para colapsar: primeiro fixa a altura atual (scrollHeight = altura real do
-        // conteúdo, sem limite arbitrário) e só depois anima até 0 — não dá pra animar
-        // direto de "sem limite" para "0".
-        episodes.style.maxHeight = episodes.scrollHeight + 'px';
-        episodes.offsetHeight; // força o navegador a aplicar o valor acima antes da próxima mudança
-        episodes.style.maxHeight = '0px';
-        episodes.classList.remove('expanded');
-        episodes.classList.add('collapsed');
-        toggle.classList.add('collapsed');
-        header.setAttribute('aria-expanded', 'false');
-      } else {
-        // Para expandir: usa a altura real do conteúdo (scrollHeight) em vez de um valor
-        // fixo — isso é o que causava o corte em temporadas com muitos episódios.
-        episodes.classList.remove('collapsed');
-        episodes.classList.add('expanded');
-        episodes.style.maxHeight = episodes.scrollHeight + 'px';
-        toggle.classList.remove('collapsed');
-        header.setAttribute('aria-expanded', 'true');
-        // Depois que a animação termina, remove o limite de altura para que a lista
-        // nunca fique "presa" numa altura antiga (ex.: miniatura que carrega depois).
-        episodes.addEventListener('transitionend', function onEnd(e) {
-          if (e.propertyName === 'max-height' && episodes.classList.contains('expanded')) {
-            episodes.style.maxHeight = 'none';
-          }
-          episodes.removeEventListener('transitionend', onEnd);
-        });
-      }
-    }
-
     document.querySelectorAll('.season-header').forEach(header => {
-      header.addEventListener('click', function() { toggleSeason(this); });
-      header.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleSeason(this);
-        }
+      header.addEventListener('click', function(e) {
+        const seasonNum = this.dataset.season;
+        const toggle = this.querySelector('.season-toggle');
+        const episodes = document.querySelector(`.season-episodes[data-season="${seasonNum}"]`);
+        if (!episodes) return;
+        const isCollapsed = episodes.classList.toggle('collapsed');
+        toggle.classList.toggle('collapsed', isCollapsed);
+        episodes.classList.toggle('expanded', !isCollapsed);
       });
     });
 
@@ -1350,14 +1199,10 @@ async function openEpisodesModal(index) {
 
 function closeEpisodesModal() {
   episodesModal.classList.remove('active');
-  // Só libera o scroll do fundo se nenhum outro modal seguir aberto por baixo
-  if (!detailModal.classList.contains('active')) {
-    document.body.style.overflow = '';
-  }
+  document.body.style.overflow = '';
   episodesContent.innerHTML = '';
   episodesContent.style.display = 'none';
   episodesLoading.style.display = 'flex';
-  releaseFocusTrap();
 }
 
 episodesClose.addEventListener('click', closeEpisodesModal);
@@ -1413,13 +1258,10 @@ async function deleteFromDetail() {
 
 function closeDetailModal() {
   detailModal.classList.remove('active');
-  if (!episodesModal.classList.contains('active')) {
-    document.body.style.overflow = '';
-  }
+  document.body.style.overflow = '';
   detailCurrentIndex = null;
   detailSeasonLimits = {};
   clearHold();
-  releaseFocusTrap();
 }
 
 // ========== EVENTOS ==========
@@ -1433,11 +1275,9 @@ detailClose.addEventListener('click', closeDetailModal);
 detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    // Verifica o modal de episódios primeiro: ele pode estar aberto EM CIMA do modal de detalhes,
-    // então precisa ser fechado antes (senão o Escape fecharia o modal errado, o de baixo).
-    if (episodesModal.classList.contains('active')) closeEpisodesModal();
-    else if (detailModal.classList.contains('active')) closeDetailModal();
+    if (detailModal.classList.contains('active')) closeDetailModal();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
+    else if (episodesModal.classList.contains('active')) closeEpisodesModal();
   }
 });
 detailSave.addEventListener('click', saveDetailChanges);
@@ -1466,17 +1306,14 @@ nome.addEventListener('input', () => {
         const year = res.release_date ? res.release_date.substring(0,4) : (res.first_air_date ? res.first_air_date.substring(0,4) : '');
         const mediaType = res.media_type === 'tv' ? 'Série' : res.media_type === 'movie' ? 'Filme' : 'Outro';
         const poster = res.poster_path ? `https://image.tmdb.org/t/p/w92${res.poster_path}` : '';
-        const safePoster = escapeHTML(poster);
         const div = document.createElement('div');
         div.className = 'suggestion-item';
-        div.setAttribute('role', 'option');
-        div.setAttribute('tabindex', '0');
         div.dataset.id = res.id;
         div.dataset.mediaType = res.media_type;
         div.dataset.poster = res.poster_path || '';
         const safeName = escapeHTML(name);
         div.innerHTML = `
-          <img src="${safePoster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${safeName}" />
+          <img src="${poster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${safeName}" />
           <div class="info">
             <div class="title">${safeName}</div>
             <div class="sub">
@@ -1485,7 +1322,7 @@ nome.addEventListener('input', () => {
             </div>
           </div>
         `;
-        function selectThisSuggestion() {
+        div.addEventListener('click', () => {
           nome.value = name;
           suggestions.classList.remove('active');
           selectedTmdbId = div.dataset.id;
@@ -1526,10 +1363,6 @@ nome.addEventListener('input', () => {
             setLoading(false);
           }
           setupSteppers('#modalOverlay .stepper-btn', 'add');
-        }
-        div.addEventListener('click', selectThisSuggestion);
-        div.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectThisSuggestion(); }
         });
         suggestions.appendChild(div);
       });
@@ -1583,11 +1416,7 @@ openFormBtn.addEventListener('click', () => {
 });
 modalClose.addEventListener('click', () => { cancelEdit(); closeModal(); });
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) { cancelEdit(); closeModal(); } });
-let searchDebounceTimer = null;
-searchInput.addEventListener('input', () => {
-  clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(render, 200);
-});
+searchInput.addEventListener('input', render);
 filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
@@ -1609,14 +1438,11 @@ groupToggle.addEventListener('click', () => {
 function openModal() {
   modalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
-  lastFocusedBeforeModal = document.activeElement;
-  trapFocus(modalOverlay.querySelector('.modal'));
   setTimeout(() => nome.focus(), 100);
 }
 function closeModal() {
   modalOverlay.classList.remove('active');
   document.body.style.overflow = '';
-  releaseFocusTrap();
 }
 function cancelEdit() {
   editingIndex = null;
@@ -1655,3 +1481,5 @@ const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 const icon = themeToggle.querySelector('i');
 icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+window.items = items;
