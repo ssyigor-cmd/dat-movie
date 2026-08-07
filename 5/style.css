@@ -884,7 +884,6 @@ body {
 
 .detail-steppers { display: flex; gap: 8px; flex-shrink: 0; }
 
-/* Área da sinopse com blur */
 .detail-sinopse-wrap {
   position: relative;
   overflow: hidden;
@@ -895,23 +894,13 @@ body {
   padding: 12px 16px;
   background: rgba(var(--bg-primary-rgb), 0.3);
 }
-#detailBlurBg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  filter: blur(8px);
-  opacity: 0.5;
-  z-index: 0;
-}
+
 .detail-sinopse {
   font-size: 0.85rem;
   line-height: 1.6;
   color: var(--text-primary);
   margin: 0;
   text-align: justify;
-  position: relative;
-  z-index: 1;
 }
 #detailLoading { color: var(--text-muted); }
 
