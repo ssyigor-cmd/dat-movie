@@ -4,21 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dat-Movie · Catálogo</title>
-  <!--
-    CSP básico (defesa em profundidade). Ajuste connect-src para o domínio real
-    do seu projeto Supabase (ex.: https://SEU-PROJETO.supabase.co) e teste no
-    console do navegador: um CSP mal configurado bloqueia recursos silenciosamente.
-  -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
-  <!--
-    NOTA DE SEGURANÇA: adicione o atributo "integrity" (SRI) aqui assim que
-    gerar o hash correto em https://www.srihash.org/ para esta versão exata
-    do arquivo. Um hash incorreto bloqueia o carregamento, por isso não
-    inventamos um valor — mas crossorigin/referrerpolicy já reduzem o risco.
-  -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="importmap">
@@ -28,7 +17,7 @@
     }
   }
   </script>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
 
@@ -60,35 +49,58 @@
   </button>
 
   <!-- SIDEBAR -->
-  <aside class="sidebar" role="navigation" aria-label="Navegação">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Navegação">
     <div class="sidebar-header">
-      <h2><i class="fas fa-film"></i> Dat-Movie</h2>
+      <div class="sidebar-brand">
+        <span id="orbIcon" style="display:inline-block; width:28px; height:28px; vertical-align:middle;"></span>
+        <span class="brand-text">Dat-Movie</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Recolher/expandir menu">
+        <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
+      </button>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item active" data-tab="anime"><i class="fas fa-tv"></i> <span>Animes</span></button>
-      <button class="nav-item" data-tab="animacao"><i class="fas fa-paint-brush"></i> <span>Animações</span></button>
+      <button class="nav-item active" data-tab="anime"><i class="fas fa-child"></i> <span>Animes</span></button>
+      <button class="nav-item" data-tab="animacao"><i class="fas fa-shapes"></i> <span>Animações</span></button>
       <button class="nav-item" data-tab="serie"><i class="fas fa-video"></i> <span>Séries</span></button>
       <button class="nav-item" data-tab="all"><i class="fas fa-th"></i> <span>Todos</span></button>
+      <button class="nav-item" data-tab="planejado"><i class="fas fa-heart"></i> <span>Lista de Desejos</span></button>
     </nav>
     <div class="sidebar-footer">
-      <button id="logoutBtn" class="nav-item"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+      <div class="profile-menu">
+        <button class="nav-item" id="profileToggle">
+          <i class="fas fa-user-circle"></i>
+          <span id="profileEmail">Carregando...</span>
+          <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.6rem;"></i>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="profile-info"><i class="fas fa-envelope"></i> <span id="profileEmailFull">---</span></div>
+          <hr />
+          <button id="logoutBtn" class="nav-item" style="width:100%;"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+        </div>
+      </div>
     </div>
   </aside>
 
   <!-- CONTEÚDO PRINCIPAL -->
-  <main class="main-content">
+  <main class="main-content" id="mainContent">
     <header class="main-header">
       <div>
         <h1>Meu Catálogo</h1>
         <p class="subtitle">Gerencie animes, animações e séries</p>
       </div>
       <div class="stats">
-        <div class="stat-item"><span class="stat-number" id="totalCount">0</span><span class="stat-label">Total</span></div>
-        <div class="stat-item"><span class="stat-number" id="animeCount">0</span><span class="stat-label">Animes</span></div>
-        <div class="stat-item"><span class="stat-number" id="animacaoCount">0</span><span class="stat-label">Animações</span></div>
-        <div class="stat-item"><span class="stat-number" id="serieCount">0</span><span class="stat-label">Séries</span></div>
+        <div class="stat-main" id="statMain">
+          <span class="stat-number" id="statNumber">0</span>
+          <span class="stat-label" id="statLabel">Total</span>
+        </div>
       </div>
     </header>
+
+    <section class="continue-section" id="continueSection" style="display:none;">
+      <h2 class="section-heading"><i class="fas fa-play"></i> Continuando</h2>
+      <div id="continueGrid" class="continue-grid"></div>
+    </section>
 
     <div class="toolbar">
       <div class="search-wrapper">
@@ -231,95 +243,149 @@
     </div>
   </div>
 
-  <!-- MODAL DE DETALHES -->
-  <div class="modal-overlay" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <!-- ================================================================ -->
+  <!-- MODAL DE DETALHES – com blur apenas na sinopse                  -->
+  <!-- ================================================================ -->
+  <div class="modal-overlay" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle" aria-describedby="detailSinopse">
     <div class="modal modal-detail">
-      <div class="modal-header">
-        <div class="detail-title-group">
+      <!-- Linha 1: Header -->
+      <header class="detail-header">
+        <div class="detail-header-left">
           <div id="detailTierBadge" class="tier-badge-large" style="display: none;">S</div>
-          <div>
-            <h2 id="detailTitle"><i class="fas fa-info-circle"></i> Detalhes</h2>
-          </div>
+        </div>
+        <div class="detail-header-center">
+          <h2 id="detailTitle"><i class="fas fa-info-circle"></i> Detalhes</h2>
+        </div>
+        <div class="detail-header-right">
+          <span class="detail-meta-top">
+            <span><i class="fas fa-calendar-alt"></i> <span id="detailStartYear">--</span> — <span id="detailEndYear">--</span></span>
+            <span class="detail-status"><span id="detailStatusLabel">--</span></span>
+          </span>
         </div>
         <button class="modal-close" id="detailClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </header>
+
+      <!-- Linha 2: Sub-header (links) -->
+      <div class="detail-links">
+        <button id="detailEpisodesBtn" class="detail-link-btn" title="Ver episódios">
+          <i class="fas fa-list-ul"></i> Episódios
+        </button>
+        <div class="detail-links-right">
+          <a href="#" target="_blank" id="detailWikiLink" class="detail-link-btn" title="Abrir no Wikipedia">
+            <i class="fab fa-wikipedia-w"></i> Wikipedia
+          </a>
+          <a href="#" target="_blank" id="detailImdbLink" class="detail-link-btn" title="Abrir no IMDb">
+            <i class="fab fa-imdb"></i> IMDb
+          </a>
+        </div>
       </div>
 
-      <div class="detail-meta-top">
-        <span><i class="fas fa-calendar-alt"></i> <span id="detailStartYear">--</span> — <span id="detailEndYear">--</span></span>
-        <span class="detail-status"><span id="detailStatusLabel">--</span></span>
+      <!-- Linha 3: Body – grid 40% / 60% -->
+      <div class="modal-body detail-body">
+        <!-- Coluna esquerda (40%) – apenas a imagem do pôster -->
+        <div class="detail-left-col">
+          <div class="detail-original-title" id="detailOriginalTitle">--</div>
+          <div class="detail-image-container">
+            <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
+          </div>
+        </div>
+
+        <!-- Coluna direita (60%) – conteúdo e blur apenas na sinopse -->
+        <div class="detail-right-col" id="detailRightCol" style="position: relative; overflow: hidden;">
+          <div id="detailContent" style="position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+            <div class="detail-info-blocks">
+              <div class="info-block">
+                <span class="info-label">TIPO</span>
+                <select id="detailTipo" class="info-value" aria-label="Tipo">
+                  <option value="anime">Anime</option>
+                  <option value="animacao">Animação</option>
+                  <option value="serie">Série</option>
+                </select>
+              </div>
+              <div class="info-block tier-block" id="detailTierBlock">
+                <span class="info-label">TIER</span>
+                <select id="detailTier" class="info-value tier-select" aria-label="Tier">
+                  <option value="">Selecione</option>
+                  <option value="S+">S+</option>
+                  <option value="S">S</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+              <div class="info-block">
+                <span class="info-label">STATUS</span>
+                <select id="detailStatus" class="info-value" aria-label="Status">
+                  <option value="assistindo">Assistindo</option>
+                  <option value="concluido">Concluído</option>
+                  <option value="planejado">Planejado</option>
+                  <option value="pausado">Pausado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="detail-steppers">
+              <div class="stepper" id="stepperTemporada">
+                <span class="stepper-label">TEMPORADA</span>
+                <div class="stepper-controls">
+                  <button type="button" class="stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
+                  <span class="stepper-value" id="detailTemporadaDisplay" aria-live="polite">1</span>
+                  <button type="button" class="stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
+                </div>
+                <input type="hidden" id="detailTemporada" value="1" />
+              </div>
+              <div class="stepper" id="stepperEpisodio">
+                <span class="stepper-label">EPISÓDIO</span>
+                <div class="stepper-controls">
+                  <button type="button" class="stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
+                  <span class="stepper-value" id="detailEpisodioDisplay" aria-live="polite">1</span>
+                  <button type="button" class="stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
+                </div>
+                <input type="hidden" id="detailEpisodio" value="1" />
+              </div>
+            </div>
+
+            <!-- Área da sinopse com fundo borrado APENAS aqui -->
+            <div class="detail-sinopse-wrap" style="position: relative; overflow: hidden;">
+              <!-- Fundo borrado (agora dentro da sinopse) -->
+              <div id="detailBlurBg" style="
+                position: absolute;
+                inset: 0;
+                background-size: cover;
+                background-position: center;
+                filter: blur(8px);
+                opacity: 0.5;
+                z-index: 0;
+              "></div>
+
+              <!-- Conteúdo da sinopse (acima do fundo) -->
+              <div style="position: relative; z-index: 1;">
+                <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+                <p id="detailSinopse" class="detail-sinopse" aria-live="polite">Carregando sinopse...</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
+      <footer class="detail-actions">
+        <button type="button" id="detailDelete"><i class="fas fa-trash"></i> Remover</button>
+        <button type="button" id="detailSave"><i class="fas fa-save"></i> Salvar alterações</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL DE EPISÓDIOS -->
+  <div class="modal-overlay" id="episodesModal" role="dialog" aria-modal="true" aria-labelledby="episodesTitle">
+    <div class="modal modal-episodes">
+      <div class="modal-header">
+        <h2 id="episodesTitle"><i class="fas fa-list"></i> Episódios</h2>
+        <button class="modal-close" id="episodesClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </div>
       <div class="modal-body">
-        <div class="detail-media">
-          <div class="detail-poster">
-            <img id="detailPosterImg" src="" alt="Pôster" />
-          </div>
-          <div class="detail-backdrop">
-            <div class="backdrop-blur" id="detailBackdropBlur"></div>
-            <div class="backdrop-content">
-              <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-              <p id="detailSinopse" class="detail-sinopse">Carregando sinopse...</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-info-blocks">
-          <div class="info-block">
-            <span class="info-label">TIPO</span>
-            <select id="detailTipo" class="info-value">
-              <option value="anime">Anime</option>
-              <option value="animacao">Animação</option>
-              <option value="serie">Série</option>
-            </select>
-          </div>
-          <div class="info-block tier-block" id="detailTierBlock">
-            <span class="info-label">TIER</span>
-            <select id="detailTier" class="info-value tier-select">
-              <option value="">Selecione</option>
-              <option value="S+">S+</option>
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-          </div>
-          <div class="info-block">
-            <span class="info-label">STATUS</span>
-            <select id="detailStatus" class="info-value">
-              <option value="assistindo">Assistindo</option>
-              <option value="concluido">Concluído</option>
-              <option value="planejado">Planejado</option>
-              <option value="pausado">Pausado</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="detail-steppers">
-          <div class="stepper" id="stepperTemporada">
-            <span class="stepper-label">TEMPORADA</span>
-            <div class="stepper-controls">
-              <button type="button" class="stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
-              <span class="stepper-value" id="detailTemporadaDisplay">1</span>
-              <button type="button" class="stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
-            </div>
-            <input type="hidden" id="detailTemporada" value="1" />
-          </div>
-          <div class="stepper" id="stepperEpisodio">
-            <span class="stepper-label">EPISÓDIO</span>
-            <div class="stepper-controls">
-              <button type="button" class="stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-              <span class="stepper-value" id="detailEpisodioDisplay">1</span>
-              <button type="button" class="stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
-            </div>
-            <input type="hidden" id="detailEpisodio" value="1" />
-          </div>
-        </div>
-
-        <div class="detail-actions">
-          <button type="button" id="detailDelete"><i class="fas fa-trash"></i> Remover</button>
-          <button type="button" id="detailSave"><i class="fas fa-save"></i> Salvar alterações</button>
-        </div>
+        <div id="episodesLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando episódios...</div>
+        <div id="episodesContent" style="display:none;"></div>
       </div>
     </div>
   </div>
@@ -327,6 +393,6 @@
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
-  <script type="module" src="script.js"></script>
+  <script type="module" src="script.js?v=2"></script>
 </body>
 </html>

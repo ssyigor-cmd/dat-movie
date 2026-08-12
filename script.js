@@ -3,6 +3,7 @@ import { supabase } from './src/lib/supabase.js';
 // ========== ELEMENTOS DOM ==========
 const $ = (id) => document.getElementById(id);
 const authContainer = $('authContainer');
+const authForm = $('authForm');
 const authEmail = $('authEmail');
 const authPassword = $('authPassword');
 const authLoginBtn = $('authLoginBtn');
@@ -13,10 +14,6 @@ const searchInput = $('searchInput');
 const filterStatus = $('filterStatus');
 const filterTier = $('filterTier');
 const sortOrder = $('sortOrder');
-const totalCount = $('totalCount');
-const animeCount = $('animeCount');
-const animacaoCount = $('animacaoCount');
-const serieCount = $('serieCount');
 const themeToggle = $('themeToggle');
 const openFormBtn = $('openFormBtn');
 const modalOverlay = $('modalOverlay');
@@ -39,10 +36,31 @@ const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
 const continueGrid = $('continueGrid');
+const profileToggle = $('profileToggle');
+const profileDropdown = $('profileDropdown');
+const profileEmail = $('profileEmail');
+const profileEmailFull = $('profileEmailFull');
 
-// ========== SEGURANÇA: escape de HTML ==========
-// Usado sempre que um valor digitado pelo usuário (ou vindo de uma API externa)
-// é inserido via innerHTML, para evitar XSS armazenado.
+// SIDEBAR E ESTATÍSTICA
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
+const statNumber = document.getElementById('statNumber');
+const statLabel = document.getElementById('statLabel');
+
+// LINKS EXTERNOS E EPISÓDIOS
+const detailWikiLink = document.getElementById('detailWikiLink');
+const detailImdbLink = document.getElementById('detailImdbLink');
+const detailEpisodesBtn = document.getElementById('detailEpisodesBtn');
+
+// MODAL DE EPISÓDIOS
+const episodesModal = document.getElementById('episodesModal');
+const episodesClose = document.getElementById('episodesClose');
+const episodesTitle = document.getElementById('episodesTitle');
+const episodesLoading = document.getElementById('episodesLoading');
+const episodesContent = document.getElementById('episodesContent');
+
+// ========== SEGURANÇA ==========
 function escapeHTML(value) {
   if (value === null || value === undefined) return '';
   return String(value).replace(/[&<>"']/g, (ch) => ({
@@ -54,14 +72,119 @@ function escapeHTML(value) {
   }[ch]));
 }
 
-// Mostra uma mensagem genérica para o usuário e loga o erro real só no console,
-// evitando expor detalhes internos (mensagens do Supabase/JS) na interface.
 function showErrorToast(userMessage, error, duration = 3000) {
   if (error) console.error(userMessage, error);
   showToast(userMessage, duration);
 }
 
-// ADD MODAL (com steppers)
+// ========== FORMATAÇÃO DE DATA (BRASILEIRA) ==========
+function formatDateBR(dateStr) {
+  if (!dateStr || dateStr === 'Data desconhecida') return dateStr;
+  const parts = dateStr.split('-');
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+// ========== ORB ICON ==========
+function initOrb() {
+  const container = document.getElementById('orbIcon');
+  if (!container) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 28;
+  canvas.height = 28;
+  canvas.style.width = '28px';
+  canvas.style.height = '28px';
+  canvas.style.display = 'block';
+  canvas.style.pointerEvents = 'none';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  const palette = ['#5EEAD4', '#7FF3E3', '#FFFFFF'];
+  const center = { x: 14, y: 14 };
+  const radius = 12;
+  const particles = [];
+  const count = 40;
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * 2 * Math.PI;
+    const dist = radius * (0.3 + Math.random() * 0.7);
+    particles.push({
+      angle: angle,
+      dist: dist,
+      speed: 0.005 + Math.random() * 0.01,
+      phase: Math.random() * 2 * Math.PI,
+      size: 1.5 + Math.random() * 2.5,
+      color: palette[Math.floor(Math.random() * palette.length)]
+    });
+  }
+
+  let time = 0;
+  function draw() {
+    time += 0.02;
+    ctx.clearRect(0, 0, 28, 28);
+
+    const grad = ctx.createRadialGradient(14, 14, 0, 14, 14, radius);
+    grad.addColorStop(0, 'rgba(94, 234, 212, 0.25)');
+    grad.addColorStop(1, 'rgba(94, 234, 212, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(14, 14, radius, 0, 2 * Math.PI);
+    ctx.fill();
+
+    particles.forEach(p => {
+      const currentAngle = p.angle + time * p.speed;
+      const currentDist = p.dist + Math.sin(time * 2 + p.phase) * 1.5;
+      const x = center.x + Math.cos(currentAngle) * currentDist;
+      const y = center.y + Math.sin(currentAngle) * currentDist;
+      ctx.beginPath();
+      ctx.arc(x, y, p.size * 0.6, 0, 2 * Math.PI);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = 0.8;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    const glow = ctx.createRadialGradient(14, 14, 0, 14, 14, 6);
+    glow.addColorStop(0, 'rgba(255,255,255,0.6)');
+    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(14, 14, 6, 0, 2 * Math.PI);
+    ctx.fill();
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+initOrb();
+
+// ========== SIDEBAR TOGGLE ==========
+const mobileLayoutQuery = window.matchMedia('(max-width: 700px)');
+
+function toggleSidebar() {
+  if (mobileLayoutQuery.matches) return;
+  const collapsed = sidebar.classList.toggle('collapsed');
+  localStorage.setItem('sidebarCollapsed', collapsed);
+  sidebarToggleIcon.className = collapsed ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+}
+sidebarToggle.addEventListener('click', toggleSidebar);
+
+function applySidebarCollapseForViewport() {
+  const savedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  if (mobileLayoutQuery.matches) {
+    sidebar.classList.remove('collapsed');
+  } else if (savedCollapsed) {
+    sidebar.classList.add('collapsed');
+    sidebarToggleIcon.className = 'fas fa-chevron-right';
+  } else {
+    sidebar.classList.remove('collapsed');
+    sidebarToggleIcon.className = 'fas fa-chevron-left';
+  }
+}
+applySidebarCollapseForViewport();
+mobileLayoutQuery.addEventListener('change', applySidebarCollapseForViewport);
+
+// ADD MODAL
 const addTemporadaInput = $('addTemporada');
 const addEpisodioInput = $('addEpisodio');
 const addTemporadaDisplay = $('addTemporadaDisplay');
@@ -86,11 +209,16 @@ const detailTierBlock = $('detailTierBlock');
 const detailSave = $('detailSave');
 const detailDelete = $('detailDelete');
 const detailPosterImg = $('detailPosterImg');
-const detailBackdropBlur = $('detailBackdropBlur');
 const detailStartYear = $('detailStartYear');
 const detailEndYear = $('detailEndYear');
 const detailStatusLabel = $('detailStatusLabel');
 const detailStepperBtns = document.querySelectorAll('#detailModal .stepper-btn');
+const detailOriginalTitle = $('detailOriginalTitle');
+
+// Elementos para a logo
+const detailLogoContainer = document.getElementById('detailLogoContainer');
+const detailLogoImg = document.getElementById('detailLogoImg');
+const detailTitleText = document.getElementById('detailTitleText');
 
 // ========== ESTADO GLOBAL ==========
 let items = [];
@@ -117,6 +245,48 @@ const TIER_COLORS = {
   'D': 'tier-D'
 };
 
+// ========== FOCUS TRAP ==========
+let activeFocusTrapHandler = null;
+let lastFocusedBeforeModal = null;
+
+function trapFocus(modalRoot) {
+  releaseFocusTrap();
+  lastFocusedBeforeModal = document.activeElement;
+
+  const focusableSelector = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+  activeFocusTrapHandler = function(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = Array.from(modalRoot.querySelectorAll(focusableSelector))
+      .filter(el => el.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener('keydown', activeFocusTrapHandler);
+
+  const firstFocusable = modalRoot.querySelector(focusableSelector);
+  if (firstFocusable) setTimeout(() => firstFocusable.focus(), 50);
+}
+
+function releaseFocusTrap() {
+  if (activeFocusTrapHandler) {
+    document.removeEventListener('keydown', activeFocusTrapHandler);
+    activeFocusTrapHandler = null;
+  }
+  if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === 'function') {
+    lastFocusedBeforeModal.focus();
+  }
+  lastFocusedBeforeModal = null;
+}
+
 // ========== TOAST ==========
 let toastTimer = null;
 function showToast(msg, duration = 2800) {
@@ -135,25 +305,43 @@ function setAuthUI(showLogin) {
 }
 
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    setAuthUI(false);
-    await loadItems();
-  } else {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      setAuthUI(false);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        profileEmail.textContent = user.email.split('@')[0] || user.email;
+        profileEmailFull.textContent = user.email;
+      }
+      await loadItems();
+    } else {
+      setAuthUI(true);
+    }
+  } catch (error) {
+    console.error('Erro ao verificar sessão:', error);
     setAuthUI(true);
+    authMessage.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
   }
 }
 
-authLoginBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
+const authLoginBtnDefaultHTML = authLoginBtn.innerHTML;
+const authSignupBtnDefaultHTML = authSignupBtn.innerHTML;
+
+function setAuthLoading(show) {
+  authLoginBtn.disabled = show;
+  authSignupBtn.disabled = show;
+  authLoginBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i> Entrando...' : authLoginBtnDefaultHTML;
+  authSignupBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : authSignupBtnDefaultHTML;
+}
+
+async function handleLogin() {
   const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
+  const password = authPassword.value;
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
-  authLoginBtn.disabled = true;
-  authSignupBtn.disabled = true;
+  setAuthLoading(true);
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  authLoginBtn.disabled = false;
-  authSignupBtn.disabled = false;
+  setAuthLoading(false);
   if (error) {
     console.error('Erro de login:', error);
     authMessage.textContent = 'Não foi possível entrar. Verifique seu email e senha.';
@@ -161,24 +349,36 @@ authLoginBtn.addEventListener('click', async (e) => {
     authMessage.textContent = 'Login realizado!';
     await checkSession();
   }
-});
+}
 
-authSignupBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
+async function handleSignup() {
   const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
+  const password = authPassword.value;
   if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
-  authLoginBtn.disabled = true;
-  authSignupBtn.disabled = true;
+  setAuthLoading(true);
   const { error } = await supabase.auth.signUp({ email, password });
-  authLoginBtn.disabled = false;
-  authSignupBtn.disabled = false;
+  setAuthLoading(false);
   if (error) {
     console.error('Erro de cadastro:', error);
     authMessage.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
   } else {
     authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.';
   }
+}
+
+authLoginBtn.addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });
+authSignupBtn.addEventListener('click', (e) => { e.preventDefault(); handleSignup(); });
+authForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); });
+
+profileToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = profileDropdown.style.display === 'block';
+  profileDropdown.style.display = isOpen ? 'none' : 'block';
+  profileToggle.classList.toggle('active', !isOpen);
+});
+document.addEventListener('click', () => {
+  profileDropdown.style.display = 'none';
+  profileToggle.classList.remove('active');
 });
 
 logoutBtn.addEventListener('click', async () => {
@@ -275,14 +475,29 @@ async function callTMDB(endpoint, params = {}, lang = 'pt-BR') {
   return data;
 }
 
+// ========== BUSCAR LOGO NO FANART.TV (via Edge Function) ==========
+async function fetchLogoFromFanart(tmdbId, mediaType = 'tv') {
+  try {
+    const { data, error } = await supabase.functions.invoke('fanart-logo', {
+      body: { tmdbId, mediaType }
+    });
+    if (error) throw error;
+    return data.logoUrl || null;
+  } catch (error) {
+    console.warn('Erro ao buscar logo no Fanart.tv:', error);
+    return null;
+  }
+}
+
 // ========== BENTO "CONTINUANDO" ==========
-// Destaca até 3 títulos com status "assistindo" do tab atual, em tiles de
-// tamanhos variados (o primeiro maior). É um recorte fixo (não afetado por
-// busca/ordenação) para não brigar com a listagem principal, que continua
-// uniforme para poder ser filtrada/ordenada sem ficar bagunçada visualmente.
 function renderContinueWatching() {
   let pool = items.slice();
-  if (currentTab !== 'all') pool = pool.filter(i => i.tipo === currentTab);
+  if (currentTab === 'planejado') {
+    pool = pool.filter(i => i.status === 'planejado');
+  } else {
+    pool = pool.filter(i => i.status !== 'planejado');
+    if (currentTab !== 'all') pool = pool.filter(i => i.tipo === currentTab);
+  }
   pool = pool.filter(i => i.status === 'assistindo');
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
   const top = pool.slice(0, 3);
@@ -305,14 +520,26 @@ function renderContinueWatching() {
 // ========== RENDER ==========
 function render() {
   renderContinueWatching();
-  const tab = currentTab;
+
+  let allItems = items.slice();
+
+  let baseItems = [];
+  if (currentTab === 'planejado') {
+    baseItems = allItems.filter(item => item.status === 'planejado');
+  } else {
+    baseItems = allItems.filter(item => item.status !== 'planejado');
+  }
+
+  let filtered = baseItems.slice();
+  if (currentTab !== 'planejado' && currentTab !== 'all') {
+    filtered = filtered.filter(item => item.tipo === currentTab);
+  }
+
   const search = searchInput.value.toLowerCase().trim();
   const statusFilter = filterStatus.value;
   const tierFilter = filterTier.value;
   const sortKey = sortOrder.value;
 
-  let filtered = items.slice();
-  if (tab !== 'all') filtered = filtered.filter(item => item.tipo === tab);
   if (search) filtered = filtered.filter(item => item.nome.toLowerCase().includes(search));
   if (statusFilter !== 'todos') filtered = filtered.filter(item => item.status === statusFilter);
   if (tierFilter !== 'todos') {
@@ -340,10 +567,25 @@ function render() {
     return 0;
   });
 
-  totalCount.textContent = items.length;
-  animeCount.textContent = items.filter(i => i.tipo === 'anime').length;
-  animacaoCount.textContent = items.filter(i => i.tipo === 'animacao').length;
-  serieCount.textContent = items.filter(i => i.tipo === 'serie').length;
+  const count = filtered.length;
+  let label = '';
+  switch (currentTab) {
+    case 'anime': label = 'Animes'; break;
+    case 'animacao': label = 'Animações'; break;
+    case 'serie': label = 'Séries'; break;
+    case 'planejado': label = 'Lista de Desejos'; break;
+    default: label = 'Total';
+  }
+  statNumber.textContent = count;
+  statLabel.textContent = label;
+
+  if (currentTab === 'planejado') {
+    filterTier.style.display = 'none';
+    groupToggle.style.display = 'none';
+  } else {
+    filterTier.style.display = '';
+    groupToggle.style.display = '';
+  }
 
   grid.innerHTML = '';
   if (filtered.length === 0) {
@@ -354,7 +596,7 @@ function render() {
   grid.className = `grid grid-cols-${gridDensity}`;
   const fragment = document.createDocumentFragment();
 
-  if (groupingActive) {
+  if (groupingActive && currentTab !== 'planejado') {
     const tiersWithItems = new Set();
     filtered.forEach(item => tiersWithItems.add(item.tier || null));
     const sortedTiers = [...tiersWithItems].sort((a, b) => {
@@ -374,6 +616,20 @@ function render() {
     filtered.forEach((item) => fragment.appendChild(createCardElement(item)));
   }
   grid.appendChild(fragment);
+
+  if (typeof anime !== 'undefined') {
+    const cards = grid.querySelectorAll('.card');
+    if (cards.length) {
+      anime({
+        targets: cards,
+        translateY: [24, 0],
+        opacity: [0, 1],
+        duration: 500,
+        delay: anime.stagger(60),
+        easing: 'easeOutQuad'
+      });
+    }
+  }
 }
 
 // ========== CRIAR CARD ==========
@@ -385,9 +641,12 @@ function createCardElement(item, variant = null) {
   const card = document.createElement('div');
   card.className = variant ? `card card-${variant}` : 'card';
   card.dataset.index = realIndex;
+  card.setAttribute('role', 'listitem');
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);
   const tierStampHtml = item.tier ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>` : '';
   const anoDisplay = item.ano ? ` (${item.ano})` : '';
-  const safeNome = escapeHTML(item.nome); // evita XSS armazenado: "nome" é digitado pelo usuário
+  const safeNome = escapeHTML(item.nome);
   const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';
   card.innerHTML = `
     <div class="card-img" data-index="${realIndex}">
@@ -397,13 +656,22 @@ function createCardElement(item, variant = null) {
     <div class="card-body">
       <span class="badge">${tipoLabel}</span>
       <h3 title="${safeNome}${anoDisplay}">${safeNome}${anoDisplay}</h3>
-      <div class="info"><span>T${item.temporada} • Ep ${item.episodio}/${item.totalEpisodios}</span><span>${progress}%</span></div>
+      <div class="info">
+        <span>T${item.temporada} <i class="fas fa-circle" style="font-size: 0.2rem; vertical-align: middle; margin: 0 4px; color: var(--text-muted);"></i> Ep ${item.episodio}/${item.totalEpisodios}</span>
+        <span>${progress}%</span>
+      </div>
       <div class="progress-wrap"><div class="progress-bar" style="width:${progress}%;"></div></div>
     </div>
   `;
-  card.querySelector('.card-img').addEventListener('click', () => {
+  card.addEventListener('click', () => {
     const index = parseInt(card.dataset.index);
     openDetailModal(index);
+  });
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openDetailModal(parseInt(card.dataset.index));
+    }
   });
   return card;
 }
@@ -447,10 +715,6 @@ async function fetchImageAndUpdate(nome, index, posterPath = null) {
   } catch (e) { console.warn('Erro ao buscar imagem:', e); }
 }
 
-function populateSeasons(seasons) {
-  // Não usado no novo modal com steppers
-}
-
 function clearPreview() {
   previewImg.style.display = 'none';
   previewImg.src = '';
@@ -469,7 +733,7 @@ function setLoading(show) {
   btnCancel.disabled = show;
 }
 
-// ========== FUNÇÕES DE STEPPER (compartilhadas) ==========
+// ========== FUNÇÕES DE STEPPER ==========
 function updateStepperValue(btn, type) {
   const targetId = btn.dataset.target;
   const step = parseInt(btn.dataset.step);
@@ -478,7 +742,7 @@ function updateStepperValue(btn, type) {
   if (!hiddenInput || !displaySpan) return;
   let current = parseInt(hiddenInput.value) || 1;
   let newVal = current + step;
-  const stepperType = btn.dataset.type; // 'temp' ou 'ep'
+  const stepperType = btn.dataset.type;
   let limits;
   if (type === 'add') {
     limits = addSeasonLimits;
@@ -493,7 +757,6 @@ function updateStepperValue(btn, type) {
     hiddenInput.value = newVal;
     displaySpan.textContent = newVal;
     updateEpisodeLimit(stepperType, newVal, limits, type);
-    // Reset episódio para 1
     let epInput, epDisplay;
     if (type === 'add') {
       epInput = addEpisodioInput;
@@ -553,7 +816,6 @@ function setupSteppers(containerSelector, modalType) {
     btn.addEventListener('mouseleave', stopHold);
     btn.addEventListener('touchstart', startHoldTouch);
     btn.addEventListener('touchend', stopHold);
-    // Guarda o tipo de modal (add/detail) no dataset
     btn.dataset.modalType = modalType;
   });
 }
@@ -564,7 +826,6 @@ function handleStepperClick(e) {
   updateStepperValue(btn, modalType);
 }
 
-// ===== CONTROLE DE HOLD =====
 let holdTimeout = null;
 let holdInterval = null;
 let holdBtn = null;
@@ -610,24 +871,68 @@ function clearHold() {
   holdBtn = null;
 }
 
+// ========== VALIDAÇÃO DE FORMULÁRIO ==========
+function setFieldError(input, message) {
+  input.classList.add('invalid');
+  input.setAttribute('aria-invalid', 'true');
+  const wrapper = input.closest('.form-group, .search-group, .auth-group, .info-block, .stepper');
+  if (wrapper) {
+    wrapper.classList.add('invalid');
+    let errorEl = wrapper.querySelector('.field-error');
+    if (!errorEl) {
+      errorEl = document.createElement('span');
+      errorEl.className = 'field-error';
+      errorEl.setAttribute('role', 'alert');
+      wrapper.appendChild(errorEl);
+    }
+    errorEl.textContent = message;
+  }
+}
+
+function clearFieldError(input) {
+  input.classList.remove('invalid');
+  input.removeAttribute('aria-invalid');
+  const wrapper = input.closest('.form-group, .search-group, .auth-group, .info-block, .stepper');
+  if (wrapper) {
+    wrapper.classList.remove('invalid');
+    const errorEl = wrapper.querySelector('.field-error');
+    if (errorEl) errorEl.remove();
+  }
+}
+
+function clearAllFieldErrors(container) {
+  container.querySelectorAll('.invalid').forEach(el => clearFieldError(el));
+}
+
 // ========== ADICIONAR/EDITAR ==========
+let addItemRetryCount = 0;
+let addItemInFlight = false;
+
 async function addItem(e) {
   e.preventDefault();
+
+  if (addItemInFlight) return;
+
   const nomeVal = nome.value.trim();
   const tempVal = parseInt(addTemporadaInput.value);
   const epVal = parseInt(addEpisodioInput.value);
   const statusVal = statusSelect.value;
   const tierVal = tierForm.value || null;
 
-  if (!nomeVal) { showToast('Digite o nome.'); return; }
-  if (nomeVal.length > 150) { showToast('Nome muito longo (máx. 150 caracteres).'); return; }
-  if (isNaN(tempVal) || tempVal < 1) { showToast('Selecione uma temporada válida.'); return; }
-  if (isNaN(epVal) || epVal < 1) { showToast('Selecione um episódio válido.'); return; }
+  clearAllFieldErrors(form);
+
+  let hasError = false;
+  if (!nomeVal) { setFieldError(nome, 'Digite o nome.'); hasError = true; }
+  if (nomeVal.length > 150) { setFieldError(nome, 'Nome muito longo (máx. 150 caracteres).'); hasError = true; }
+  if (isNaN(tempVal) || tempVal < 1) { setFieldError(addTemporadaInput, 'Temporada inválida.'); hasError = true; }
+  if (isNaN(epVal) || epVal < 1) { setFieldError(addEpisodioInput, 'Episódio inválido.'); hasError = true; }
+  if (hasError) { showToast('Corrija os campos destacados.'); return; }
   const tipoVal = tipo.value;
 
   let totalEp = 0, seasonEpisodesMap = {};
   let ano = null;
   if (cachedShowDetails && cachedShowDetails.totalEpisodes > 0) {
+    addItemRetryCount = 0;
     totalEp = cachedShowDetails.totalEpisodes;
     cachedShowDetails.seasons.forEach(s => { if (s.season_number !== 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; });
     if (cachedShowDetails.first_air_date) {
@@ -636,6 +941,13 @@ async function addItem(e) {
       ano = parseInt(cachedShowDetails.release_date.substring(0,4));
     }
   } else {
+    if (addItemRetryCount >= 1) {
+      addItemRetryCount = 0;
+      showToast('Não foi possível obter o total de episódios deste título. Tente selecioná-lo novamente na busca.', 3500);
+      setLoading(false);
+      return;
+    }
+    addItemRetryCount++;
     showToast('Buscando informações da série...', 2000);
     setLoading(true);
     await fetchDetailsAndThen(nomeVal, selectedTmdbId, selectedMediaType);
@@ -646,7 +958,9 @@ async function addItem(e) {
   }
   if (totalEp === 0) { showToast('Não foi possível obter o total de episódios. Tente novamente.'); return; }
 
-  // Verificação de duplicata
+  addItemInFlight = true;
+  setLoading(true);
+
   const duplicate = items.some((it, i) => {
     if (i === editingIndex) return false;
     const sameName = it.nome.toLowerCase() === nomeVal.toLowerCase();
@@ -659,7 +973,12 @@ async function addItem(e) {
     }
     return sameName && sameType;
   });
-  if (duplicate) { showToast('Este título já existe no seu catálogo.'); return; }
+  if (duplicate) {
+    showToast('Este título já existe no seu catálogo.');
+    addItemInFlight = false;
+    setLoading(false);
+    return;
+  }
 
   try {
     if (editingIndex !== null) {
@@ -691,7 +1010,12 @@ async function addItem(e) {
       showToast('Item adicionado!');
       await fetchImageAndUpdate(nomeVal, items.length - 1, selectedPosterPath);
     }
-  } catch (error) { showErrorToast('Não foi possível salvar o item. Tente novamente.', error); return; }
+  } catch (error) {
+    showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
+    addItemInFlight = false;
+    setLoading(false);
+    return;
+  }
 
   render();
   closeModal();
@@ -700,6 +1024,7 @@ async function addItem(e) {
   cachedShowDetails = null;
   suggestions.classList.remove('active');
   setLoading(false);
+  addItemInFlight = false;
   selectedTmdbId = null;
   selectedMediaType = null;
   selectedPosterPath = null;
@@ -717,7 +1042,13 @@ function openDetailModal(index) {
   const item = items[index];
   if (!item) return;
 
-  detailTitle.textContent = item.nome;
+  clearAllFieldErrors(detailModal);
+
+  // Inicialmente mostra o título textual e esconde a logo
+  detailLogoContainer.style.display = 'none';
+  detailTitle.style.display = 'block';
+  detailTitleText.textContent = item.nome;
+
   detailStatus.value = item.status || 'assistindo';
   detailTier.value = item.tier || '';
   detailTipo.value = item.tipo || 'anime';
@@ -726,7 +1057,23 @@ function openDetailModal(index) {
   detailStartYear.textContent = '--';
   detailEndYear.textContent = '--';
   detailStatusLabel.textContent = '--';
+  detailOriginalTitle.textContent = '--';
 
+  // Mostra/oculta botão de episódios conforme tipo
+  if (item.tipo === 'serie' || item.tipo === 'anime' || item.tipo === 'animacao') {
+    detailEpisodesBtn.style.display = 'inline-flex';
+  } else {
+    detailEpisodesBtn.style.display = 'none';
+  }
+
+  // Links externos (fallback)
+  const nome = item.nome;
+  const wikiFallback = `https://pt.wikipedia.org/wiki/${encodeURIComponent(nome).replace(/%20/g, '_')}`;
+  const imdbFallback = `https://www.imdb.com/find?q=${encodeURIComponent(nome)}`;
+  detailWikiLink.href = wikiFallback;
+  detailImdbLink.href = imdbFallback;
+
+  // Configura temporada e episódio
   const seasonMap = item.seasonEpisodesMap || {};
   const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
   const maxTemp = tempKeys.length ? Math.max(...tempKeys) : 1;
@@ -745,34 +1092,14 @@ function openDetailModal(index) {
   detailEpisodioDisplay.textContent = epVal;
   updateEpisodeLimit('detail', tempVal, detailSeasonLimits, 'detail');
 
+  // Configura a imagem do pôster (apenas uma)
   const imagemUrl = item.imagem || null;
   if (imagemUrl) {
     detailPosterImg.src = imagemUrl;
-    detailBackdropBlur.style.backgroundImage = `url(${imagemUrl})`;
   } else {
     const tierColor = item.tier ? getComputedStyle(document.documentElement).getPropertyValue(`--tier-${item.tier.toLowerCase()}`).trim() || '#6b7280' : '#6b7280';
     const placeholder = `https://placehold.co/500x750/${tierColor.replace('#','')}/FFFFFF?text=${encodeURIComponent(item.nome)}`;
     detailPosterImg.src = placeholder;
-    detailBackdropBlur.style.backgroundImage = `url(${placeholder})`;
-  }
-
-  detailPosterImg.onload = function() {
-    const img = this;
-    requestAnimationFrame(() => {
-      const naturalWidth = img.naturalWidth;
-      const naturalHeight = img.naturalHeight;
-      if (naturalWidth === 0 || naturalHeight === 0) return;
-      const aspectRatio = naturalWidth / naturalHeight;
-      const mediaContainer = img.closest('.detail-media');
-      if (!mediaContainer) return;
-      const containerWidth = mediaContainer.getBoundingClientRect().width;
-      const columnWidth = containerWidth / 2;
-      const idealHeight = columnWidth / aspectRatio;
-      mediaContainer.style.height = `${Math.min(idealHeight, window.innerHeight * 0.7)}px`;
-    });
-  };
-  if (detailPosterImg.complete) {
-    detailPosterImg.onload?.();
   }
 
   updateTierBadge(item.tier);
@@ -782,6 +1109,15 @@ function openDetailModal(index) {
   document.body.style.overflow = 'hidden';
   const modalElem = detailModal.querySelector('.modal');
   window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
+  trapFocus(modalElem);
+
+  // Configura o fundo borrado com a imagem do pôster
+  const blurBg = document.getElementById('detailBlurBg');
+  if (item.imagem) {
+    blurBg.style.backgroundImage = `url(${item.imagem})`;
+  } else {
+    blurBg.style.backgroundImage = 'none';
+  }
 
   fetchFullDetailsAndPopulate(item);
 
@@ -811,7 +1147,6 @@ async function fetchFullDetailsAndPopulate(item) {
     let tmdbId = item.tmdb_id;
     let mediaType = 'tv';
     let detailsData = null;
-    let imagesData = null;
 
     if (!tmdbId) {
       const searchData = await callTMDB('search/multi', { query: item.nome }, 'pt-BR');
@@ -819,35 +1154,22 @@ async function fetchFullDetailsAndPopulate(item) {
       if (result) {
         tmdbId = result.id;
         mediaType = result.media_type || 'tv';
+        if (!item.tmdb_id) {
+          item.tmdb_id = tmdbId;
+          await updateItemInSupabase(item.id, { tmdb_id: tmdbId });
+        }
       }
     }
 
     if (tmdbId) {
       if (mediaType === 'tv' || !mediaType) {
-        [detailsData, imagesData] = await Promise.all([
-          callTMDB(`tv/${tmdbId}`, {}, 'pt-BR'),
-          callTMDB(`tv/${tmdbId}/images`, {}, 'pt-BR')
-        ]);
+        detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
       } else if (mediaType === 'movie') {
-        [detailsData, imagesData] = await Promise.all([
-          callTMDB(`movie/${tmdbId}`, {}, 'pt-BR'),
-          callTMDB(`movie/${tmdbId}/images`, {}, 'pt-BR')
-        ]);
+        detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
       }
     }
 
     let overview = detailsData?.overview || 'Sinopse não disponível.';
-    if (imagesData && imagesData.posters && imagesData.posters.length > 0) {
-      const poster = imagesData.posters.reduce((a, b) => (a.vote_count || 0) > (b.vote_count || 0) ? a : b);
-      const posterUrl = `https://image.tmdb.org/t/p/w500${poster.file_path}`;
-      if (!item.imagem) {
-        item.imagem = posterUrl;
-        if (item.id) await updateItemInSupabase(item.id, { imagem: posterUrl });
-        detailPosterImg.src = posterUrl;
-        detailBackdropBlur.style.backgroundImage = `url(${posterUrl})`;
-        detailPosterImg.onload?.();
-      }
-    }
 
     if (detailsData) {
       const start = detailsData.first_air_date
@@ -875,16 +1197,210 @@ async function fetchFullDetailsAndPopulate(item) {
         'Canceled': 'Cancelada'
       };
       detailStatusLabel.textContent = statusMap[detailsData.status] || detailsData.status || '--';
+
+      const originalName = detailsData.original_name || detailsData.original_title || '';
+      detailOriginalTitle.textContent = originalName ? `Título original: ${originalName}` : '--';
+
+      let wikiLink = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g, '_')}`;
+      let imdbLink = `https://www.imdb.com/find?q=${encodeURIComponent(item.nome)}`;
+      if (detailsData.imdb_id) {
+        imdbLink = `https://www.imdb.com/title/${detailsData.imdb_id}/`;
+      }
+      detailWikiLink.href = wikiLink;
+      detailImdbLink.href = imdbLink;
+    }
+
+    // ========== BUSCAR LOGO (via Edge Function) ==========
+    let logoUrl = null;
+    if (tmdbId) {
+      logoUrl = await fetchLogoFromFanart(tmdbId, mediaType);
+    }
+
+    // Exibe a logo ou o título textual
+    if (logoUrl) {
+      detailLogoImg.src = logoUrl;
+      detailLogoImg.alt = `Logo de ${item.nome}`;
+      detailLogoContainer.style.display = 'flex';
+      detailTitle.style.display = 'none';
+    } else {
+      detailLogoContainer.style.display = 'none';
+      detailTitle.style.display = 'block';
+      detailTitleText.textContent = item.nome;
     }
 
     detailSinopse.textContent = overview;
     detailLoading.style.display = 'none';
   } catch (e) {
-    console.warn('Erro ao buscar detalhes completos:', e);
+    console.warn('Erro ao buscar detalhes:', e);
     detailSinopse.textContent = 'Erro ao carregar sinopse.';
     detailLoading.style.display = 'none';
   }
 }
+
+// ========== MODAL DE EPISÓDIOS ==========
+async function openEpisodesModal(index) {
+  const item = items[index];
+  if (!item) return;
+  if (item.tipo !== 'serie' && item.tipo !== 'anime' && item.tipo !== 'animacao') {
+    showToast('Episódios disponíveis apenas para séries, animes e animações.', 2000);
+    return;
+  }
+
+  episodesTitle.textContent = `Episódios - ${item.nome}`;
+  episodesLoading.style.display = 'flex';
+  episodesContent.style.display = 'none';
+  episodesContent.innerHTML = '';
+  episodesModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const modalElem = episodesModal.querySelector('.modal');
+  window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
+  trapFocus(modalElem);
+
+  try {
+    let tmdbId = item.tmdb_id;
+    if (!tmdbId) {
+      const searchData = await callTMDB('search/multi', { query: item.nome }, 'pt-BR');
+      const result = searchData.results?.[0];
+      if (result && (result.media_type === 'tv' || result.media_type === 'movie')) {
+        tmdbId = result.id;
+        item.tmdb_id = tmdbId;
+        await updateItemInSupabase(item.id, { tmdb_id: tmdbId });
+      } else {
+        throw new Error('Não foi possível encontrar este título no TMDB.');
+      }
+    }
+
+    const seriesDetails = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+    if (!seriesDetails || !seriesDetails.seasons) {
+      throw new Error('Dados da série não encontrados.');
+    }
+
+    const seasons = seriesDetails.seasons.filter(s => s.season_number > 0);
+    if (seasons.length === 0) {
+      episodesContent.innerHTML = `<div class="no-episodes">Nenhuma temporada encontrada.</div>`;
+      episodesLoading.style.display = 'none';
+      episodesContent.style.display = 'block';
+      return;
+    }
+
+    const seasonPromises = seasons.map(season =>
+      callTMDB(`tv/${tmdbId}/season/${season.season_number}`, {}, 'pt-BR')
+    );
+    const seasonsData = await Promise.all(seasonPromises);
+
+    let html = '';
+    seasonsData.forEach((seasonData, idx) => {
+      const seasonNum = seasons[idx].season_number;
+      const seasonName = seasons[idx].name || `${seasonNum}ª Temporada`;
+      const episodeCount = seasonData.episodes ? seasonData.episodes.length : 0;
+      
+      html += `<div class="season-container">`;
+      html += `<div class="season-header" data-season="${seasonNum}" tabindex="0" role="button" aria-expanded="false" aria-label="Expandir/recolher ${escapeHTML(seasonName)}">`;
+      html += `<button class="season-toggle collapsed" data-season="${seasonNum}" tabindex="-1" aria-hidden="true"><i class="fas fa-chevron-down"></i></button>`;
+      html += `<h3><i class="fas fa-tag"></i> ${escapeHTML(seasonName)} <span style="font-size:0.7rem;color:var(--text-muted);">${episodeCount} episódios</span></h3>`;
+      html += `</div>`;
+      html += `<div class="season-episodes collapsed" data-season="${seasonNum}">`;
+      if (seasonData.overview) {
+        html += `<div class="season-overview">${escapeHTML(seasonData.overview)}</div>`;
+      }
+      if (seasonData.episodes && seasonData.episodes.length > 0) {
+        seasonData.episodes.forEach(ep => {
+          const epNum = ep.episode_number;
+          const epTitle = ep.name || `Episódio ${epNum}`;
+          const epAirDate = ep.air_date ? formatDateBR(ep.air_date) : 'Data desconhecida';
+          const epOverview = ep.overview || 'Sinopse não disponível.';
+          const thumbUrl = ep.still_path ? `https://image.tmdb.org/t/p/w92${ep.still_path}` : null;
+          
+          html += `<div class="episode-item">`;
+          html += `<div class="episode-number">E${epNum}</div>`;
+          html += `<div class="episode-thumb">`;
+          if (thumbUrl) {
+            html += `<img src="${thumbUrl}" alt="Ep ${epNum}" loading="lazy" />`;
+          } else {
+            html += `<i class="fas fa-film"></i>`;
+          }
+          html += `</div>`;
+          html += `<div class="episode-info">`;
+          html += `<span class="episode-title">${escapeHTML(epTitle)} <span class="episode-airdate">${escapeHTML(epAirDate)}</span></span>`;
+          html += `<div class="episode-overview">${escapeHTML(epOverview)}</div>`;
+          html += `</div></div>`;
+        });
+      } else {
+        html += `<div class="no-episodes">Sem episódios listados.</div>`;
+      }
+      html += `</div>`;
+      html += `</div>`;
+    });
+
+    episodesContent.innerHTML = html;
+    episodesLoading.style.display = 'none';
+    episodesContent.style.display = 'block';
+
+    function toggleSeason(header) {
+      const seasonNum = header.dataset.season;
+      const toggle = header.querySelector('.season-toggle');
+      const episodes = document.querySelector(`.season-episodes[data-season="${seasonNum}"]`);
+      if (!episodes) return;
+      const isCurrentlyExpanded = episodes.classList.contains('expanded');
+
+      if (isCurrentlyExpanded) {
+        episodes.style.maxHeight = episodes.scrollHeight + 'px';
+        episodes.offsetHeight;
+        episodes.style.maxHeight = '0px';
+        episodes.classList.remove('expanded');
+        episodes.classList.add('collapsed');
+        toggle.classList.add('collapsed');
+        header.setAttribute('aria-expanded', 'false');
+      } else {
+        episodes.classList.remove('collapsed');
+        episodes.classList.add('expanded');
+        episodes.style.maxHeight = episodes.scrollHeight + 'px';
+        toggle.classList.remove('collapsed');
+        header.setAttribute('aria-expanded', 'true');
+        episodes.addEventListener('transitionend', function onEnd(e) {
+          if (e.propertyName === 'max-height' && episodes.classList.contains('expanded')) {
+            episodes.style.maxHeight = 'none';
+          }
+          episodes.removeEventListener('transitionend', onEnd);
+        });
+      }
+    }
+
+    document.querySelectorAll('.season-header').forEach(header => {
+      header.addEventListener('click', function() { toggleSeason(this); });
+      header.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleSeason(this);
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error('Erro ao carregar episódios:', error);
+    episodesContent.innerHTML = `<div class="no-episodes">Erro ao carregar episódios: ${escapeHTML(error.message)}</div>`;
+    episodesLoading.style.display = 'none';
+    episodesContent.style.display = 'block';
+    showToast('Erro ao carregar episódios.', 3000);
+  }
+}
+
+function closeEpisodesModal() {
+  episodesModal.classList.remove('active');
+  if (!detailModal.classList.contains('active')) {
+    document.body.style.overflow = '';
+  }
+  episodesContent.innerHTML = '';
+  episodesContent.style.display = 'none';
+  episodesLoading.style.display = 'flex';
+  releaseFocusTrap();
+}
+
+episodesClose.addEventListener('click', closeEpisodesModal);
+episodesModal.addEventListener('click', (e) => {
+  if (e.target === episodesModal) closeEpisodesModal();
+});
 
 // ========== SALVAR ALTERAÇÕES ==========
 async function saveDetailChanges() {
@@ -897,16 +1413,20 @@ async function saveDetailChanges() {
   const newTier = detailTier.value || null;
   const newTipo = detailTipo.value;
 
+  clearAllFieldErrors(detailModal);
+
   const maxTemp = detailSeasonLimits.maxTemp || 1;
   const maxEp = detailSeasonLimits.maxEpByTemp?.[newTemporada] || 1;
+  let hasError = false;
   if (newTemporada < 1 || newTemporada > maxTemp) {
-    showToast(`Temporada deve estar entre 1 e ${maxTemp}.`, 2500);
-    return;
+    setFieldError(detailTemporadaInput, `Temporada deve estar entre 1 e ${maxTemp}.`);
+    hasError = true;
   }
   if (newEpisodio < 1 || newEpisodio > maxEp) {
-    showToast(`Episódio deve estar entre 1 e ${maxEp} para a temporada ${newTemporada}.`, 2500);
-    return;
+    setFieldError(detailEpisodioInput, `Episódio deve estar entre 1 e ${maxEp} para a temporada ${newTemporada}.`);
+    hasError = true;
   }
+  if (hasError) { showToast('Corrija os campos destacados.', 2500); return; }
 
   try {
     const updates = { temporada: newTemporada, episodio: newEpisodio, status: newStatus, tier: newTier, tipo: newTipo };
@@ -934,10 +1454,14 @@ async function deleteFromDetail() {
 
 function closeDetailModal() {
   detailModal.classList.remove('active');
-  document.body.style.overflow = '';
+  if (!episodesModal.classList.contains('active')) {
+    document.body.style.overflow = '';
+  }
   detailCurrentIndex = null;
   detailSeasonLimits = {};
   clearHold();
+  releaseFocusTrap();
+  detailOriginalTitle.textContent = '--';
 }
 
 // ========== EVENTOS ==========
@@ -951,12 +1475,20 @@ detailClose.addEventListener('click', closeDetailModal);
 detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    if (detailModal.classList.contains('active')) closeDetailModal();
+    if (episodesModal.classList.contains('active')) closeEpisodesModal();
+    else if (detailModal.classList.contains('active')) closeDetailModal();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
   }
 });
 detailSave.addEventListener('click', saveDetailChanges);
 detailDelete.addEventListener('click', deleteFromDetail);
+
+// Botão Episódios
+detailEpisodesBtn.addEventListener('click', () => {
+  if (detailCurrentIndex !== null) {
+    openEpisodesModal(detailCurrentIndex);
+  }
+});
 
 // ========== SUGESTÕES ==========
 let suggestionTimeout = null;
@@ -974,14 +1506,17 @@ nome.addEventListener('input', () => {
         const year = res.release_date ? res.release_date.substring(0,4) : (res.first_air_date ? res.first_air_date.substring(0,4) : '');
         const mediaType = res.media_type === 'tv' ? 'Série' : res.media_type === 'movie' ? 'Filme' : 'Outro';
         const poster = res.poster_path ? `https://image.tmdb.org/t/p/w92${res.poster_path}` : '';
+        const safePoster = escapeHTML(poster);
         const div = document.createElement('div');
         div.className = 'suggestion-item';
+        div.setAttribute('role', 'option');
+        div.setAttribute('tabindex', '0');
         div.dataset.id = res.id;
         div.dataset.mediaType = res.media_type;
         div.dataset.poster = res.poster_path || '';
-        const safeName = escapeHTML(name); // dado externo (TMDB); escapado por precaução
+        const safeName = escapeHTML(name);
         div.innerHTML = `
-          <img src="${poster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${safeName}" />
+          <img src="${safePoster || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'60\' viewBox=\'0 0 40 60\'%3E%3Crect fill=\'%23242427\' width=\'40\' height=\'60\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%236b7280\' font-size=\'10\' font-family=\'Inter\'%3E?%3C/text%3E%3C/svg%3E'}" alt="${safeName}" />
           <div class="info">
             <div class="title">${safeName}</div>
             <div class="sub">
@@ -990,7 +1525,7 @@ nome.addEventListener('input', () => {
             </div>
           </div>
         `;
-        div.addEventListener('click', () => {
+        function selectThisSuggestion() {
           nome.value = name;
           suggestions.classList.remove('active');
           selectedTmdbId = div.dataset.id;
@@ -1007,13 +1542,11 @@ nome.addEventListener('input', () => {
               } else if (details.release_date) {
                 selectedAno = parseInt(details.release_date.substring(0,4));
               }
-              // Preencher limites dos steppers de adição
               const seasonMap = {};
               details.seasons.forEach(s => { if (s.season_number !== 0) seasonMap[s.season_number] = s.episode_count || 0; });
               const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
               const maxTemp = tempKeys.length ? Math.max(...tempKeys) : 1;
               addSeasonLimits = { maxTemp, maxEpByTemp: seasonMap };
-              // Resetar steppers para 1
               addTemporadaInput.value = 1;
               addTemporadaDisplay.textContent = 1;
               addEpisodioInput.value = 1;
@@ -1032,8 +1565,11 @@ nome.addEventListener('input', () => {
             showToast('Filme único (1 episódio)', 1500);
             setLoading(false);
           }
-          // Configurar steppers da adição
           setupSteppers('#modalOverlay .stepper-btn', 'add');
+        }
+        div.addEventListener('click', selectThisSuggestion);
+        div.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectThisSuggestion(); }
         });
         suggestions.appendChild(div);
       });
@@ -1043,7 +1579,7 @@ nome.addEventListener('input', () => {
 });
 document.addEventListener('click', (e) => { if (!e.target.closest('.form-group')) suggestions.classList.remove('active'); });
 
-// ========== BOTÃO CONCLUÍDO (modal de adição) ==========
+// ========== BOTÃO CONCLUÍDO ==========
 document.getElementById('btnConcluido').addEventListener('click', function() {
   const maxTemp = addSeasonLimits.maxTemp || 1;
   if (maxTemp === 0) { showToast('Selecione um título primeiro.', 2000); return; }
@@ -1058,7 +1594,7 @@ document.getElementById('btnConcluido').addEventListener('click', function() {
 });
 
 // ========== NAVEGAÇÃO ==========
-document.querySelectorAll('.nav-item').forEach(item => {
+document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
@@ -1069,6 +1605,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
 openFormBtn.addEventListener('click', () => {
   if (editingIndex !== null) cancelEdit();
+  clearAllFieldErrors(form);
   clearPreview();
   cachedShowDetails = null;
   statusSelect.value = 'assistindo';
@@ -1087,7 +1624,11 @@ openFormBtn.addEventListener('click', () => {
 });
 modalClose.addEventListener('click', () => { cancelEdit(); closeModal(); });
 modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) { cancelEdit(); closeModal(); } });
-searchInput.addEventListener('input', render);
+let searchDebounceTimer = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(render, 200);
+});
 filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
@@ -1109,17 +1650,21 @@ groupToggle.addEventListener('click', () => {
 function openModal() {
   modalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
+  lastFocusedBeforeModal = document.activeElement;
+  trapFocus(modalOverlay.querySelector('.modal'));
   setTimeout(() => nome.focus(), 100);
 }
 function closeModal() {
   modalOverlay.classList.remove('active');
   document.body.style.overflow = '';
+  releaseFocusTrap();
 }
 function cancelEdit() {
   editingIndex = null;
   btnSubmit.innerHTML = '<i class="fas fa-save"></i> Salvar';
   modalTitle.innerHTML = '<i class="fas fa-pen"></i> Adicionar título';
   btnCancel.style.display = 'inline-flex';
+  clearAllFieldErrors(form);
   form.reset();
   clearPreview();
   cachedShowDetails = null;
@@ -1152,5 +1697,3 @@ const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 const icon = themeToggle.querySelector('i');
 icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-
-window.items = items;
