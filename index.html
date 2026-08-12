@@ -156,90 +156,119 @@
 
   <!-- MODAL DE ADIÇÃO/EDIÇÃO -->
   <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal modal-add">
-      <div class="modal-header">
-        <h2 id="modalTitle"><i class="fas fa-pen"></i> Adicionar título</h2>
+    <div class="modal modal-detail" style="max-width: 1400px; height: 90%; max-height: 900px;">
+      <!-- Linha 1: Header -->
+      <header class="detail-header">
+        <div class="detail-header-left">
+          <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier">S</button>
+          <div id="addTierDropdown" class="tier-dropdown" style="display: none;">
+            <button class="tier-option" data-tier="S+">S+</button>
+            <button class="tier-option" data-tier="S">S</button>
+            <button class="tier-option" data-tier="A">A</button>
+            <button class="tier-option" data-tier="B">B</button>
+            <button class="tier-option" data-tier="C">C</button>
+            <button class="tier-option" data-tier="D">D</button>
+            <button class="tier-option" data-tier="">Sem tier</button>
+          </div>
+        </div>
+        <div class="detail-header-center">
+          <h2 id="modalTitle" style="display: block;">
+            <i class="fas fa-pen"></i> <span id="modalTitleText">Adicionar título</span>
+          </h2>
+        </div>
+        <div class="detail-header-right">
+          <span class="detail-meta-top">
+            <span id="addYearDisplay">--</span>
+          </span>
+        </div>
         <button class="modal-close" id="modalClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </header>
+
+      <!-- Linha 2: Sub-header (links) -->
+      <div class="detail-links">
+        <div class="detail-links-right" style="margin-left: auto;">
+          <button type="button" id="btnConcluido" class="detail-link-btn" title="Marcar como concluído">
+            <i class="fas fa-check"></i> Concluído
+          </button>
+        </div>
       </div>
-      <form id="form" autocomplete="off" novalidate>
-        <div class="search-group">
-          <label for="nome"><i class="fas fa-search"></i> Buscar título</label>
-          <input type="text" id="nome" placeholder="Ex: Scavengers Reign, Attack on Titan..." maxlength="150" required />
-        </div>
 
-        <div class="suggestions-wrapper">
-          <div id="suggestions" class="suggestions" role="listbox"></div>
-          <div id="posterPreview" class="poster-preview">
-            <img id="previewImg" src="" alt="Pré-visualização" style="display:none;" />
-            <span id="previewPlaceholder">Nenhuma imagem</span>
+      <!-- Linha 3: Body – grid 45% / 55% -->
+      <div class="modal-body detail-body">
+        <!-- Coluna esquerda (45%) – imagem e busca -->
+        <div class="detail-left-col">
+          <div class="detail-image-container" id="addImageContainer">
+            <img id="previewImg" src="" alt="Pré-visualização" style="display:none; width: 100%; height: 100%; object-fit: contain;" />
+            <span id="previewPlaceholder" style="color: var(--text-muted);">Nenhuma imagem</span>
           </div>
         </div>
 
-        <div class="add-info-blocks">
-          <div class="info-block">
-            <span class="info-label">TIPO</span>
-            <select id="tipo" class="info-value" required>
-              <option value="anime">Anime</option>
-              <option value="animacao">Animação</option>
-              <option value="serie">Série</option>
-            </select>
-          </div>
-          <div class="info-block">
-            <span class="info-label">TIER</span>
-            <select id="tierForm" class="info-value">
-              <option value="">Selecione</option>
-              <option value="S+">S+</option>
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
-          </div>
-          <div class="info-block">
-            <span class="info-label">STATUS</span>
-            <select id="status" class="info-value" required>
-              <option value="assistindo">Assistindo</option>
-              <option value="concluido">Concluído</option>
-              <option value="planejado">Planejado</option>
-              <option value="pausado">Pausado</option>
-            </select>
-          </div>
-        </div>
+        <!-- Coluna direita (55%) – formulário -->
+        <div class="detail-right-col">
+          <form id="form" autocomplete="off" novalidate>
+            <div id="addContent" style="position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; height: 100%; padding: 16px 20px; overflow-y: auto;">
+              <div class="search-group" style="position: relative;">
+                <label for="nome" style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 6px;">
+                  <i class="fas fa-search"></i> Buscar título
+                </label>
+                <input type="text" id="nome" placeholder="Ex: Scavengers Reign, Attack on Titan..." maxlength="150" required 
+                  style="width: 100%; padding: 10px 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); background: rgba(var(--bg-primary-rgb), 0.3); color: var(--text-primary); font-size: 0.9rem;" />
+                <input type="hidden" id="tierForm" value="" />
+                <div id="suggestions" class="suggestions" role="listbox" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 200px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); margin-top: 4px;"></div>
+              </div>
 
-        <div class="add-steppers">
-          <div class="stepper" id="addStepperTemporada">
-            <span class="stepper-label">TEMPORADA</span>
-            <div class="stepper-controls">
-              <button type="button" class="stepper-btn stepper-down" data-target="addTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
-              <span class="stepper-value" id="addTemporadaDisplay">1</span>
-              <button type="button" class="stepper-btn stepper-up" data-target="addTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
+              <div class="detail-info-blocks">
+                <div class="info-block">
+                  <span class="info-label">TIPO</span>
+                  <select id="tipo" class="info-value" required>
+                    <option value="anime">Anime</option>
+                    <option value="animacao">Animação</option>
+                    <option value="serie">Série</option>
+                  </select>
+                </div>
+                <div class="info-block">
+                  <span class="info-label">STATUS</span>
+                  <select id="status" class="info-value" required>
+                    <option value="assistindo">Assistindo</option>
+                    <option value="concluido">Concluído</option>
+                    <option value="planejado">Planejado</option>
+                    <option value="pausado">Pausado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="detail-steppers">
+                <div class="stepper" id="addStepperTemporada">
+                  <span class="stepper-label">TEMPORADA</span>
+                  <div class="stepper-controls">
+                    <button type="button" class="stepper-btn stepper-down" data-target="addTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
+                    <span class="stepper-value" id="addTemporadaDisplay">1</span>
+                    <button type="button" class="stepper-btn stepper-up" data-target="addTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
+                  </div>
+                  <input type="hidden" id="addTemporada" value="1" />
+                </div>
+                <div class="stepper" id="addStepperEpisodio">
+                  <span class="stepper-label">EPISÓDIO</span>
+                  <div class="stepper-controls">
+                    <button type="button" class="stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
+                    <span class="stepper-value" id="addEpisodioDisplay">1</span>
+                    <button type="button" class="stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
+                  </div>
+                  <input type="hidden" id="addEpisodio" value="1" />
+                </div>
+              </div>
+
+              <div class="form-actions" style="display: flex; gap: 12px; margin-top: auto;">
+                <button type="submit" id="btnSubmit" class="detail-link-btn" style="flex: 1; justify-content: center;"><i class="fas fa-save"></i> Salvar</button>
+                <button type="button" id="btnCancel" class="detail-link-btn" style="flex: 1; justify-content: center;"><i class="fas fa-times"></i> Cancelar</button>
+              </div>
             </div>
-            <input type="hidden" id="addTemporada" value="1" />
-          </div>
-          <div class="stepper" id="addStepperEpisodio">
-            <span class="stepper-label">EPISÓDIO</span>
-            <div class="stepper-controls">
-              <button type="button" class="stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-              <span class="stepper-value" id="addEpisodioDisplay">1</span>
-              <button type="button" class="stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
-            </div>
-            <input type="hidden" id="addEpisodio" value="1" />
-          </div>
+          </form>
         </div>
-
-        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-          <button type="button" id="btnConcluido" class="btn-concluido"><i class="fas fa-check"></i> Concluído</button>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" id="btnSubmit"><i class="fas fa-save"></i> Salvar</button>
-          <button type="button" id="btnCancel" class="secondary"><i class="fas fa-times"></i> Cancelar</button>
-        </div>
-        <div id="formLoading" class="form-loading" style="display:none;">
+      </div>
+      <div id="formLoading" class="form-loading" style="display:none;">
           <i class="fas fa-spinner fa-spin"></i> Carregando...
         </div>
-      </form>
     </div>
   </div>
 
@@ -251,7 +280,16 @@
       <!-- Linha 1: Header -->
       <header class="detail-header">
         <div class="detail-header-left">
-          <div id="detailTierBadge" class="tier-badge-large" style="display: none;">S</div>
+          <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier">S</button>
+          <div id="detailTierDropdown" class="tier-dropdown" style="display: none;">
+            <button class="tier-option" data-tier="S+">S+</button>
+            <button class="tier-option" data-tier="S">S</button>
+            <button class="tier-option" data-tier="A">A</button>
+            <button class="tier-option" data-tier="B">B</button>
+            <button class="tier-option" data-tier="C">C</button>
+            <button class="tier-option" data-tier="D">D</button>
+            <button class="tier-option" data-tier="">Sem tier</button>
+          </div>
         </div>
         <div class="detail-header-center">
           <!-- Container para a logo -->
@@ -277,6 +315,7 @@
         <button id="detailEpisodesBtn" class="detail-link-btn" title="Ver episódios">
           <i class="fas fa-list-ul"></i> Episódios
         </button>
+        <div class="detail-original-title-inline" id="detailOriginalTitle">--</div>
         <div class="detail-links-right">
           <a href="#" target="_blank" id="detailWikiLink" class="detail-link-btn" title="Abrir no Wikipedia">
             <i class="fab fa-wikipedia-w"></i> Wikipedia
@@ -291,7 +330,6 @@
       <div class="modal-body detail-body">
         <!-- Coluna esquerda (40%) – apenas a imagem do pôster -->
         <div class="detail-left-col">
-          <div class="detail-original-title" id="detailOriginalTitle">--</div>
           <div class="detail-image-container">
             <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
           </div>
@@ -307,18 +345,6 @@
                   <option value="anime">Anime</option>
                   <option value="animacao">Animação</option>
                   <option value="serie">Série</option>
-                </select>
-              </div>
-              <div class="info-block tier-block" id="detailTierBlock">
-                <span class="info-label">TIER</span>
-                <select id="detailTier" class="info-value tier-select" aria-label="Tier">
-                  <option value="">Selecione</option>
-                  <option value="S+">S+</option>
-                  <option value="S">S</option>
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
-                  <option value="D">D</option>
                 </select>
               </div>
               <div class="info-block">
@@ -368,7 +394,9 @@
               <!-- Conteúdo da sinopse (acima do fundo) -->
               <div style="position: relative; z-index: 1;">
                 <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-                <p id="detailSinopse" class="detail-sinopse" aria-live="polite">Carregando sinopse...</p>
+                <div class="detail-sinopse-container">
+                  <p id="detailSinopse" class="detail-sinopse" aria-live="polite">Carregando sinopse...</p>
+                </div>
               </div>
             </div>
           </div>
@@ -399,6 +427,6 @@
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
-  <script type="module" src="script.js?v=2"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
