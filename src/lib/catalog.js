@@ -71,9 +71,9 @@ export function calcularProgresso(item) {
           sumPrevious += eps;
         }
       }
-      cumulativeCurrent = sumPrevious + Math.max(1, item.episodio || 1);
+      cumulativeCurrent = sumPrevious + Math.max(0, item.episodio || 0);
     } else {
-      cumulativeCurrent = Math.max(1, item.episodio || 1);
+      cumulativeCurrent = Math.max(0, item.episodio || 0);
     }
   } catch (e) {
     cumulativeCurrent = Math.max(1, item.episodio || 1);

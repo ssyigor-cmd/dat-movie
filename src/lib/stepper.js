@@ -15,7 +15,7 @@ export function updateStepperValue(btn, type, addSeasonLimits, detailSeasonLimit
   const displaySpan = document.getElementById(targetId + 'Display');
   if (!hiddenInput || !displaySpan) return;
 
-  let current = parseInt(hiddenInput.value) || 1;
+  let current = parseInt(hiddenInput.value) || 0;
   let newVal = current + step;
   const stepperType = btn.dataset.type;
   const limits = type === 'add' ? addSeasonLimits : detailSeasonLimits;
@@ -30,13 +30,13 @@ export function updateStepperValue(btn, type, addSeasonLimits, detailSeasonLimit
 
     updateEpisodeLimit(stepperType, newVal, limits, inputs);
     if (inputs.epInput && inputs.epDisplay) {
-      inputs.epInput.value = 1;
-      inputs.epDisplay.textContent = 1;
+      inputs.epInput.value = 0;
+      inputs.epDisplay.textContent = 0;
     }
   } else if (stepperType === 'ep') {
     const currentTemp = parseInt(inputs.tempInput ? inputs.tempInput.value : 1) || 1;
     const maxEp = limits.maxEpByTemp?.[currentTemp] || 1;
-    if (newVal < 1) newVal = 1;
+    if (newVal < 0) newVal = 0;
     if (newVal > maxEp) newVal = maxEp;
     hiddenInput.value = newVal;
     displaySpan.textContent = newVal;
@@ -46,7 +46,7 @@ export function updateStepperValue(btn, type, addSeasonLimits, detailSeasonLimit
 export function updateEpisodeLimit(stepperType, temp, limits, inputs) {
   const maxEp = limits.maxEpByTemp?.[temp] || 1;
   if (!inputs || !inputs.epInput) return;
-  const currentEp = parseInt(inputs.epInput.value) || 1;
+  const currentEp = parseInt(inputs.epInput.value) || 0;
   if (currentEp > maxEp) {
     inputs.epInput.value = maxEp;
     if (inputs.epDisplay) inputs.epDisplay.textContent = maxEp;
