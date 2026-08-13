@@ -193,6 +193,12 @@ export function setupDetailModal(elements, callbacks) {
 
     detailStatus.value = item.status || 'assistindo';
     detailTipo.value = item.tipo || 'anime';
+    if (detailTier) {
+      detailTier.value = item.tier || '';
+      if (item.tier) {
+        updateTierBadge(item.tier);
+      }
+    }
     detailSinopse.textContent = 'Carregando sinopse...';
     detailLoading.style.display = 'flex';
     detailStartYear.textContent = '--';
@@ -222,7 +228,7 @@ export function setupDetailModal(elements, callbacks) {
 
     const tempVal = Math.min(item.temporada || 1, maxTemp);
     const maxEp = seasonMap[tempVal] || 1;
-    const epVal = Math.min(item.episodio || 1, maxEp);
+    const epVal = Math.min(item.episodio || 0, maxEp);
 
     detailTemporadaInput.value = tempVal;
     detailTemporadaDisplay.textContent = tempVal;
@@ -275,7 +281,7 @@ export function setupDetailModal(elements, callbacks) {
     const newTemporada = parseInt(detailTemporadaInput.value);
     const newEpisodio = parseInt(detailEpisodioInput.value);
     const newStatus = detailStatus.value;
-    const newTier = detailTier.value || null;
+    const newTier = detailTier?.value || null;
     const newTipo = detailTipo.value;
 
     const maxTemp = detailSeasonLimits.maxTemp || 1;
@@ -284,7 +290,7 @@ export function setupDetailModal(elements, callbacks) {
     if (newTemporada < 1 || newTemporada > maxTemp) {
       hasError = true;
     }
-    if (newEpisodio < 1 || newEpisodio > maxEp) {
+    if (newEpisodio < 0 || newEpisodio > maxEp) {
       hasError = true;
     }
     if (hasError) { return false; }

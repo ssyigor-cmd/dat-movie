@@ -38,7 +38,6 @@ const searchInput = $('searchInput');
 const filterStatus = $('filterStatus');
 const filterTier = $('filterTier');
 const sortOrder = $('sortOrder');
-const themeToggle = $('themeToggle');
 const openFormBtn = $('openFormBtn');
 const modalOverlay = $('modalOverlay');
 const modalClose = $('modalClose');
@@ -101,7 +100,9 @@ function setAuthUI(showLogin) {
   authContainer.style.display = showLogin ? 'flex' : 'none';
   document.querySelector('.sidebar').style.display = showLogin ? 'none' : 'flex';
   document.querySelector('.main-content').style.display = showLogin ? 'none' : 'block';
-  themeToggle.style.display = showLogin ? 'none' : 'flex';
+  
+  // Update logos when auth state changes
+  updateLogos();
 }
 
 async function checkSession() {
@@ -519,7 +520,7 @@ async function addItem(e) {
   if (!nomeVal) { setFieldError(nome, 'Digite o nome.'); hasError = true; }
   if (nomeVal.length > 150) { setFieldError(nome, 'Nome muito longo (máx. 150 caracteres).'); hasError = true; }
   if (isNaN(tempVal) || tempVal < 1) { setFieldError(addTemporadaInput, 'Temporada inválida.'); hasError = true; }
-  if (isNaN(epVal) || epVal < 1) { setFieldError(addEpisodioInput, 'Episódio inválido.'); hasError = true; }
+  if (isNaN(epVal) || epVal < 0) { setFieldError(addEpisodioInput, 'Episódio inválido.'); hasError = true; }
   if (hasError) { showToast('Corrija os campos destacados.'); return; }
   const tipoVal = tipo.value;
 
@@ -623,8 +624,8 @@ async function addItem(e) {
     selectedAno = null;
     addTemporadaInput.value = 1;
     addTemporadaDisplay.textContent = 1;
-    addEpisodioInput.value = 1;
-    addEpisodioDisplay.textContent = 1;
+    addEpisodioInput.value = 0;
+    addEpisodioDisplay.textContent = 0;
     addSeasonLimits = {};
   } catch (error) {
     showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
@@ -777,8 +778,8 @@ openFormBtn.addEventListener('click', () => {
   selectedAno = null;
   addTemporadaInput.value = 1;
   addTemporadaDisplay.textContent = 1;
-  addEpisodioInput.value = 1;
-  addEpisodioDisplay.textContent = 1;
+  addEpisodioInput.value = 0;
+  addEpisodioDisplay.textContent = 0;
   addSeasonLimits = {};
   openModal();
 });
@@ -853,19 +854,27 @@ document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
   });
 });
 
-// Theme toggle
-themeToggle.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  const newTheme = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  const icon = themeToggle.querySelector('i');
-  icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-});
-const savedTheme = localStorage.getItem('theme') || 'dark';
-document.documentElement.setAttribute('data-theme', savedTheme);
-const icon = themeToggle.querySelector('i');
-icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+// Function to update logos
+function updateLogos() {
+  const brandLogo = document.querySelector('.brand-logo');
+  const authLogo = document.querySelector('.auth-logo-img');
+  const brandIconImg = document.querySelector('.brand-icon-img');
+  
+  if (brandLogo) {
+    brandLogo.src = 'assets/logo/logotype-text-dark.svg';
+    brandLogo.alt = 'datmovie';
+  }
+  
+  if (authLogo) {
+    authLogo.src = 'assets/logo/stacked-dark.svg';
+    authLogo.alt = 'datmovie';
+  }
+  
+  if (brandIconImg) {
+    brandIconImg.src = 'assets/icon/icon-face.svg';
+    brandIconImg.alt = 'datmovie';
+  }
+}
 
 // Form submit
 if (form) {

@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dat-Movie · Catálogo</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
+  <title>datmovie · Catálogo</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self';" />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-light.svg" media="(prefers-color-scheme: light)" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
@@ -17,14 +21,16 @@
     }
   }
   </script>
-  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- TELA DE LOGIN -->
   <div id="authContainer" role="dialog" aria-label="Login">
     <div class="auth-box">
-      <h2>Dat-Movie</h2>
+      <div class="auth-logo">
+        <img src="assets/logo/stacked-dark.svg" alt="datmovie" class="auth-logo-img" />
+      </div>
       <form id="authForm">
         <div class="auth-group">
           <label for="authEmail">Email</label>
@@ -43,22 +49,22 @@
     </div>
   </div>
 
-  <!-- BOTÃO TEMA -->
-  <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
-    <i class="fas fa-moon"></i>
-  </button>
-
   <!-- SIDEBAR -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <aside class="sidebar" id="sidebar" role="navigation" aria-label="Navegação">
     <div class="sidebar-header">
       <div class="sidebar-brand">
-        <span id="orbIcon" style="display:inline-block; width:28px; height:28px; vertical-align:middle;"></span>
-        <span class="brand-text">Dat-Movie</span>
+        <div class="brand-icon">
+          <img src="assets/icon/icon-face.svg" alt="datmovie" class="brand-icon-img" />
+        </div>
+        <div class="brand-text">
+          <img src="assets/logo/logotype-text-dark.svg" alt="datmovie" class="brand-logo" />
+        </div>
       </div>
-      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Recolher/expandir menu">
-        <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
-      </button>
     </div>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Recolher/expandir menu">
+      <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
+    </button>
     <nav class="sidebar-nav">
       <button class="nav-item active" data-tab="anime"><i class="fas fa-child"></i> <span>Animes</span></button>
       <button class="nav-item" data-tab="animacao"><i class="fas fa-shapes"></i> <span>Animações</span></button>
@@ -103,6 +109,9 @@
     </section>
 
     <div class="toolbar">
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Abrir menu">
+        <i class="fas fa-bars"></i>
+      </button>
       <div class="search-wrapper">
         <i class="fas fa-search"></i>
         <input type="text" id="searchInput" placeholder="Buscar título..." aria-label="Buscar" />
@@ -144,6 +153,8 @@
           <option value="6">6 col</option>
           <option value="8" selected>8 col</option>
           <option value="10">10 col</option>
+          <option value="12">12 col</option>
+          <option value="14">14 col</option>
         </select>
         <button id="openFormBtn" class="tool-btn primary"><i class="fas fa-plus"></i> Adicionar</button>
       </div>
@@ -251,10 +262,10 @@
                   <span class="stepper-label">EPISÓDIO</span>
                   <div class="stepper-controls">
                     <button type="button" class="stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-                    <span class="stepper-value" id="addEpisodioDisplay">1</span>
+                    <span class="stepper-value" id="addEpisodioDisplay">0</span>
                     <button type="button" class="stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
                   </div>
-                  <input type="hidden" id="addEpisodio" value="1" />
+                  <input type="hidden" id="addEpisodio" value="0" />
                 </div>
               </div>
 
@@ -356,6 +367,7 @@
                   <option value="pausado">Pausado</option>
                 </select>
               </div>
+              <input type="hidden" id="detailTier" value="" />
             </div>
 
             <div class="detail-steppers">
@@ -372,7 +384,7 @@
                 <span class="stepper-label">EPISÓDIO</span>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-                  <span class="stepper-value" id="detailEpisodioDisplay" aria-live="polite">1</span>
+                  <span class="stepper-value" id="detailEpisodioDisplay" aria-live="polite">0</span>
                   <button type="button" class="stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
                 </div>
                 <input type="hidden" id="detailEpisodio" value="1" />
