@@ -61,6 +61,7 @@ export function setupDetailModal(elements, callbacks) {
     badge.textContent = tier || '?';
     badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
     badge.style.display = 'flex';
+    badge.setAttribute('aria-expanded', 'false');
     if (tier && typeof window !== 'undefined' && window.anime) {
       window.anime({ targets: badge, scale: [0.5, 1.2, 1], duration: 400, easing: 'easeOutQuad' });
     }
@@ -68,12 +69,15 @@ export function setupDetailModal(elements, callbacks) {
 
   function toggleTierDropdown() {
     const dropdown = detailTierDropdown;
+    const badge = detailTierBadge;
     const isVisible = dropdown.style.display === 'flex';
     dropdown.style.display = isVisible ? 'none' : 'flex';
+    badge.setAttribute('aria-expanded', !isVisible);
   }
 
   function hideTierDropdown() {
     detailTierDropdown.style.display = 'none';
+    detailTierBadge.setAttribute('aria-expanded', 'false');
   }
 
   function selectTier(tier) {
@@ -81,6 +85,7 @@ export function setupDetailModal(elements, callbacks) {
     badge.textContent = tier || '?';
     badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
     badge.style.display = 'flex';
+    badge.setAttribute('aria-expanded', 'false');
     detailTier.value = tier || '';
     hideTierDropdown();
     if (tier && typeof window !== 'undefined' && window.anime) {
@@ -109,9 +114,21 @@ export function setupDetailModal(elements, callbacks) {
 
       if (tmdbId) {
         if (mediaType === 'tv' || !mediaType) {
-          detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+          try {
+            detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+          } catch (tvError) {
+            console.warn('Falha ao buscar como TV, tentando como filme:', tvError);
+            detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
+            mediaType = 'movie';
+          }
         } else if (mediaType === 'movie') {
-          detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
+          try {
+            detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
+          } catch (movieError) {
+            console.warn('Falha ao buscar como filme, tentando como TV:', movieError);
+            detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+            mediaType = 'tv';
+          }
         }
       }
 

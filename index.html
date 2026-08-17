@@ -121,7 +121,6 @@
           <option value="todos">Todos</option>
           <option value="assistindo">Assistindo</option>
           <option value="concluido">Concluído</option>
-          <option value="planejado">Planejado</option>
           <option value="pausado">Pausado</option>
         </select>
         <select id="filterTier" aria-label="Filtrar por tier">
@@ -171,15 +170,15 @@
       <!-- Linha 1: Header -->
       <header class="detail-header">
         <div class="detail-header-left">
-          <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier">S</button>
-          <div id="addTierDropdown" class="tier-dropdown" style="display: none;">
-            <button class="tier-option" data-tier="S+">S+</button>
-            <button class="tier-option" data-tier="S">S</button>
-            <button class="tier-option" data-tier="A">A</button>
-            <button class="tier-option" data-tier="B">B</button>
-            <button class="tier-option" data-tier="C">C</button>
-            <button class="tier-option" data-tier="D">D</button>
-            <button class="tier-option" data-tier="">Sem tier</button>
+          <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
+          <div id="addTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
+            <button class="tier-option" data-tier="S+" role="option">S+</button>
+            <button class="tier-option" data-tier="S" role="option">S</button>
+            <button class="tier-option" data-tier="A" role="option">A</button>
+            <button class="tier-option" data-tier="B" role="option">B</button>
+            <button class="tier-option" data-tier="C" role="option">C</button>
+            <button class="tier-option" data-tier="D" role="option">D</button>
+            <button class="tier-option" data-tier="" role="option">Sem tier</button>
           </div>
         </div>
         <div class="detail-header-center">
@@ -291,15 +290,15 @@
       <!-- Linha 1: Header -->
       <header class="detail-header">
         <div class="detail-header-left">
-          <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier">S</button>
-          <div id="detailTierDropdown" class="tier-dropdown" style="display: none;">
-            <button class="tier-option" data-tier="S+">S+</button>
-            <button class="tier-option" data-tier="S">S</button>
-            <button class="tier-option" data-tier="A">A</button>
-            <button class="tier-option" data-tier="B">B</button>
-            <button class="tier-option" data-tier="C">C</button>
-            <button class="tier-option" data-tier="D">D</button>
-            <button class="tier-option" data-tier="">Sem tier</button>
+          <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
+          <div id="detailTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
+            <button class="tier-option" data-tier="S+" role="option">S+</button>
+            <button class="tier-option" data-tier="S" role="option">S</button>
+            <button class="tier-option" data-tier="A" role="option">A</button>
+            <button class="tier-option" data-tier="B" role="option">B</button>
+            <button class="tier-option" data-tier="C" role="option">C</button>
+            <button class="tier-option" data-tier="D" role="option">D</button>
+            <button class="tier-option" data-tier="" role="option">Sem tier</button>
           </div>
         </div>
         <div class="detail-header-center">

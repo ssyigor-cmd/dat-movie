@@ -92,7 +92,7 @@ export function setupSuggestions(nomeInput, suggestionsContainer, callbacks) {
               name: name
             });
             
-            if (poster) onSetPreview(posterUrl); else onClearPreview();
+            if (poster) onSetPreview(poster); else onClearPreview();
             onSetLoading(true);
             
             // Buscar imagem de alta qualidade

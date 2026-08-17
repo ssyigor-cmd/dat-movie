@@ -8,7 +8,7 @@ import { escapeHTML, formatDateBR, calcularProgresso, getTierClass, filterItems,
 import { callTMDB, fetchTitleLogo, fetchTitleImages } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, logoutUser } from './lib/auth.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, initOrb, setFieldError, clearFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
-import { updateStepperValue, updateEpisodeLimit, setupSteppers, clearHold } from './lib/stepper.js';
+import { updateStepperValue, setupSteppers, updateEpisodeLimit } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
@@ -346,7 +346,7 @@ const suggestionsAPI = setupSuggestions(nome, suggestions, {
     selectedPosterPath = data.posterPath;
   },
   onSetPreview: (poster) => {
-    previewImg.src = `https://image.tmdb.org/t/p/original${poster}`;
+    previewImg.src = poster.startsWith('http') ? poster : `https://image.tmdb.org/t/p/original${poster}`;
     previewImg.style.display = 'block';
     previewPlaceholder.style.display = 'none';
   },
@@ -375,51 +375,12 @@ const suggestionsAPI = setupSuggestions(nome, suggestions, {
 function render() {
   renderContinueWatching(items, currentTab, continueSection, continueGrid, (item, variant) => createCardElement(item, variant, items, handleCardClick));
 
-  let allItems = items.slice();
-
-  let baseItems = [];
-  if (currentTab === 'planejado') {
-    baseItems = allItems.filter(item => item.status === 'planejado');
-  } else {
-    baseItems = allItems.filter(item => item.status !== 'planejado');
-  }
-
-  let filtered = baseItems.slice();
-  if (currentTab !== 'planejado' && currentTab !== 'all') {
-    filtered = filtered.filter(item => item.tipo === currentTab);
-  }
-
-  const search = searchInput.value.toLowerCase().trim();
+  const search = searchInput.value;
   const statusFilter = filterStatus.value;
   const tierFilter = filterTier.value;
   const sortKey = sortOrder.value;
 
-  if (search) filtered = filtered.filter(item => item.nome.toLowerCase().includes(search));
-  if (statusFilter !== 'todos') filtered = filtered.filter(item => item.status === statusFilter);
-  if (tierFilter !== 'todos') {
-    if (tierFilter === 'null') filtered = filtered.filter(item => !item.tier);
-    else filtered = filtered.filter(item => item.tier === tierFilter);
-  }
-
-  const [field, direction] = sortKey.split('-');
-  const isAsc = direction === 'asc';
-  filtered.sort((a, b) => {
-    let valA, valB;
-    switch (field) {
-      case 'nome': valA = a.nome.toLowerCase(); valB = b.nome.toLowerCase(); break;
-      case 'progresso': valA = calcularProgresso(a); valB = calcularProgresso(b); break;
-      case 'data': valA = new Date(a.dataCriacao || 0); valB = new Date(b.dataCriacao || 0); break;
-      case 'tier': {
-        const idxA = TIER_ORDER.indexOf(a.tier); const idxB = TIER_ORDER.indexOf(b.tier);
-        valA = idxA === -1 ? (isAsc ? 999 : -1) : idxA; valB = idxB === -1 ? (isAsc ? 999 : -1) : idxB; break;
-      }
-      case 'temporada': valA = a.temporada || 0; valB = b.temporada || 0; break;
-      default: valA = 0; valB = 0;
-    }
-    if (valA < valB) return isAsc ? -1 : 1;
-    if (valA > valB) return isAsc ? 1 : -1;
-    return 0;
-  });
+  const filtered = sortItems(filterItems(items, { currentTab, search, statusFilter, tierFilter }), sortKey);
 
   const count = filtered.length;
   let label = '';
@@ -641,16 +602,20 @@ function updateAddTierBadge(tier) {
   badge.textContent = tier || '?';
   badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
   badge.style.display = 'flex';
+  badge.setAttribute('aria-expanded', 'false');
 }
 
 function toggleAddTierDropdown() {
   const dropdown = addTierDropdown;
+  const badge = addTierBadge;
   const isVisible = dropdown.style.display === 'flex';
   dropdown.style.display = isVisible ? 'none' : 'flex';
+  badge.setAttribute('aria-expanded', !isVisible);
 }
 
 function hideAddTierDropdown() {
   addTierDropdown.style.display = 'none';
+  addTierBadge.setAttribute('aria-expanded', 'false');
 }
 
 function selectAddTier(tier) {
@@ -658,6 +623,7 @@ function selectAddTier(tier) {
   badge.textContent = tier || '?';
   badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
   badge.style.display = 'flex';
+  badge.setAttribute('aria-expanded', 'false');
   tierForm.value = tier || '';
   hideAddTierDropdown();
   if (typeof window !== 'undefined' && window.anime) {
@@ -850,7 +816,18 @@ document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     item.classList.add('active');
     const tab = item.dataset.tab;
-    if (tab) { currentTab = tab; render(); }
+    if (tab) { 
+      currentTab = tab; 
+      // Ocultar filtros na aba Lista de Desejos
+      if (tab === 'planejado') {
+        filterStatus.style.display = 'none';
+        filterTier.style.display = 'none';
+      } else {
+        filterStatus.style.display = '';
+        filterTier.style.display = '';
+      }
+      render(); 
+    }
   });
 });
 
