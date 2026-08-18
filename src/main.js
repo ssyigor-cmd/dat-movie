@@ -102,10 +102,7 @@ function densityLabelForValue(v) {
   return map[String(v)] || 'Padrão';
 }
 
-// Keep visible labels in sync when selects change
-if (filterStatus && statusToggleBtn) filterStatus.addEventListener('change', () => setToggleLabel(statusToggleBtn, filterStatus));
-if (filterTier && tierToggleBtn) filterTier.addEventListener('change', () => setToggleLabel(tierToggleBtn, filterTier));
-if (sortOrder && sortToggleBtn) sortOrder.addEventListener('change', () => setToggleLabel(sortToggleBtn, sortOrder));
+// Keep visible labels in sync only for modal buttons (toolbar keeps icons)
 if (tipo && addTipoToggleBtn) tipo.addEventListener('change', () => setToggleLabel(addTipoToggleBtn, tipo));
 if (statusSelect && addStatusToggleBtn) statusSelect.addEventListener('change', () => setToggleLabel(addStatusToggleBtn, statusSelect));
 if (detailTipo && detailTipoToggleBtn) detailTipo.addEventListener('change', () => setToggleLabel(detailTipoToggleBtn, detailTipo));
@@ -113,20 +110,19 @@ if (detailStatus && detailStatusToggleBtn) detailStatus.addEventListener('change
 
 // initialize labels from current state
 setTimeout(() => {
-  try {
-    setToggleLabel(statusToggleBtn, filterStatus);
-    setToggleLabel(tierToggleBtn, filterTier);
-    setToggleLabel(sortToggleBtn, sortOrder);
-    setToggleLabel(addTipoToggleBtn, tipo);
-    setToggleLabel(addStatusToggleBtn, statusSelect);
-    setToggleLabel(detailTipoToggleBtn, detailTipo);
-    setToggleLabel(detailStatusToggleBtn, detailStatus);
-    if (densityToggleBtn) {
-      const label = densityLabelForValue(gridDensity);
-      const span = densityToggleBtn.querySelector('.tool-btn-label');
-      if (span) span.textContent = label; else densityToggleBtn.innerHTML = `<span class="tool-btn-label">${label}</span>`;
-    }
-  } catch (err) { /* ignore if DOM not ready */ }
+    try {
+      // initialize only modal labels
+      setToggleLabel(addTipoToggleBtn, tipo);
+      setToggleLabel(addStatusToggleBtn, statusSelect);
+      setToggleLabel(detailTipoToggleBtn, detailTipo);
+      setToggleLabel(detailStatusToggleBtn, detailStatus);
+      // density: keep icon, set accessible title instead of replacing content
+      if (densityToggleBtn) {
+        const label = densityLabelForValue(gridDensity);
+        densityToggleBtn.setAttribute('title', label);
+        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
+      }
+    } catch (err) { /* ignore if DOM not ready */ }
 }, 0);
 
 // SIDEBAR E ESTATÍSTICA
@@ -884,11 +880,11 @@ sortOrder.addEventListener('change', render);
       localStorage.setItem('gridDensity', gridDensity);
       // update active state
       densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(gridDensity)));
-      // update visible label
+      // update accessible title for density button (keep icon)
       if (densityToggleBtn) {
-        const span = densityToggleBtn.querySelector('.tool-btn-label');
         const label = densityLabelForValue(gridDensity);
-        if (span) span.textContent = label; else densityToggleBtn.innerHTML = `<span class="tool-btn-label">${label}</span>`;
+        densityToggleBtn.setAttribute('title', label);
+        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
       }
       // close menu
       densityMenu.classList.remove('show');
