@@ -719,6 +719,24 @@ authForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); 
 
 profileToggle.addEventListener('click', (e) => {
   e.stopPropagation();
+
+  // If desktop and sidebar is collapsed, expand it first, then open dropdown
+  if (!mobileLayoutQuery.matches && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    localStorage.setItem('sidebarCollapsed', 'false');
+    sidebarToggleIcon.className = 'fas fa-chevron-left';
+
+    // Small delay to allow layout/animation to settle before showing dropdown
+    setTimeout(() => {
+      const isOpen = profileDropdown.style.display === 'block';
+      profileDropdown.style.display = isOpen ? 'none' : 'block';
+      profileToggle.classList.toggle('active', !isOpen);
+    }, 120);
+
+    return;
+  }
+
+  // Normal behavior: toggle dropdown
   const isOpen = profileDropdown.style.display === 'block';
   profileDropdown.style.display = isOpen ? 'none' : 'block';
   profileToggle.classList.toggle('active', !isOpen);
