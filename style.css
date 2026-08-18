@@ -438,6 +438,34 @@ img { max-width: 100%; height: auto; display: block; }
   outline-offset: 4px;
 }
 
+/* Density segmented control styles */
+.density-toggle { display: inline-flex; gap: 8px; align-items: center; }
+.density-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: 999px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  transition: background .16s ease, color .12s ease, transform .12s ease, box-shadow .12s ease;
+  font-size: 0.9rem;
+}
+.density-btn .density-icon { font-family: ui-monospace, "JetBrains Mono", monospace; opacity: .95; font-size: 0.85rem; line-height: 1; }
+.density-btn .density-label { display: inline-block; font-weight: 600; }
+.density-btn.active, .density-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+.density-btn:focus-visible { box-shadow: 0 0 0 4px rgba(212,212,212,0.06); outline: none; }
+
+/* Remove legacy select styling if still present */
+#densitySelect { display: none !important; }
+
 /* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
 @media (max-width: 600px) {
   .floating-add { right: 12px; bottom: 12px; }
