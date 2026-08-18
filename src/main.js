@@ -53,7 +53,27 @@ const suggestions = $('suggestions');
 const previewImg = $('previewImg');
 const previewPlaceholder = $('previewPlaceholder');
 const formLoading = $('formLoading');
-const densitySelect = $('densitySelect');
+const densityToggleBtn = $('densityToggleBtn');
+const densityMenu = $('densityMenu');
+const densityOptions = document.querySelectorAll('.density-option');
+const addTipoToggleBtn = $('addTipoToggleBtn');
+const addTipoMenu = $('addTipoMenu');
+const addStatusToggleBtn = $('addStatusToggleBtn');
+const addStatusMenu = $('addStatusMenu');
+const detailTipoToggleBtn = $('detailTipoToggleBtn');
+const detailTipoMenu = $('detailTipoMenu');
+const detailStatusToggleBtn = $('detailStatusToggleBtn');
+const detailStatusMenu = $('detailStatusMenu');
+const statusWrapper = $('statusWrapper');
+const statusToggleBtn = $('statusToggleBtn');
+const statusMenu = $('statusMenu');
+const tierWrapper = $('tierWrapper');
+const tierToggleBtn = $('tierToggleBtn');
+const tierMenu = $('tierMenu');
+const sortWrapper = $('sortWrapper');
+const sortToggleBtn = $('sortToggleBtn');
+const sortMenu = $('sortMenu');
+const filterMenuOptions = document.querySelectorAll('.filter-option');
 const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
@@ -62,6 +82,48 @@ const profileToggle = $('profileToggle');
 const profileDropdown = $('profileDropdown');
 const profileEmail = $('profileEmail');
 const profileEmailFull = $('profileEmailFull');
+
+// Helper to sync visible button labels with their authoritative select elements
+function setToggleLabel(btn, select) {
+  if (!btn || !select) return;
+  let span = btn.querySelector('.tool-btn-label');
+  if (!span) {
+    span = document.createElement('span');
+    span.className = 'tool-btn-label';
+    btn.innerHTML = '';
+    btn.appendChild(span);
+  }
+  const opt = select.options[select.selectedIndex];
+  span.textContent = opt ? opt.textContent : '';
+}
+
+function densityLabelForValue(v) {
+  const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
+  return map[String(v)] || 'Padrão';
+}
+
+// Keep visible labels in sync only for modal buttons (toolbar keeps icons)
+if (tipo && addTipoToggleBtn) tipo.addEventListener('change', () => setToggleLabel(addTipoToggleBtn, tipo));
+if (statusSelect && addStatusToggleBtn) statusSelect.addEventListener('change', () => setToggleLabel(addStatusToggleBtn, statusSelect));
+if (detailTipo && detailTipoToggleBtn) detailTipo.addEventListener('change', () => setToggleLabel(detailTipoToggleBtn, detailTipo));
+if (detailStatus && detailStatusToggleBtn) detailStatus.addEventListener('change', () => setToggleLabel(detailStatusToggleBtn, detailStatus));
+
+// initialize labels from current state
+setTimeout(() => {
+    try {
+      // initialize only modal labels
+      setToggleLabel(addTipoToggleBtn, tipo);
+      setToggleLabel(addStatusToggleBtn, statusSelect);
+      setToggleLabel(detailTipoToggleBtn, detailTipo);
+      setToggleLabel(detailStatusToggleBtn, detailStatus);
+      // density: keep icon, set accessible title instead of replacing content
+      if (densityToggleBtn) {
+        const label = densityLabelForValue(gridDensity);
+        densityToggleBtn.setAttribute('title', label);
+        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
+      }
+    } catch (err) { /* ignore if DOM not ready */ }
+}, 0);
 
 // SIDEBAR E ESTATÍSTICA
 const sidebar = document.getElementById('sidebar');
@@ -293,6 +355,7 @@ const detailModalAPI = setupDetailModal({
   detailTipo: $('detailTipo'),
   detailTierBadge: $('detailTierBadge'),
   detailTierDropdown: $('detailTierDropdown'),
+  detailAddedDate: $('detailAddedDate'),
   detailSave: $('detailSave'),
   detailDelete: $('detailDelete'),
   detailPosterImg: $('detailPosterImg'),
@@ -305,6 +368,7 @@ const detailModalAPI = setupDetailModal({
   detailTitleText: $('detailTitleText'),
   detailWikiLink: $('detailWikiLink'),
   detailImdbLink: $('detailImdbLink'),
+  detailYoutubeLink: $('detailYoutubeLink'),
   detailEpisodesBtn: $('detailEpisodesBtn')
 }, {
   onUpdateItem: updateItemInSupabase,
@@ -377,8 +441,13 @@ function render() {
 
   const search = searchInput.value;
   const statusFilter = filterStatus.value;
-  const tierFilter = filterTier.value;
+  let tierFilter = filterTier.value;
   const sortKey = sortOrder.value;
+
+  // Ignorar filtro de Tier na aba "Lista de Desejos"
+  if (currentTab === 'planejado') {
+    tierFilter = 'todos';
+  }
 
   const filtered = sortItems(filterItems(items, { currentTab, search, statusFilter, tierFilter }), sortKey);
 
@@ -396,10 +465,11 @@ function render() {
 
   if (currentTab === 'planejado') {
     groupToggle.style.display = 'none';
+    filterTier.style.display = 'none';
   } else {
     groupToggle.style.display = '';
+    filterTier.style.display = '';
   }
-  filterTier.style.display = '';
 
   grid.innerHTML = '';
   if (filtered.length === 0) {
@@ -713,6 +783,24 @@ authForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); 
 
 profileToggle.addEventListener('click', (e) => {
   e.stopPropagation();
+
+  // If desktop and sidebar is collapsed, expand it first, then open dropdown
+  if (!mobileLayoutQuery.matches && sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    localStorage.setItem('sidebarCollapsed', 'false');
+    sidebarToggleIcon.className = 'fas fa-chevron-left';
+
+    // Small delay to allow layout/animation to settle before showing dropdown
+    setTimeout(() => {
+      const isOpen = profileDropdown.style.display === 'block';
+      profileDropdown.style.display = isOpen ? 'none' : 'block';
+      profileToggle.classList.toggle('active', !isOpen);
+    }, 120);
+
+    return;
+  }
+
+  // Normal behavior: toggle dropdown
   const isOpen = profileDropdown.style.display === 'block';
   profileDropdown.style.display = isOpen ? 'none' : 'block';
   profileToggle.classList.toggle('active', !isOpen);
@@ -729,7 +817,10 @@ logoutBtn.addEventListener('click', async () => {
 checkSession();
 
 // Event listeners de navegação
-openFormBtn.addEventListener('click', () => {
+openFormBtn.addEventListener('click', (e) => {
+  // Prevent clicks from propagating to elements behind the floating button
+  e.stopPropagation();
+  e.preventDefault();
   if (editingIndex !== null) cancelEdit();
   clearAllFieldErrors(form);
   clearPreview();
@@ -782,12 +873,190 @@ filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
-densitySelect.value = gridDensity;
-densitySelect.addEventListener('change', function() {
-  gridDensity = parseInt(this.value);
-  localStorage.setItem('gridDensity', gridDensity);
-  render();
-});
+  // Initialize density dropdown control (icon + menu)
+  if (densityToggleBtn && densityMenu) {
+    function setDensity(value) {
+      gridDensity = parseInt(value, 10) || gridDensity;
+      localStorage.setItem('gridDensity', gridDensity);
+      // update active state
+      densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(gridDensity)));
+      // update accessible title for density button (keep icon)
+      if (densityToggleBtn) {
+        const label = densityLabelForValue(gridDensity);
+        densityToggleBtn.setAttribute('title', label);
+        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
+      }
+      // close menu
+      densityMenu.classList.remove('show');
+      densityToggleBtn.setAttribute('aria-expanded', 'false');
+      render();
+    }
+
+    // mark current selection
+    densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(gridDensity)));
+
+    densityToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = densityMenu.classList.contains('show');
+      densityMenu.classList.toggle('show', !isOpen);
+      densityToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    densityOptions.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDensity(opt.dataset.value);
+      });
+    });
+
+    // close when clicking outside or pressing Esc
+    document.addEventListener('click', () => { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); } });
+  }
+  // Initialize filter icon dropdowns (status, tier, sort)
+  function closeAllFilterMenus() {
+    document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+    [statusToggleBtn, tierToggleBtn, sortToggleBtn].forEach(b => { if (b) b.setAttribute('aria-expanded', 'false'); });
+  }
+
+  // helper to mark active option inside a menu based on select value
+  function markMenuActive(menu, select) {
+    if (!menu || !select) return;
+    menu.querySelectorAll('.filter-option').forEach(opt => {
+      opt.classList.toggle('active', String(opt.dataset.value) === String(select.value));
+    });
+  }
+
+  // helper to mark toolbar toggle active when select != default
+  function updateToggleActiveState(toggleBtn, select, defaultValue = 'todos') {
+    if (!toggleBtn || !select) return;
+    const active = String(select.value) !== String(defaultValue);
+    toggleBtn.classList.toggle('active', active);
+  }
+
+  if (statusToggleBtn && statusMenu) {
+    statusToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = statusMenu.classList.contains('show');
+      closeAllFilterMenus();
+      statusMenu.classList.toggle('show', !isOpen);
+      // mark active option when opening
+      if (!isOpen) markMenuActive(statusMenu, filterStatus);
+      statusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (tierToggleBtn && tierMenu) {
+    tierToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = tierMenu.classList.contains('show');
+      closeAllFilterMenus();
+      tierMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(tierMenu, filterTier);
+      tierToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (sortToggleBtn && sortMenu) {
+    sortToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = sortMenu.classList.contains('show');
+      closeAllFilterMenus();
+      sortMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(sortMenu, sortOrder);
+      sortToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  // Modal toggles (add / detail) — open corresponding menus
+  if (addTipoToggleBtn && addTipoMenu) {
+    addTipoToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = addTipoMenu.classList.contains('show');
+      closeAllFilterMenus();
+      addTipoMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(addTipoMenu, tipo);
+      addTipoToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (addStatusToggleBtn && addStatusMenu) {
+    addStatusToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = addStatusMenu.classList.contains('show');
+      closeAllFilterMenus();
+      addStatusMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(addStatusMenu, statusSelect);
+      addStatusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (detailTipoToggleBtn && detailTipoMenu) {
+    detailTipoToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = detailTipoMenu.classList.contains('show');
+      closeAllFilterMenus();
+      detailTipoMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(detailTipoMenu, detailTipo);
+      detailTipoToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (detailStatusToggleBtn && detailStatusMenu) {
+    detailStatusToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = detailStatusMenu.classList.contains('show');
+      closeAllFilterMenus();
+      detailStatusMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(detailStatusMenu, detailStatus);
+      detailStatusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  // Clicking an option sets the hidden select and triggers change
+  filterMenuOptions.forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = opt.dataset.target;
+      const value = opt.dataset.value;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.value = value;
+        target.dispatchEvent(new Event('change'));
+      }
+      closeAllFilterMenus();
+    });
+  });
+
+  // keep menus and toggles in sync when selects change
+  filterStatus.addEventListener('change', () => {
+    // update menu highlights and toolbar active
+    markMenuActive(statusMenu, filterStatus);
+    updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
+  });
+  filterTier.addEventListener('change', () => {
+    markMenuActive(tierMenu, filterTier);
+    updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  });
+  sortOrder.addEventListener('change', () => {
+    markMenuActive(sortMenu, sortOrder);
+    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+  });
+
+  // modal menus (add/detail) should also show active selection
+  if (addTipoMenu && tipo) markMenuActive(addTipoMenu, tipo);
+  if (addStatusMenu && statusSelect) markMenuActive(addStatusMenu, statusSelect);
+  if (detailTipoMenu && detailTipo) markMenuActive(detailTipoMenu, detailTipo);
+  if (detailStatusMenu && detailStatus) markMenuActive(detailStatusMenu, detailStatus);
+
+  // ensure toolbar toggles reflect current select values on init
+  updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
+  updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+
+  // Close filter menus on outside click or Esc
+  document.addEventListener('click', closeAllFilterMenus);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllFilterMenus(); });
 groupToggle.innerHTML = groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
 groupToggle.addEventListener('click', () => {
   groupingActive = !groupingActive;
@@ -822,9 +1091,13 @@ document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
       if (tab === 'planejado') {
         filterStatus.style.display = 'none';
         filterTier.style.display = 'none';
+        if (statusWrapper) statusWrapper.style.display = 'none';
+        if (tierWrapper) tierWrapper.style.display = 'none';
       } else {
         filterStatus.style.display = '';
         filterTier.style.display = '';
+        if (statusWrapper) statusWrapper.style.display = '';
+        if (tierWrapper) tierWrapper.style.display = '';
       }
       render(); 
     }

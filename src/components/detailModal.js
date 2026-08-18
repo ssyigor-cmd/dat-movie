@@ -3,7 +3,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, TIER_COLORS, escapeHTML } from '../lib/catalog.js';
+import { getTierClass, TIER_COLORS, escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
 /**
@@ -40,7 +40,9 @@ export function setupDetailModal(elements, callbacks) {
     detailTitleText,
     detailWikiLink,
     detailImdbLink,
-    detailEpisodesBtn
+    detailYoutubeLink,
+    detailEpisodesBtn,
+    detailAddedDate
   } = elements;
 
   const {
@@ -169,8 +171,11 @@ export function setupDetailModal(elements, callbacks) {
         if (detailsData.imdb_id) {
           imdbLink = `https://www.imdb.com/title/${detailsData.imdb_id}/`;
         }
-        detailWikiLink.href = wikiLink;
-        detailImdbLink.href = imdbLink;
+          detailWikiLink.href = wikiLink;
+          detailImdbLink.href = imdbLink;
+          if (detailYoutubeLink) {
+            detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
+          }
       }
 
       let logoUrl = null;
@@ -234,6 +239,9 @@ export function setupDetailModal(elements, callbacks) {
     const imdbFallback = `https://www.imdb.com/find?q=${encodeURIComponent(nome)}`;
     detailWikiLink.href = wikiFallback;
     detailImdbLink.href = imdbFallback;
+    if (detailYoutubeLink) {
+      detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(nome + ' trailer')}`;
+    }
 
     const seasonMap = item.seasonEpisodesMap || {};
     const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
@@ -263,6 +271,18 @@ export function setupDetailModal(elements, callbacks) {
     }
 
     updateTierBadge(item.tier);
+
+    // Mostrar data de adição, se disponível
+    if (detailAddedDate) {
+      try {
+        const iso = item.dataCriacao || item.dataCriacao === 0 ? item.dataCriacao : null;
+        const datePart = iso ? String(iso).split('T')[0] : null;
+        const formatted = datePart ? formatDateBR(datePart) : 'Data desconhecida';
+        detailAddedDate.textContent = `Adicionado: ${formatted}`;
+      } catch (e) {
+        detailAddedDate.textContent = 'Adicionado: Data desconhecida';
+      }
+    }
 
     detailModal.classList.add('active');
     lockScreen();

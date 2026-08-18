@@ -63,6 +63,8 @@
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  /* adicionada: largura fluida da sidebar */
+  --sidebar-width: clamp(100px, 18vw, 240px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,7 +97,7 @@ h1, h2, h3, h4, h5, h6 {
    SIDEBAR - LIQUID GLASS
    ================================================================ */
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-width);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -107,20 +109,20 @@ h1, h2, h3, h4, h5, h6 {
   height: 100vh;
   position: fixed;
   top: 0;
-  left: 0;
-  flex-shrink: 0;
   transition: width var(--transition-smooth), transform var(--transition-smooth);
   z-index: 100;
 }
 
 .sidebar.collapsed {
-  width: 100px;
+  width: clamp(80px, 10vw, 100px);
 }
 
 .sidebar.collapsed .nav-label {
   opacity: 0;
   width: 0;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
 }
 
 .sidebar.collapsed .nav-icon {
@@ -162,8 +164,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-icon-img {
-  height: 56px;
-  width: 56px;
+  height: clamp(42px, 6.5vw, 56px);
+  width: clamp(42px, 6.5vw, 56px);
   transition: all var(--transition-smooth);
 }
 
@@ -178,9 +180,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-logo {
-  height: 56px;
+  height: clamp(36px, 6vw, 56px);
   width: auto;
-  max-width: 180px;
+  max-width: clamp(100px, 20vw, 180px);
   transition: all var(--transition-smooth);
 }
 
@@ -223,12 +225,12 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-toggle {
   position: absolute;
   right: -16px;
-  top: 42px;
+  top: clamp(28px, 5vh, 42px);
   background: var(--bg-elevated);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: clamp(28px, 4.5vw, 36px);
+  height: clamp(28px, 4.5vw, 36px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,7 +271,7 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 .nav-item i { 
-  width: 20px; 
+  width: clamp(16px, 2.5vw, 24px);
   text-align: center; 
   font-size: 1rem; 
   color: var(--text-muted);
@@ -295,7 +297,10 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   bottom: 70px;
   left: 0;
-  right: 0;
+  right: auto;
+  width: auto;
+  min-width: 220px;
+  max-width: min(360px, 90vw);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur-strong));
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
@@ -303,7 +308,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-sm);
   padding: 16px;
   box-shadow: var(--glass-shadow-lg);
-  z-index: 50;
+  z-index: 110;
   transition: transform var(--transition-smooth), opacity var(--transition-smooth);
   display: none;
 }
@@ -329,14 +334,56 @@ h1, h2, h3, h4, h5, h6 {
 #profileToggle .fa-chevron-down { transition: transform 0.2s; }
 #profileToggle.active .fa-chevron-down { transform: rotate(180deg); }
 
+/* Quando a sidebar estiver recolhida, posicionar o dropdown fora (à direita) */
+.sidebar.collapsed .profile-dropdown {
+  left: calc(100% + 8px);
+  right: auto;
+  min-width: 220px;
+  width: max-content;
+  background: rgba(10, 10, 16, 0.95);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  color: var(--text-primary);
+}
+
+/* Compatibilidade mobile: full-width dentro do fluxo antes de aplicar offset */
+@media (max-width: 700px) {
+  .profile-dropdown {
+    left: -10px;
+    right: -10px;
+    min-width: auto;
+    width: auto;
+    bottom: 50px;
+  }
+}
+
+/* Global imagens responsivas */
+img { max-width: 100%; height: auto; display: block; }
+
+/* Modais: largura máxima fluida e margens seguras (aplica-se às caixas de modal, não ao overlay) */
+.modal,
+.modal-detail {
+  width: min(1200px, 96%);
+  max-width: calc(100% - 48px);
+  margin: 24px auto;
+  box-sizing: border-box;
+}
+
+/* Pequenas telas: reduzir padding */
+@media (max-width: 600px) {
+  .main-content { padding: 16px; }
+  .sidebar { padding: 16px 12px; }
+  .continue-grid { gap: 12px; }
+}
+
 /* ================================================================
    MAIN CONTENT
    ================================================================ */
 .main-content {
   flex: 1;
   padding: 28px 32px;
-  margin-left: 240px;
-  max-width: calc(100% - 240px);
+  margin-left: var(--sidebar-width);
+  max-width: calc(100% - var(--sidebar-width));
   overflow-y: auto;
   transition: margin-left 0.3s ease, max-width 0.3s ease, padding 0.3s ease;
 }
@@ -351,6 +398,162 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+/* Botão flutuante de ação (FAB) para adicionar títulos */
+.floating-add {
+  position: fixed;
+  right: clamp(16px, 3vw, 32px);
+  bottom: clamp(16px, 3vh, 32px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+.floating-add .fab {
+  --size: clamp(44px, 5.2vw, 56px);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid var(--glass-border-strong);
+  color: var(--accent-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.7);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.12s ease;
+  font-size: 1rem;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+.floating-add .fab:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(0,0,0,0.65); }
+
+.floating-add .fab:focus {
+  outline: 2px solid rgba(255,255,255,0.12);
+  outline-offset: 4px;
+}
+
+/* Density segmented control styles */
+.density-toggle { display: inline-flex; gap: 8px; align-items: center; }
+.density-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: 999px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  transition: background .16s ease, color .12s ease, transform .12s ease, box-shadow .12s ease;
+  font-size: 0.9rem;
+}
+.density-btn .density-icon { font-family: ui-monospace, "JetBrains Mono", monospace; opacity: .95; font-size: 0.85rem; line-height: 1; }
+.density-btn .density-label { display: inline-block; font-weight: 600; }
+.density-btn.active, .density-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+}
+.density-btn:focus-visible { box-shadow: 0 0 0 4px rgba(212,212,212,0.06); outline: none; }
+
+/* Density select basic styling */
+#densitySelect {
+  padding: 6px 12px;
+  background: rgba(var(--bg-elevated-rgb), 0.36);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  min-width: 120px;
+}
+
+/* Density icon + dropdown */
+.density-wrapper { position: relative; display: inline-block; }
+.density-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: var(--glass-shadow-lg);
+  display: none;
+  min-width: 140px;
+  z-index: 1200;
+}
+.density-menu.show { display: block; }
+.density-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.density-option:hover, .density-option.active { background: var(--accent-soft); color: var(--accent); }
+
+/* Reuse filter-menu styles for other filter dropdowns */
+.filter-wrapper-item { position: relative; display: inline-block; margin-left: 8px; }
+.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.45); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
+.filter-menu::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+.filter-menu > * { position: relative; z-index: 1; }
+
+/* Ensure the immediate wrapper doesn't clip the absolute menu (used inside modals) */
+.filter-wrapper-item { position: relative; overflow: visible; display: inline-block; }
+
+/* Some modal columns have inline overflow:hidden; allow menus to escape visually */
+#detailRightCol, .modal-detail .detail-right-col {
+  overflow: visible !important;
+}
+.filter-menu.show { display: block; }
+.filter-option { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; color: var(--text-primary); font-weight: 600; cursor: pointer; border-radius: 6px; }
+.filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
+
+/* hide toolbar selects visually but keep modal selects visible (we prefer native selects inside modals) */
+#filterStatus, #filterTier, #sortOrder { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Hide the icon-toggle buttons and their filter-menu variants inside modals (use native selects instead) */
+#addTipoToggleBtn, #addStatusToggleBtn, #detailTipoToggleBtn, #detailStatusToggleBtn { display: none !important; }
+#addTipoMenu, #addStatusMenu, #detailTipoMenu, #detailStatusMenu { display: none !important; }
+
+/* Style modal selects to look like form controls */
+.detail-info-blocks .info-block .info-value {
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
+@media (max-width: 600px) {
+  .floating-add { right: 12px; bottom: 12px; }
+  .floating-add .fab { --size: 48px; }
 }
 .main-header h1 {
   font-family: var(--font-display);
@@ -398,6 +601,63 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+
+/* Acessibilidade: aumentar contraste e estilizar selects dentro dos modais (detailModal e modalOverlay)
+   - Texto centralizado e mais pesado
+   - Fundo mais destacado, borda mais visível e foco com sombra
+   - Estilização das options para melhor legibilidade onde suportado
+*/
+#detailModal select,
+#modalOverlay select,
+#detailModal .select,
+#modalOverlay .select {
+  background: linear-gradient(180deg,#121212,#0f1724);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border-strong);
+  padding: 8px 10px;
+  border-radius: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center; /* centralizar o texto conforme solicitado */
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-height: 32px;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23E5E5E5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Remover seta padrão em alguns navegadores para manter o estilo */
+#detailModal select::-ms-expand,
+#modalOverlay select::-ms-expand {
+  display: none;
+}
+
+#detailModal select:focus,
+#modalOverlay select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(100,149,237,0.12);
+  border-color: rgba(100,149,237,0.6);
+}
+
+/* Opções de select: nem todos os browsers aplicam esses estilos, mas aumentam legibilidade quando aplicados */
+#detailModal option,
+#modalOverlay option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+/* Forçar contraste adicional para badges e controles que possam usar os mesmos tons */
+#detailModal .tier-badge-large,
+#detailModal .badge,
+#modalOverlay .tier-badge-large,
+#modalOverlay .badge {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.03);
+}
   margin-top: 4px;
 }
 
@@ -419,7 +679,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .continue-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
 .continue-grid .card {
@@ -435,8 +695,8 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--glass-border);
 }
 .continue-grid .card-img {
-  width: 80px;
-  height: 120px;
+  width: clamp(64px, 12vw, 120px);
+  height: auto;
   flex-shrink: 0;
   aspect-ratio: 2/3;
   border-radius: 6px;
@@ -678,7 +938,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius);
   border: 1px solid var(--glass-border-strong);
-  max-width: 800px;
+  max-width: min(800px, 96%);
   width: 100%;
   padding: 24px;
   transform: translateY(20px);
@@ -745,14 +1005,19 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.9rem;
 }
 
+/* Forçar ícones monocromáticos nos botões de detalhe */
+.detail-link-btn .fa-youtube {
+  color: inherit !important;
+}
+
 /* ================================================================
    MODAL DE DETALHES
    ================================================================ */
 .modal-detail .modal {
   width: 100%;
-  max-width: 1600px;
-  height: 95%;
-  max-height: 1100px;
+  max-width: min(1200px, 96%);
+  height: auto;
+  max-height: 90vh;
   padding: 24px;
   background: #0A0A0A;
   border-radius: var(--radius);
@@ -993,15 +1258,26 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Estilos dos blocos de informação e steppers */
-.detail-info-blocks { display: flex; gap: 20px; margin-bottom: 8px; flex-wrap: wrap; }
+.detail-info-blocks {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+}
 .detail-info-blocks .info-block {
-  flex: 1;
+  flex: 0 0 150px;
+  max-width: 150px;
   background: rgba(var(--bg-primary-rgb), 0.3);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  padding: 8px 10px 9px;
   border: 1px solid var(--glass-border);
   text-align: center;
   min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .detail-info-blocks .info-block .info-label {
   display: block;
@@ -1011,19 +1287,24 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  line-height: 1.2;
 }
 .detail-info-blocks .info-block .info-value {
   width: 100%;
+  max-width: 130px;
+  display: block;
+  margin: 0 auto;
   background: transparent;
   border: none;
   color: var(--text-primary);
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 600;
   text-align: center;
   padding: 0;
   cursor: pointer;
+  line-height: 1.2;
 }
 .detail-info-blocks .info-block .info-value:focus { outline: none; }
 .detail-info-blocks .info-block .info-value option {
@@ -1031,7 +1312,13 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
 }
 
-.detail-steppers { display: flex; gap: 8px; flex-shrink: 0; }
+.detail-steppers {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Área da sinopse com blur */
 .detail-sinopse-wrap {
@@ -1049,10 +1336,21 @@ h1, h2, h3, h4, h5, h6 {
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: blur(8px);
-  opacity: 0.5;
+  filter: blur(12px);
+  opacity: 0.75;
   z-index: 0;
 }
+
+#detailBlurBg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+
+/* ensure sinopse content sits above the dark overlay */
+.detail-sinopse-wrap > div { position: relative; z-index: 2; }
 .detail-sinopse {
   font-size: 0.85rem;
   line-height: 1.6;
@@ -1077,11 +1375,21 @@ h1, h2, h3, h4, h5, h6 {
   width: 4px;
 }
 .detail-sinopse-container::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.3);
-  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
 }
 .detail-sinopse-container::-webkit-scrollbar-track {
   background: transparent;
+.tool-btn.active {
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.12) inset;
+}
+
+}
+.filter-menu .filter-option.active::after {
+  content: '\2713';
+  float: right;
+  font-weight: 700;
 }
 #detailLoading { color: var(--text-muted); }
 
@@ -1107,6 +1415,18 @@ h1, h2, h3, h4, h5, h6 {
 #detailDelete:hover { background: rgba(239, 68, 68, 0.2); transform: scale(1.02); }
 #detailSave { background: var(--accent); color: var(--accent-ink); }
 #detailSave:hover { transform: scale(1.02); box-shadow: var(--shadow); background: var(--accent-hover); }
+
+/* Pequeno informe de data de adição no modal de detalhes */
+.detail-added-date {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: transparent;
+  white-space: nowrap;
+}
 
 /* ================================================================
    MODAL DE EPISÓDIOS (sem alterações)
@@ -1655,7 +1975,7 @@ a:focus-visible,
   body { flex-direction: column; }
   .sidebar {
     position: fixed;
-    left: -240px;
+    left: calc(-1 * var(--sidebar-width));
     top: 0;
     height: 100vh;
     z-index: 1000;
