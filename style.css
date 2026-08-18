@@ -463,8 +463,15 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .density-btn:focus-visible { box-shadow: 0 0 0 4px rgba(212,212,212,0.06); outline: none; }
 
-/* Remove legacy select styling if still present */
-#densitySelect { display: none !important; }
+/* Density select basic styling */
+#densitySelect {
+  padding: 6px 12px;
+  background: rgba(var(--bg-elevated-rgb), 0.36);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  min-width: 120px;
+}
 
 /* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
 @media (max-width: 600px) {

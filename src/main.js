@@ -53,8 +53,7 @@ const suggestions = $('suggestions');
 const previewImg = $('previewImg');
 const previewPlaceholder = $('previewPlaceholder');
 const formLoading = $('formLoading');
-const densityToggle = document.querySelector('.density-toggle');
-const densityBtns = document.querySelectorAll('.density-btn');
+const densitySelect = $('densitySelect');
 const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
@@ -812,28 +811,15 @@ filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
-  // Initialize segmented density control
-  function setDensity(value) {
-    gridDensity = parseInt(value, 10) || gridDensity;
-    localStorage.setItem('gridDensity', gridDensity);
-    document.querySelectorAll('.density-btn').forEach(b => {
-      const isActive = String(b.dataset.value) === String(gridDensity);
-      b.classList.toggle('active', isActive);
-      b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  // Initialize density select control
+  if (densitySelect) {
+    densitySelect.value = gridDensity;
+    densitySelect.addEventListener('change', function() {
+      gridDensity = parseInt(this.value, 10) || gridDensity;
+      localStorage.setItem('gridDensity', gridDensity);
+      render();
     });
-    render();
   }
-
-  document.querySelectorAll('.density-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDensity(btn.dataset.value);
-    });
-  });
-
-  // Reflect stored value on load
-  setDensity(localStorage.getItem('gridDensity') || gridDensity);
 groupToggle.innerHTML = groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
 groupToggle.addEventListener('click', () => {
   groupingActive = !groupingActive;
