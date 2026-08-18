@@ -780,7 +780,7 @@ img { max-width: 100%; height: auto; display: block; }
   -webkit-backdrop-filter: blur(20px);
   border-radius: var(--radius);
   border: 1px solid var(--glass-border-strong);
-  max-width: 800px;
+  max-width: min(800px, 96%);
   width: 100%;
   padding: 24px;
   transform: translateY(20px);
@@ -852,9 +852,9 @@ img { max-width: 100%; height: auto; display: block; }
    ================================================================ */
 .modal-detail .modal {
   width: 100%;
-  max-width: 1600px;
-  height: 95%;
-  max-height: 1100px;
+  max-width: min(1200px, 96%);
+  height: auto;
+  max-height: 90vh;
   padding: 24px;
   background: #0A0A0A;
   border-radius: var(--radius);
