@@ -507,12 +507,12 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Reuse filter-menu styles for other filter dropdowns */
 .filter-wrapper-item { position: relative; display: inline-block; margin-left: 8px; }
-.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: rgba(0,0,0,0.45); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.45); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
+.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: rgba(8, 10, 14, 0.9); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px; box-shadow: 0 12px 34px rgba(0,0,0,0.6); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.28);
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 10px;
   pointer-events: none;
   z-index: 0;
@@ -610,20 +610,27 @@ img { max-width: 100%; height: auto; display: block; }
 #detailModal select,
 #modalOverlay select,
 #detailModal .select,
-#modalOverlay .select {
-  background: linear-gradient(180deg,#121212,#0f1724);
+#modalOverlay .select,
+#detailTipoToggleBtn,
+#detailStatusToggleBtn,
+#addTipoToggleBtn,
+#addStatusToggleBtn {
+  background: rgb(19, 18, 19);
   color: var(--text-primary);
-  border: 1px solid var(--glass-border-strong);
+  border: none;
   padding: 8px 10px;
   border-radius: 10px;
   -webkit-appearance: none;
   appearance: none;
-  text-align: center; /* centralizar o texto conforme solicitado */
+  text-align: center;
   font-weight: 600;
   letter-spacing: 0.02em;
   min-height: 32px;
   background-repeat: no-repeat;
   background-position: right 12px center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23E5E5E5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
@@ -634,16 +641,20 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 #detailModal select:focus,
-#modalOverlay select:focus {
+#modalOverlay select:focus,
+#detailTipoToggleBtn:focus,
+#detailStatusToggleBtn:focus,
+#addTipoToggleBtn:focus,
+#addStatusToggleBtn:focus {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(100,149,237,0.12);
-  border-color: rgba(100,149,237,0.6);
+  box-shadow: 0 0 0 4px rgba(212,212,212,0.1);
+  border-color: rgba(212,212,212,0.4);
 }
 
 /* Opções de select: nem todos os browsers aplicam esses estilos, mas aumentam legibilidade quando aplicados */
 #detailModal option,
 #modalOverlay option {
-  background: var(--bg-primary);
+  background: rgb(19, 18, 19);
   color: var(--text-primary);
   text-align: center;
   font-weight: 600;
@@ -765,10 +776,10 @@ img { max-width: 100%; height: auto; display: block; }
 .filter-wrapper select, .tool-btn {
   padding: 8px 12px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--glass-border);
-  background: rgba(var(--bg-elevated-rgb), 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  background: rgba(12, 14, 18, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--text-primary);
   font-size: 0.8rem;
   font-weight: 500;
@@ -777,14 +788,14 @@ img { max-width: 100%; height: auto; display: block; }
   transition: border 0.2s, box-shadow 0.2s, background 0.2s;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239BA1AF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23E5E5E5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
 }
 .filter-wrapper select:focus, .tool-btn:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.tool-btn { padding: 6px 14px; background: rgba(var(--bg-elevated-rgb), 0.4); display: flex; align-items: center; gap: 6px; }
-.tool-btn:hover { background: var(--bg-elevated-hover); color: var(--accent); }
+.tool-btn { padding: 6px 14px; background: rgba(12, 14, 18, 0.82); display: flex; align-items: center; gap: 6px; }
+.tool-btn:hover { background: rgba(18, 20, 26, 0.96); color: var(--accent); }
 .tool-btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .tool-btn.primary:hover { transform: translateY(-2px); box-shadow: var(--shadow); background: var(--accent-hover); }
 #densitySelect { padding: 6px 12px; background: rgba(var(--bg-elevated-rgb), 0.4); }
@@ -1149,7 +1160,7 @@ img { max-width: 100%; height: auto; display: block; }
   align-items: center;
   margin: 0 0 12px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
   gap: 8px;
   flex-shrink: 0;
@@ -1182,18 +1193,18 @@ img { max-width: 100%; height: auto; display: block; }
   font-weight: 500;
   text-decoration: none;
   transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-  background: rgba(var(--bg-elevated-rgb), 0.3);
+  background: rgb(19, 18, 19);
   color: var(--text-secondary);
-  border: 1px solid var(--glass-border);
+  border: none;
   cursor: pointer;
   font-family: var(--font-body);
 }
 
 .detail-link-btn:hover {
-  background: var(--bg-elevated-hover);
+  background: rgba(19, 18, 19, 0.8);
   color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 .detail-link-btn i {
@@ -1269,10 +1280,10 @@ img { max-width: 100%; height: auto; display: block; }
 .detail-info-blocks .info-block {
   flex: 0 0 150px;
   max-width: 150px;
-  background: rgba(var(--bg-primary-rgb), 0.3);
+  background: rgb(19, 18, 19);
   border-radius: var(--radius-sm);
   padding: 8px 10px 9px;
-  border: 1px solid var(--glass-border);
+  border: none;
   text-align: center;
   min-width: 110px;
   display: flex;
@@ -1400,7 +1411,7 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: space-between;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--glass-border);
+  border-top: none;
   flex-shrink: 0;
 }
 .detail-actions button {
@@ -1410,6 +1421,7 @@ img { max-width: 100%; height: auto; display: block; }
   font-weight: 600;
   transition: all 0.2s;
   min-height: 44px;
+  border: none;
 }
 #detailDelete { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1.5px solid rgba(239, 68, 68, 0.25); }
 #detailDelete:hover { background: rgba(239, 68, 68, 0.2); transform: scale(1.02); }
@@ -1453,7 +1465,7 @@ img { max-width: 100%; height: auto; display: block; }
 /* Estilos para cada temporada */
 .season-container {
   margin-bottom: 20px;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: none;
   padding-bottom: 12px;
 }
 .season-container:last-child {
@@ -1532,7 +1544,7 @@ img { max-width: 100%; height: auto; display: block; }
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--glass-border);
+  border-bottom: none;
 }
 .episode-item:last-child {
   border-bottom: none;
@@ -1609,7 +1621,7 @@ img { max-width: 100%; height: auto; display: block; }
    ================================================================ */
 .stepper, .add-steppers .stepper {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  background: var(--glass-bg); border-radius: var(--radius-sm); padding: 12px 8px; border: 1px solid var(--glass-border);
+  background: rgb(19, 18, 19); border-radius: var(--radius-sm); padding: 12px 8px; border: none;
 }
 .stepper .stepper-label, .add-steppers .stepper .stepper-label {
   font-family: var(--font-mono); font-size: 0.6rem; font-weight: 500; text-transform: uppercase;
@@ -1619,25 +1631,25 @@ img { max-width: 100%; height: auto; display: block; }
 .stepper-btn {
   width: 44px; height: 44px; border-radius: 50%; border: none; display: flex; align-items: center;
   justify-content: center; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast);
-  background: var(--bg-elevated); color: var(--text-muted); font-size: 0.9rem; border: 1px solid var(--glass-border);
+  background: rgb(19, 18, 19); color: var(--text-muted); font-size: 0.9rem; border: none;
 }
 .stepper-btn:hover { 
   transform: scale(1.1); 
   background: var(--bg-elevated-hover);
 }
 .stepper-btn.stepper-up { 
-  background: var(--bg-elevated); 
+  background: rgb(19, 18, 19); 
   color: #22c55e; 
-  border-color: var(--glass-border);
+  border: none;
 }
 .stepper-btn.stepper-up:hover { 
   background: var(--bg-elevated-hover); 
   color: #16a34a;
 }
 .stepper-btn.stepper-down { 
-  background: var(--bg-elevated); 
+  background: rgb(19, 18, 19); 
   color: #ef4444; 
-  border-color: var(--glass-border);
+  border: none;
 }
 .stepper-btn.stepper-down:hover { 
   background: var(--bg-elevated-hover); 
@@ -1646,7 +1658,7 @@ img { max-width: 100%; height: auto; display: block; }
 .stepper-value { font-family: var(--font-mono); font-size: 2.1rem; font-weight: 500; color: var(--text-primary); min-width: 40px; text-align: center; }
 
 .btn-concluido {
-  background: var(--bg-elevated); color: #22c55e; border: 1px solid var(--glass-border); padding: 8px 18px; border-radius: var(--radius-pill);
+  background: rgb(19, 18, 19); color: #22c55e; border: none; padding: 8px 18px; border-radius: var(--radius-pill);
   font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast);
   display: inline-flex; align-items: center; gap: 6px;
 }
