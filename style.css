@@ -530,9 +530,25 @@ img { max-width: 100%; height: auto; display: block; }
 .filter-option { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; color: var(--text-primary); font-weight: 600; cursor: pointer; border-radius: 6px; }
 .filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
 
-/* hide original selects visually but keep in DOM for logic */
-/* hide original selects visually but keep in DOM for logic */
-#filterStatus, #filterTier, #sortOrder, #tipo, #status, #detailTipo, #detailStatus { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+/* hide toolbar selects visually but keep modal selects visible (we prefer native selects inside modals) */
+#filterStatus, #filterTier, #sortOrder { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Hide the icon-toggle buttons and their filter-menu variants inside modals (use native selects instead) */
+#addTipoToggleBtn, #addStatusToggleBtn, #detailTipoToggleBtn, #detailStatusToggleBtn { display: none !important; }
+#addTipoMenu, #addStatusMenu, #detailTipoMenu, #detailStatusMenu { display: none !important; }
+
+/* Style modal selects to look like form controls */
+.detail-info-blocks .info-block .info-value {
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
 
 /* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
 @media (max-width: 600px) {
