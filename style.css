@@ -416,18 +416,27 @@ img { max-width: 100%; height: auto; display: block; }
   width: var(--size);
   height: var(--size);
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  background: var(--accent);
   border: 1px solid var(--glass-border-strong);
-  color: var(--text-primary);
+  color: var(--accent-ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.7);
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.12s ease;
   font-size: 1rem;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 .floating-add .fab:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(0,0,0,0.65); }
+
+.floating-add .fab:focus {
+  outline: 2px solid rgba(255,255,255,0.12);
+  outline-offset: 4px;
+}
 
 /* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
 @media (max-width: 600px) {

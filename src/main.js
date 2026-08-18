@@ -306,6 +306,7 @@ const detailModalAPI = setupDetailModal({
   detailTitleText: $('detailTitleText'),
   detailWikiLink: $('detailWikiLink'),
   detailImdbLink: $('detailImdbLink'),
+  detailYoutubeLink: $('detailYoutubeLink'),
   detailEpisodesBtn: $('detailEpisodesBtn')
 }, {
   onUpdateItem: updateItemInSupabase,
@@ -754,7 +755,10 @@ logoutBtn.addEventListener('click', async () => {
 checkSession();
 
 // Event listeners de navegação
-openFormBtn.addEventListener('click', () => {
+openFormBtn.addEventListener('click', (e) => {
+  // Prevent clicks from propagating to elements behind the floating button
+  e.stopPropagation();
+  e.preventDefault();
   if (editingIndex !== null) cancelEdit();
   clearAllFieldErrors(form);
   clearPreview();
