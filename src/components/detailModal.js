@@ -40,6 +40,7 @@ export function setupDetailModal(elements, callbacks) {
     detailTitleText,
     detailWikiLink,
     detailImdbLink,
+    detailYoutubeLink,
     detailEpisodesBtn,
     detailAddedDate
   } = elements;
@@ -170,8 +171,11 @@ export function setupDetailModal(elements, callbacks) {
         if (detailsData.imdb_id) {
           imdbLink = `https://www.imdb.com/title/${detailsData.imdb_id}/`;
         }
-        detailWikiLink.href = wikiLink;
-        detailImdbLink.href = imdbLink;
+          detailWikiLink.href = wikiLink;
+          detailImdbLink.href = imdbLink;
+          if (detailYoutubeLink) {
+            detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
+          }
       }
 
       let logoUrl = null;
@@ -235,6 +239,9 @@ export function setupDetailModal(elements, callbacks) {
     const imdbFallback = `https://www.imdb.com/find?q=${encodeURIComponent(nome)}`;
     detailWikiLink.href = wikiFallback;
     detailImdbLink.href = imdbFallback;
+    if (detailYoutubeLink) {
+      detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(nome + ' trailer')}`;
+    }
 
     const seasonMap = item.seasonEpisodesMap || {};
     const tempKeys = Object.keys(seasonMap).map(Number).filter(k => k > 0);
