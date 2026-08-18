@@ -155,7 +155,7 @@
           <option value="12">12 col</option>
           <option value="14">14 col</option>
         </select>
-        <button id="openFormBtn" class="tool-btn primary"><i class="fas fa-plus"></i> Adicionar</button>
+        <!-- Botão Adicionar movido para um botão flutuante fixo fora do fluxo -->
       </div>
     </div>
 
@@ -441,6 +441,13 @@
 
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- BOTÃO FLUTUANTE DE ADIÇÃO (permanece visível ao rolar a página) -->
+  <div id="floatingAdd" class="floating-add" aria-hidden="false">
+    <button id="openFormBtn" class="fab" aria-label="Adicionar título">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
