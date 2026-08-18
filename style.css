@@ -360,11 +360,9 @@ h1, h2, h3, h4, h5, h6 {
 /* Global imagens responsivas */
 img { max-width: 100%; height: auto; display: block; }
 
-/* Modais: largura máxima fluida e margens seguras */
-#detailModal,
+/* Modais: largura máxima fluida e margens seguras (aplica-se às caixas de modal, não ao overlay) */
 .modal,
-.modal-detail,
-#modalOverlay {
+.modal-detail {
   width: min(1200px, 96%);
   max-width: calc(100% - 48px);
   margin: 24px auto;
