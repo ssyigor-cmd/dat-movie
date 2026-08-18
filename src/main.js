@@ -56,6 +56,16 @@ const formLoading = $('formLoading');
 const densityToggleBtn = $('densityToggleBtn');
 const densityMenu = $('densityMenu');
 const densityOptions = document.querySelectorAll('.density-option');
+const statusWrapper = $('statusWrapper');
+const statusToggleBtn = $('statusToggleBtn');
+const statusMenu = $('statusMenu');
+const tierWrapper = $('tierWrapper');
+const tierToggleBtn = $('tierToggleBtn');
+const tierMenu = $('tierMenu');
+const sortWrapper = $('sortWrapper');
+const sortToggleBtn = $('sortToggleBtn');
+const sortMenu = $('sortMenu');
+const filterMenuOptions = document.querySelectorAll('.filter-option');
 const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
@@ -847,6 +857,60 @@ sortOrder.addEventListener('change', render);
     document.addEventListener('click', () => { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); } });
   }
+  // Initialize filter icon dropdowns (status, tier, sort)
+  function closeAllFilterMenus() {
+    document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+    [statusToggleBtn, tierToggleBtn, sortToggleBtn].forEach(b => { if (b) b.setAttribute('aria-expanded', 'false'); });
+  }
+
+  if (statusToggleBtn && statusMenu) {
+    statusToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = statusMenu.classList.contains('show');
+      closeAllFilterMenus();
+      statusMenu.classList.toggle('show', !isOpen);
+      statusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (tierToggleBtn && tierMenu) {
+    tierToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = tierMenu.classList.contains('show');
+      closeAllFilterMenus();
+      tierMenu.classList.toggle('show', !isOpen);
+      tierToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  if (sortToggleBtn && sortMenu) {
+    sortToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = sortMenu.classList.contains('show');
+      closeAllFilterMenus();
+      sortMenu.classList.toggle('show', !isOpen);
+      sortToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  // Clicking an option sets the hidden select and triggers change
+  filterMenuOptions.forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = opt.dataset.target;
+      const value = opt.dataset.value;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.value = value;
+        target.dispatchEvent(new Event('change'));
+      }
+      closeAllFilterMenus();
+    });
+  });
+
+  // Close filter menus on outside click or Esc
+  document.addEventListener('click', closeAllFilterMenus);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAllFilterMenus(); });
 groupToggle.innerHTML = groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
 groupToggle.addEventListener('click', () => {
   groupingActive = !groupingActive;
@@ -881,9 +945,13 @@ document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
       if (tab === 'planejado') {
         filterStatus.style.display = 'none';
         filterTier.style.display = 'none';
+        if (statusWrapper) statusWrapper.style.display = 'none';
+        if (tierWrapper) tierWrapper.style.display = 'none';
       } else {
         filterStatus.style.display = '';
         filterTier.style.display = '';
+        if (statusWrapper) statusWrapper.style.display = '';
+        if (tierWrapper) tierWrapper.style.display = '';
       }
       render(); 
     }

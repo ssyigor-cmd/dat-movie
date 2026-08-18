@@ -123,6 +123,18 @@
           <option value="concluido">Concluído</option>
           <option value="pausado">Pausado</option>
         </select>
+        <div id="statusWrapper" class="filter-wrapper-item">
+          <button id="statusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por status">
+            <i class="fas fa-filter"></i>
+          </button>
+          <div id="statusMenu" class="filter-menu" role="menu" aria-hidden="true">
+            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="todos">Todos</button>
+            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="assistindo">Assistindo</button>
+            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="concluido">Concluído</button>
+            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="pausado">Pausado</button>
+          </div>
+        </div>
+
         <select id="filterTier" aria-label="Filtrar por tier">
           <option value="todos">Todos os Tiers</option>
           <option value="S+">S+</option>
@@ -133,6 +145,21 @@
           <option value="D">D</option>
           <option value="null">Sem tier</option>
         </select>
+        <div id="tierWrapper" class="filter-wrapper-item">
+          <button id="tierToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por tier">
+            <i class="fas fa-star"></i>
+          </button>
+          <div id="tierMenu" class="filter-menu" role="menu" aria-hidden="true">
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="todos">Todos os Tiers</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S+">S+</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S">S</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="A">A</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="B">B</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="C">C</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="D">D</button>
+            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="null">Sem tier</button>
+          </div>
+        </div>
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
           <option value="nome-desc">Nome (Z–A)</option>
@@ -145,6 +172,23 @@
           <option value="temporada-asc">Temporada ↑</option>
           <option value="temporada-desc">Temporada ↓</option>
         </select>
+        <div id="sortWrapper" class="filter-wrapper-item">
+          <button id="sortToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar">
+            <i class="fas fa-sort"></i>
+          </button>
+          <div id="sortMenu" class="filter-menu" role="menu" aria-hidden="true">
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-desc">Nome (Z–A)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc">Progresso ↑</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc">Progresso ↓</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-asc">Mais antigo</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Mais recente</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc">Tier (melhor → pior)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc">Tier (pior → melhor)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc">Temporada ↑</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc">Temporada ↓</button>
+          </div>
+        </div>
       </div>
       <div class="toolbar-actions">
         <button id="groupToggle" class="tool-btn" aria-label="Agrupar por tier"><i class="fas fa-layer-group"></i></button>
