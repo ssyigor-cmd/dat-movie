@@ -521,6 +521,11 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Ensure the immediate wrapper doesn't clip the absolute menu (used inside modals) */
 .filter-wrapper-item { position: relative; overflow: visible; display: inline-block; }
+
+/* Some modal columns have inline overflow:hidden; allow menus to escape visually */
+#detailRightCol, .modal-detail .detail-right-col {
+  overflow: visible !important;
+}
 .filter-menu.show { display: block; }
 .filter-option { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; color: var(--text-primary); font-weight: 600; cursor: pointer; border-radius: 6px; }
 .filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
