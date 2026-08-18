@@ -53,7 +53,9 @@ const suggestions = $('suggestions');
 const previewImg = $('previewImg');
 const previewPlaceholder = $('previewPlaceholder');
 const formLoading = $('formLoading');
-const densitySelect = $('densitySelect');
+const densityToggleBtn = $('densityToggleBtn');
+const densityMenu = $('densityMenu');
+const densityOptions = document.querySelectorAll('.density-option');
 const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
@@ -811,14 +813,39 @@ filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
-  // Initialize density select control
-  if (densitySelect) {
-    densitySelect.value = gridDensity;
-    densitySelect.addEventListener('change', function() {
-      gridDensity = parseInt(this.value, 10) || gridDensity;
+  // Initialize density dropdown control (icon + menu)
+  if (densityToggleBtn && densityMenu) {
+    function setDensity(value) {
+      gridDensity = parseInt(value, 10) || gridDensity;
       localStorage.setItem('gridDensity', gridDensity);
+      // update active state
+      densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(gridDensity)));
+      // close menu
+      densityMenu.classList.remove('show');
+      densityToggleBtn.setAttribute('aria-expanded', 'false');
       render();
+    }
+
+    // mark current selection
+    densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(gridDensity)));
+
+    densityToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = densityMenu.classList.contains('show');
+      densityMenu.classList.toggle('show', !isOpen);
+      densityToggleBtn.setAttribute('aria-expanded', String(!isOpen));
     });
+
+    densityOptions.forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setDensity(opt.dataset.value);
+      });
+    });
+
+    // close when clicking outside or pressing Esc
+    document.addEventListener('click', () => { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); } });
   }
 groupToggle.innerHTML = groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
 groupToggle.addEventListener('click', () => {
