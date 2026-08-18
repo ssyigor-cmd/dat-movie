@@ -1308,11 +1308,21 @@ img { max-width: 100%; height: auto; display: block; }
   width: 4px;
 }
 .detail-sinopse-container::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.3);
-  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent, #fff);
 }
 .detail-sinopse-container::-webkit-scrollbar-track {
   background: transparent;
+.tool-btn.active {
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.12) inset;
+}
+
+}
+.filter-menu .filter-option.active::after {
+  content: '\2713';
+  float: right;
+  font-weight: 700;
 }
 #detailLoading { color: var(--text-muted); }
 

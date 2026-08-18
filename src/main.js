@@ -923,12 +923,29 @@ sortOrder.addEventListener('change', render);
     [statusToggleBtn, tierToggleBtn, sortToggleBtn].forEach(b => { if (b) b.setAttribute('aria-expanded', 'false'); });
   }
 
+  // helper to mark active option inside a menu based on select value
+  function markMenuActive(menu, select) {
+    if (!menu || !select) return;
+    menu.querySelectorAll('.filter-option').forEach(opt => {
+      opt.classList.toggle('active', String(opt.dataset.value) === String(select.value));
+    });
+  }
+
+  // helper to mark toolbar toggle active when select != default
+  function updateToggleActiveState(toggleBtn, select, defaultValue = 'todos') {
+    if (!toggleBtn || !select) return;
+    const active = String(select.value) !== String(defaultValue);
+    toggleBtn.classList.toggle('active', active);
+  }
+
   if (statusToggleBtn && statusMenu) {
     statusToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = statusMenu.classList.contains('show');
       closeAllFilterMenus();
       statusMenu.classList.toggle('show', !isOpen);
+      // mark active option when opening
+      if (!isOpen) markMenuActive(statusMenu, filterStatus);
       statusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
     });
   }
@@ -939,6 +956,7 @@ sortOrder.addEventListener('change', render);
       const isOpen = tierMenu.classList.contains('show');
       closeAllFilterMenus();
       tierMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(tierMenu, filterTier);
       tierToggleBtn.setAttribute('aria-expanded', String(!isOpen));
     });
   }
@@ -949,6 +967,7 @@ sortOrder.addEventListener('change', render);
       const isOpen = sortMenu.classList.contains('show');
       closeAllFilterMenus();
       sortMenu.classList.toggle('show', !isOpen);
+      if (!isOpen) markMenuActive(sortMenu, sortOrder);
       sortToggleBtn.setAttribute('aria-expanded', String(!isOpen));
     });
   }
@@ -967,6 +986,32 @@ sortOrder.addEventListener('change', render);
       closeAllFilterMenus();
     });
   });
+
+  // keep menus and toggles in sync when selects change
+  filterStatus.addEventListener('change', () => {
+    // update menu highlights and toolbar active
+    markMenuActive(statusMenu, filterStatus);
+    updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
+  });
+  filterTier.addEventListener('change', () => {
+    markMenuActive(tierMenu, filterTier);
+    updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  });
+  sortOrder.addEventListener('change', () => {
+    markMenuActive(sortMenu, sortOrder);
+    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+  });
+
+  // modal menus (add/detail) should also show active selection
+  if (addTipoMenu && tipo) markMenuActive(addTipoMenu, tipo);
+  if (addStatusMenu && statusSelect) markMenuActive(addStatusMenu, statusSelect);
+  if (detailTipoMenu && detailTipo) markMenuActive(detailTipoMenu, detailTipo);
+  if (detailStatusMenu && detailStatus) markMenuActive(detailStatusMenu, detailStatus);
+
+  // ensure toolbar toggles reflect current select values on init
+  updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
+  updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
 
   // Close filter menus on outside click or Esc
   document.addEventListener('click', closeAllFilterMenus);
