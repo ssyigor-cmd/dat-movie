@@ -109,8 +109,6 @@ h1, h2, h3, h4, h5, h6 {
   height: 100vh;
   position: fixed;
   top: 0;
-  left: 0;
-  flex-shrink: 0;
   transition: width var(--transition-smooth), transform var(--transition-smooth);
   z-index: 100;
 }
@@ -123,6 +121,8 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
   width: 0;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
 }
 
 .sidebar.collapsed .nav-icon {
@@ -340,6 +340,10 @@ h1, h2, h3, h4, h5, h6 {
   right: auto;
   min-width: 220px;
   width: max-content;
+  background: rgba(10, 10, 16, 0.95);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  color: var(--text-primary);
 }
 
 /* Compatibilidade mobile: full-width dentro do fluxo antes de aplicar offset */
