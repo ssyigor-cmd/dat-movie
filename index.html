@@ -283,6 +283,16 @@
                     <option value="animacao">Animação</option>
                     <option value="serie">Série</option>
                   </select>
+                  <div class="filter-wrapper-item">
+                    <button id="addTipoToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Tipo">
+                      <i class="fas fa-tags"></i>
+                    </button>
+                    <div id="addTipoMenu" class="filter-menu" role="menu" aria-hidden="true">
+                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="anime">Anime</button>
+                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="animacao">Animação</button>
+                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="serie">Série</button>
+                    </div>
+                  </div>
                 </div>
                 <div class="info-block">
                   <span class="info-label">STATUS</span>
@@ -292,6 +302,17 @@
                     <option value="planejado">Planejado</option>
                     <option value="pausado">Pausado</option>
                   </select>
+                  <div class="filter-wrapper-item">
+                    <button id="addStatusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Status">
+                      <i class="fas fa-info-circle"></i>
+                    </button>
+                    <div id="addStatusMenu" class="filter-menu" role="menu" aria-hidden="true">
+                      <button role="menuitem" class="filter-option" data-target="status" data-value="assistindo">Assistindo</button>
+                      <button role="menuitem" class="filter-option" data-target="status" data-value="concluido">Concluído</button>
+                      <button role="menuitem" class="filter-option" data-target="status" data-value="planejado">Planejado</button>
+                      <button role="menuitem" class="filter-option" data-target="status" data-value="pausado">Pausado</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -407,6 +428,16 @@
                   <option value="animacao">Animação</option>
                   <option value="serie">Série</option>
                 </select>
+                <div class="filter-wrapper-item">
+                  <button id="detailTipoToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Tipo">
+                    <i class="fas fa-tags"></i>
+                  </button>
+                  <div id="detailTipoMenu" class="filter-menu" role="menu" aria-hidden="true">
+                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="anime">Anime</button>
+                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="animacao">Animação</button>
+                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="serie">Série</button>
+                  </div>
+                </div>
               </div>
               <div class="info-block">
                 <span class="info-label">STATUS</span>
@@ -416,6 +447,17 @@
                   <option value="planejado">Planejado</option>
                   <option value="pausado">Pausado</option>
                 </select>
+                <div class="filter-wrapper-item">
+                  <button id="detailStatusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Status">
+                    <i class="fas fa-info-circle"></i>
+                  </button>
+                  <div id="detailStatusMenu" class="filter-menu" role="menu" aria-hidden="true">
+                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="assistindo">Assistindo</button>
+                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="concluido">Concluído</button>
+                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="planejado">Planejado</button>
+                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="pausado">Pausado</button>
+                  </div>
+                </div>
               </div>
               <input type="hidden" id="detailTier" value="" />
             </div>

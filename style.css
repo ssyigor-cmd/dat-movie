@@ -513,7 +513,8 @@ img { max-width: 100%; height: auto; display: block; }
 .filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
 
 /* hide original selects visually but keep in DOM for logic */
-#filterStatus, #filterTier, #sortOrder { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+/* hide original selects visually but keep in DOM for logic */
+#filterStatus, #filterTier, #sortOrder, #tipo, #status, #detailTipo, #detailStatus { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* Em telas pequenas, reduzir tamanho e reposicionar para não cobrir conteúdo */
 @media (max-width: 600px) {
