@@ -849,6 +849,11 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 0.9rem;
 }
 
+/* Forçar ícones monocromáticos nos botões de detalhe */
+.detail-link-btn .fa-youtube {
+  color: inherit !important;
+}
+
 /* ================================================================
    MODAL DE DETALHES
    ================================================================ */
