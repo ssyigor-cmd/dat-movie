@@ -1280,10 +1280,21 @@ img { max-width: 100%; height: auto; display: block; }
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: blur(8px);
-  opacity: 0.5;
+  filter: blur(12px);
+  opacity: 0.75;
   z-index: 0;
 }
+
+#detailBlurBg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  pointer-events: none;
+}
+
+/* ensure sinopse content sits above the dark overlay */
+.detail-sinopse-wrap > div { position: relative; z-index: 2; }
 .detail-sinopse {
   font-size: 0.85rem;
   line-height: 1.6;
