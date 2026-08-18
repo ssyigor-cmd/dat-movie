@@ -377,8 +377,13 @@ function render() {
 
   const search = searchInput.value;
   const statusFilter = filterStatus.value;
-  const tierFilter = filterTier.value;
+  let tierFilter = filterTier.value;
   const sortKey = sortOrder.value;
+
+  // Ignorar filtro de Tier na aba "Lista de Desejos"
+  if (currentTab === 'planejado') {
+    tierFilter = 'todos';
+  }
 
   const filtered = sortItems(filterItems(items, { currentTab, search, statusFilter, tierFilter }), sortKey);
 
@@ -396,10 +401,11 @@ function render() {
 
   if (currentTab === 'planejado') {
     groupToggle.style.display = 'none';
+    filterTier.style.display = 'none';
   } else {
     groupToggle.style.display = '';
+    filterTier.style.display = '';
   }
-  filterTier.style.display = '';
 
   grid.innerHTML = '';
   if (filtered.length === 0) {

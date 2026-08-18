@@ -63,6 +63,8 @@
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  /* adicionada: largura fluida da sidebar */
+  --sidebar-width: clamp(100px, 18vw, 240px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,7 +97,7 @@ h1, h2, h3, h4, h5, h6 {
    SIDEBAR - LIQUID GLASS
    ================================================================ */
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-width);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -114,7 +116,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar.collapsed {
-  width: 100px;
+  width: clamp(80px, 10vw, 100px);
 }
 
 .sidebar.collapsed .nav-label {
@@ -162,8 +164,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-icon-img {
-  height: 56px;
-  width: 56px;
+  height: clamp(42px, 6.5vw, 56px);
+  width: clamp(42px, 6.5vw, 56px);
   transition: all var(--transition-smooth);
 }
 
@@ -178,9 +180,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-logo {
-  height: 56px;
+  height: clamp(36px, 6vw, 56px);
   width: auto;
-  max-width: 180px;
+  max-width: clamp(100px, 20vw, 180px);
   transition: all var(--transition-smooth);
 }
 
@@ -223,12 +225,12 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-toggle {
   position: absolute;
   right: -16px;
-  top: 42px;
+  top: clamp(28px, 5vh, 42px);
   background: var(--bg-elevated);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: clamp(28px, 4.5vw, 36px);
+  height: clamp(28px, 4.5vw, 36px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -269,7 +271,7 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 .nav-item i { 
-  width: 20px; 
+  width: clamp(16px, 2.5vw, 24px);
   text-align: center; 
   font-size: 1rem; 
   color: var(--text-muted);
@@ -295,7 +297,10 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   bottom: 70px;
   left: 0;
-  right: 0;
+  right: auto;
+  width: auto;
+  min-width: 220px;
+  max-width: min(360px, 90vw);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur-strong));
   -webkit-backdrop-filter: blur(var(--glass-blur-strong));
@@ -303,7 +308,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-sm);
   padding: 16px;
   box-shadow: var(--glass-shadow-lg);
-  z-index: 50;
+  z-index: 110;
   transition: transform var(--transition-smooth), opacity var(--transition-smooth);
   display: none;
 }
@@ -329,14 +334,54 @@ h1, h2, h3, h4, h5, h6 {
 #profileToggle .fa-chevron-down { transition: transform 0.2s; }
 #profileToggle.active .fa-chevron-down { transform: rotate(180deg); }
 
+/* Quando a sidebar estiver recolhida, posicionar o dropdown fora (à direita) */
+.sidebar.collapsed .profile-dropdown {
+  left: calc(100% + 8px);
+  right: auto;
+  min-width: 220px;
+  width: max-content;
+}
+
+/* Compatibilidade mobile: full-width dentro do fluxo antes de aplicar offset */
+@media (max-width: 700px) {
+  .profile-dropdown {
+    left: -10px;
+    right: -10px;
+    min-width: auto;
+    width: auto;
+    bottom: 50px;
+  }
+}
+
+/* Global imagens responsivas */
+img { max-width: 100%; height: auto; display: block; }
+
+/* Modais: largura máxima fluida e margens seguras */
+#detailModal,
+.modal,
+.modal-detail,
+#modalOverlay {
+  width: min(1200px, 96%);
+  max-width: calc(100% - 48px);
+  margin: 24px auto;
+  box-sizing: border-box;
+}
+
+/* Pequenas telas: reduzir padding */
+@media (max-width: 600px) {
+  .main-content { padding: 16px; }
+  .sidebar { padding: 16px 12px; }
+  .continue-grid { gap: 12px; }
+}
+
 /* ================================================================
    MAIN CONTENT
    ================================================================ */
 .main-content {
   flex: 1;
   padding: 28px 32px;
-  margin-left: 240px;
-  max-width: calc(100% - 240px);
+  margin-left: var(--sidebar-width);
+  max-width: calc(100% - var(--sidebar-width));
   overflow-y: auto;
   transition: margin-left 0.3s ease, max-width 0.3s ease, padding 0.3s ease;
 }
@@ -398,6 +443,63 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+
+/* Acessibilidade: aumentar contraste e estilizar selects dentro dos modais (detailModal e modalOverlay)
+   - Texto centralizado e mais pesado
+   - Fundo mais destacado, borda mais visível e foco com sombra
+   - Estilização das options para melhor legibilidade onde suportado
+*/
+#detailModal select,
+#modalOverlay select,
+#detailModal .select,
+#modalOverlay .select {
+  background: linear-gradient(180deg,#121212,#0f1724);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border-strong);
+  padding: 10px 12px;
+  border-radius: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center; /* centralizar o texto conforme solicitado */
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-height: 40px;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23E5E5E5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Remover seta padrão em alguns navegadores para manter o estilo */
+#detailModal select::-ms-expand,
+#modalOverlay select::-ms-expand {
+  display: none;
+}
+
+#detailModal select:focus,
+#modalOverlay select:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(100,149,237,0.12);
+  border-color: rgba(100,149,237,0.6);
+}
+
+/* Opções de select: nem todos os browsers aplicam esses estilos, mas aumentam legibilidade quando aplicados */
+#detailModal option,
+#modalOverlay option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+
+/* Forçar contraste adicional para badges e controles que possam usar os mesmos tons */
+#detailModal .tier-badge-large,
+#detailModal .badge,
+#modalOverlay .tier-badge-large,
+#modalOverlay .badge {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.03);
+}
   margin-top: 4px;
 }
 
@@ -419,7 +521,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .continue-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
 .continue-grid .card {
@@ -435,8 +537,8 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--glass-border);
 }
 .continue-grid .card-img {
-  width: 80px;
-  height: 120px;
+  width: clamp(64px, 12vw, 120px);
+  height: auto;
   flex-shrink: 0;
   aspect-ratio: 2/3;
   border-radius: 6px;
@@ -1655,7 +1757,7 @@ a:focus-visible,
   body { flex-direction: column; }
   .sidebar {
     position: fixed;
-    left: -240px;
+    left: calc(-1 * var(--sidebar-width));
     top: 0;
     height: 100vh;
     z-index: 1000;
