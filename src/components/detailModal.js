@@ -3,7 +3,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, TIER_COLORS, escapeHTML } from '../lib/catalog.js';
+import { getTierClass, TIER_COLORS, escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
 /**
@@ -40,7 +40,8 @@ export function setupDetailModal(elements, callbacks) {
     detailTitleText,
     detailWikiLink,
     detailImdbLink,
-    detailEpisodesBtn
+    detailEpisodesBtn,
+    detailAddedDate
   } = elements;
 
   const {
@@ -263,6 +264,18 @@ export function setupDetailModal(elements, callbacks) {
     }
 
     updateTierBadge(item.tier);
+
+    // Mostrar data de adição, se disponível
+    if (detailAddedDate) {
+      try {
+        const iso = item.dataCriacao || item.dataCriacao === 0 ? item.dataCriacao : null;
+        const datePart = iso ? String(iso).split('T')[0] : null;
+        const formatted = datePart ? formatDateBR(datePart) : 'Data desconhecida';
+        detailAddedDate.textContent = `Adicionado: ${formatted}`;
+      } catch (e) {
+        detailAddedDate.textContent = 'Adicionado: Data desconhecida';
+      }
+    }
 
     detailModal.classList.add('active');
     lockScreen();

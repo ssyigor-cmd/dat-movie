@@ -293,6 +293,7 @@ const detailModalAPI = setupDetailModal({
   detailTipo: $('detailTipo'),
   detailTierBadge: $('detailTierBadge'),
   detailTierDropdown: $('detailTierDropdown'),
+  detailAddedDate: $('detailAddedDate'),
   detailSave: $('detailSave'),
   detailDelete: $('detailDelete'),
   detailPosterImg: $('detailPosterImg'),

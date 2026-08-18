@@ -1212,6 +1212,18 @@ img { max-width: 100%; height: auto; display: block; }
 #detailSave { background: var(--accent); color: var(--accent-ink); }
 #detailSave:hover { transform: scale(1.02); box-shadow: var(--shadow); background: var(--accent-hover); }
 
+/* Pequeno informe de data de adição no modal de detalhes */
+.detail-added-date {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: transparent;
+  white-space: nowrap;
+}
+
 /* ================================================================
    MODAL DE EPISÓDIOS (sem alterações)
    ================================================================ */
