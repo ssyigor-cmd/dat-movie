@@ -1111,17 +1111,17 @@ function updateLogos() {
   const brandIconImg = document.querySelector('.brand-icon-img');
   
   if (brandLogo) {
-    brandLogo.src = 'assets/logo/logotype-text-dark.svg';
+    brandLogo.src = '/assets/logo/logotype-text-dark.svg';
     brandLogo.alt = 'datmovie';
   }
   
   if (authLogo) {
-    authLogo.src = 'assets/logo/stacked-dark.svg';
+    authLogo.src = '/assets/logo/stacked-dark.svg';
     authLogo.alt = 'datmovie';
   }
   
   if (brandIconImg) {
-    brandIconImg.src = 'assets/icon/icon-face.svg';
+    brandIconImg.src = '/assets/icon/icon-face.svg';
     brandIconImg.alt = 'datmovie';
   }
 }

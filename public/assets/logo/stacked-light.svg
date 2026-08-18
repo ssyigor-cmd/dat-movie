@@ -1,0 +1,33 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Face Icon -->
+  <g transform="translate(80, 60)">
+    <!-- Face circle -->
+    <circle cx="0" cy="0" r="28" fill="none" stroke="#08080F" stroke-width="2" stroke-opacity="0.8"/>
+    
+    <!-- Left spiral eye - much larger for visible spiral -->
+    <g transform="translate(-8, -5)">
+      <path d="M0,0 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0" fill="none" stroke="#08080F" stroke-width="2" stroke-opacity="0.9"/>
+      <path d="M0,0 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" fill="none" stroke="#08080F" stroke-width="1.6" stroke-opacity="0.9"/>
+      <path d="M0,0 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" fill="none" stroke="#08080F" stroke-width="1.2" stroke-opacity="0.9"/>
+      <path d="M0,0 m-1.5,0 a1.5,1.5 0 1,1 3,0 a1.5,1.5 0 1,1 -3,0" fill="none" stroke="#08080F" stroke-width="0.8" stroke-opacity="0.9"/>
+      <circle cx="0" cy="0" r="1" fill="#08080F" fill-opacity="0.9"/>
+    </g>
+    
+    <!-- Right spiral eye - much larger for visible spiral -->
+    <g transform="translate(8, -5)">
+      <path d="M0,0 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0" fill="none" stroke="#08080F" stroke-width="2" stroke-opacity="0.9"/>
+      <path d="M0,0 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" fill="none" stroke="#08080F" stroke-width="1.6" stroke-opacity="0.9"/>
+      <path d="M0,0 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" fill="none" stroke="#08080F" stroke-width="1.2" stroke-opacity="0.9"/>
+      <path d="M0,0 m-1.5,0 a1.5,1.5 0 1,1 3,0 a1.5,1.5 0 1,1 -3,0" fill="none" stroke="#08080F" stroke-width="0.8" stroke-opacity="0.9"/>
+      <circle cx="0" cy="0" r="1" fill="#08080F" fill-opacity="0.9"/>
+    </g>
+    
+    <!-- V-shaped mouth - pointing down, lower position -->
+    <path d="M-7,6 L0,14 L7,6" fill="none" stroke="#08080F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.9"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="80" y="130" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="600" fill="#08080F">
+    datmovie
+  </text>
+</svg>
