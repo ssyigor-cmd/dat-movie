@@ -479,13 +479,13 @@ img { max-width: 100%; height: auto; display: block; }
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: rgba(8, 10, 14, 0.9);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 10px;
   padding: 8px;
-  box-shadow: var(--glass-shadow-lg);
+  box-shadow: 0 12px 34px rgba(0,0,0,0.6);
   display: none;
   min-width: 140px;
   z-index: 1200;
@@ -689,10 +689,18 @@ img { max-width: 100%; height: auto; display: block; }
 .section-heading i { color: var(--accent); font-size: 0.8rem; }
 
 .continue-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  flex-direction: row;
   gap: 16px;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
 }
+.continue-grid::-webkit-scrollbar { height: 4px; }
+.continue-grid::-webkit-scrollbar-track { background: transparent; }
+.continue-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
 .continue-grid .card {
   flex-direction: row;
   align-items: center;
@@ -704,6 +712,8 @@ img { max-width: 100%; height: auto; display: block; }
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border: 1px solid var(--glass-border);
+  flex: 0 0 260px;
+  width: 260px;
 }
 .continue-grid .card-img {
   width: clamp(64px, 12vw, 120px);
@@ -742,7 +752,6 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .continue-grid .progress-wrap {
   margin-top: 4px;
-  height: 4px;
 }
 
 /* ================================================================
@@ -776,7 +785,7 @@ img { max-width: 100%; height: auto; display: block; }
 .filter-wrapper select, .tool-btn {
   padding: 8px 12px;
   border-radius: var(--radius-pill);
-  border: none;
+  border: 1px solid rgba(255,255,255,0.12);
   background: rgba(12, 14, 18, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -921,8 +930,33 @@ img { max-width: 100%; height: auto; display: block; }
 .card-body h3 { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
 .card-body .info { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; }
 .card-body .info i { color: var(--text-muted); }
-.progress-wrap { margin: 4px 0 6px 0; background: var(--bg-secondary); border-radius: var(--radius-pill); height: 4px; overflow: hidden; }
-.progress-bar { height: 100%; background: var(--accent); border-radius: var(--radius-pill); transition: width 0.4s ease; }
+.progress-wrap {
+  margin: 4px 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width 0.4s ease;
+}
+.progress-pct {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 /* ================================================================
    MODAL GERAL
