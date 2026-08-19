@@ -6,7 +6,7 @@ import { calcularProgresso, getTierClass, escapeHTML } from '../lib/catalog.js';
 import { fetchTitleLogo, setLogoInCache } from '../lib/api.js';
 
 /**
- * Renderiza o bento "Continuando" com os 3 títulos mais recentes em andamento
+ * Renderiza a seção "Assistindo" com todos os títulos em andamento
  * @param {Array} items - Lista completa de itens
  * @param {string} currentTab - Aba atual
  * @param {HTMLElement} continueSection - Elemento do container do bento
@@ -23,18 +23,14 @@ export function renderContinueWatching(items, currentTab, continueSection, conti
   }
   pool = pool.filter(i => i.status === 'assistindo');
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
-  const top = pool.slice(0, 3);
 
   continueGrid.innerHTML = '';
-  if (!top.length) { continueSection.style.display = 'none'; return; }
+  if (!pool.length) { continueSection.style.display = 'none'; return; }
   continueSection.style.display = '';
 
   const fragment = document.createDocumentFragment();
-  top.forEach((item, i) => {
-    let variant;
-    if (top.length === 1) variant = 'hero-full';
-    else if (top.length === 2) variant = 'hero';
-    else variant = i === 0 ? 'hero' : 'tall';
+  pool.forEach((item) => {
+    const variant = pool.length === 1 ? 'hero-full' : 'tall';
     fragment.appendChild(createCardElement(item, variant));
   });
   continueGrid.appendChild(fragment);
@@ -77,10 +73,12 @@ export function createCardElement(item, variant = null, items, onCardClick) {
       <span class="badge">${tipoLabel}</span>
       <h3 title="${safeNome}${anoDisplay}">${safeNome}${anoDisplay}</h3>
       <div class="info">
-        <span>T${item.temporada} <i class="fas fa-circle" style="font-size: 0.2rem; vertical-align: middle; margin: 0 4px; color: var(--text-muted);"></i> Ep ${item.episodio}/${item.totalEpisodios}</span>
-        <span>${progress}%</span>
+        <span>T${item.temporada} - Ep ${String(item.episodio).padStart(2, '0')}</span>
       </div>
-      <div class="progress-wrap"><div class="progress-bar" style="width:${progress}%;"></div></div>
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div>
+        <span class="progress-pct">${progress}%</span>
+      </div>
     </div>
   `;
   

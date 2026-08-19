@@ -432,6 +432,13 @@ const suggestionsAPI = setupSuggestions(nome, suggestions, {
   },
   onSetYear: (year) => {
     addYearDisplay.textContent = year || '--';
+  },
+  onSetTipo: (detectedTipo) => {
+    if (tipo) {
+      tipo.value = detectedTipo;
+      tipo.dispatchEvent(new Event('change'));
+      markMenuActive(addTipoMenu, tipo);
+    }
   }
 });
 
@@ -1093,11 +1100,21 @@ document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
         filterTier.style.display = 'none';
         if (statusWrapper) statusWrapper.style.display = 'none';
         if (tierWrapper) tierWrapper.style.display = 'none';
+        // Esconder opções de ordenação sem sentido para Lista de Desejos
+        document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+        // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
+        const hiddenValues = ['progresso-asc','progresso-desc','tier-asc','tier-desc','temporada-asc','temporada-desc'];
+        if (hiddenValues.includes(sortOrder.value)) {
+          sortOrder.value = 'data-desc';
+          markMenuActive(sortMenu, sortOrder);
+        }
       } else {
         filterStatus.style.display = '';
         filterTier.style.display = '';
         if (statusWrapper) statusWrapper.style.display = '';
         if (tierWrapper) tierWrapper.style.display = '';
+        // Restaurar todas as opções de ordenação
+        document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = '');
       }
       render(); 
     }

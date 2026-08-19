@@ -28,7 +28,8 @@ export function setupSuggestions(nomeInput, suggestionsContainer, callbacks) {
     onSetLoading,
     onToast,
     onSetupSteppers,
-    onSetYear
+    onSetYear,
+    onSetTipo
   } = callbacks;
 
   nomeInput.addEventListener('input', () => {
@@ -118,6 +119,18 @@ export function setupSuggestions(nomeInput, suggestionsContainer, callbacks) {
                   });
                   
                   const year = details.first_air_date ? details.first_air_date.substring(0,4) : '';
+                  
+                  // Detectar tipo automaticamente pelo gênero e país de origem
+                  if (onSetTipo) {
+                    const genres = details.genre_ids || (details.genres || []).map(g => g.id);
+                    const countries = details.origin_country || [];
+                    const isAnimation = genres.includes(16);
+                    const isJapanese = countries.includes('JP');
+                    let detectedTipo = 'serie';
+                    if (isAnimation && isJapanese) detectedTipo = 'anime';
+                    else if (isAnimation) detectedTipo = 'animacao';
+                    onSetTipo(detectedTipo);
+                  }
                   
                   onToast(`Série encontrada: ${maxTemp} temporadas`, 2000);
                   

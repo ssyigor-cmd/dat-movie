@@ -104,7 +104,7 @@
     </header>
 
     <section class="continue-section" id="continueSection" style="display:none;">
-      <h2 class="section-heading"><i class="fas fa-play"></i> Continuando</h2>
+      <h2 class="section-heading"><i class="fas fa-play"></i> Assistindo</h2>
       <div id="continueGrid" class="continue-grid"></div>
     </section>
 
@@ -163,14 +163,14 @@
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
           <option value="nome-desc">Nome (Z–A)</option>
-          <option value="progresso-asc">Progresso ↑</option>
-          <option value="progresso-desc">Progresso ↓</option>
+          <option value="progresso-asc" data-wishlist-hidden>Progresso ↑</option>
+          <option value="progresso-desc" data-wishlist-hidden>Progresso ↓</option>
           <option value="data-asc">Mais antigo</option>
           <option value="data-desc" selected>Mais recente</option>
-          <option value="tier-asc">Tier (melhor → pior)</option>
-          <option value="tier-desc">Tier (pior → melhor)</option>
-          <option value="temporada-asc">Temporada ↑</option>
-          <option value="temporada-desc">Temporada ↓</option>
+          <option value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</option>
+          <option value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</option>
+          <option value="temporada-asc" data-wishlist-hidden>Temporada ↑</option>
+          <option value="temporada-desc" data-wishlist-hidden>Temporada ↓</option>
         </select>
         <div id="sortWrapper" class="filter-wrapper-item">
           <button id="sortToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar">
@@ -179,14 +179,14 @@
           <div id="sortMenu" class="filter-menu" role="menu" aria-hidden="true">
             <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
             <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-desc">Nome (Z–A)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc">Progresso ↑</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc">Progresso ↓</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc" data-wishlist-hidden>Progresso ↑</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso ↓</button>
             <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-asc">Mais antigo</button>
             <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Mais recente</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc">Tier (melhor → pior)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc">Tier (pior → melhor)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc">Temporada ↑</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc">Temporada ↓</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc" data-wishlist-hidden>Temporada ↑</button>
+            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc" data-wishlist-hidden>Temporada ↓</button>
           </div>
         </div>
       </div>
