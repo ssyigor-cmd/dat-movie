@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migrate": "node scripts/migrate-data.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0"

@@ -4,15 +4,15 @@
  */
 
 import { supabase } from './lib/supabase.js';
-import { escapeHTML, formatDateBR, calcularProgresso, getTierClass, filterItems, sortItems, TIER_ORDER, TIER_COLORS } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo, fetchTitleImages } from './lib/api.js';
-import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, logoutUser } from './lib/auth.js';
-import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, initOrb, setFieldError, clearFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
-import { updateStepperValue, setupSteppers, updateEpisodeLimit } from './lib/stepper.js';
+import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER } from './lib/catalog.js';
+import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
+import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
+import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, initOrb, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
+import { updateStepperValue, setupSteppers } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
-import { setupSuggestions } from './components/suggestions.js';
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
@@ -34,36 +34,37 @@ const authLoginBtn = $('authLoginBtn');
 const authSignupBtn = $('authSignupBtn');
 const authMessage = $('authMessage');
 const grid = $('grid');
+const gridSection = document.getElementById('gridSection');
+const searchView = document.getElementById('searchView');
+const pesquisaInput = document.getElementById('pesquisaInput');
+const pesquisaGrid = document.getElementById('pesquisaGrid');
+const pesquisaEmpty = document.getElementById('pesquisaEmpty');
+const pesquisaLoading = document.getElementById('pesquisaLoading');
+const toolbar = document.querySelector('.toolbar');
 const searchInput = $('searchInput');
 const filterStatus = $('filterStatus');
 const filterTier = $('filterTier');
 const sortOrder = $('sortOrder');
-const openFormBtn = $('openFormBtn');
 const modalOverlay = $('modalOverlay');
 const modalClose = $('modalClose');
 const modalTitle = $('modalTitle');
 const form = $('form');
 const tipo = $('tipo');
-const nome = $('nome');
 const statusSelect = $('status');
 const tierForm = $('tierForm');
 const btnSubmit = $('btnSubmit');
 const btnCancel = $('btnCancel');
-const suggestions = $('suggestions');
 const previewImg = $('previewImg');
 const previewPlaceholder = $('previewPlaceholder');
 const formLoading = $('formLoading');
 const densityToggleBtn = $('densityToggleBtn');
 const densityMenu = $('densityMenu');
 const densityOptions = document.querySelectorAll('.density-option');
-const addTipoToggleBtn = $('addTipoToggleBtn');
-const addTipoMenu = $('addTipoMenu');
-const addStatusToggleBtn = $('addStatusToggleBtn');
-const addStatusMenu = $('addStatusMenu');
-const detailTipoToggleBtn = $('detailTipoToggleBtn');
-const detailTipoMenu = $('detailTipoMenu');
-const detailStatusToggleBtn = $('detailStatusToggleBtn');
-const detailStatusMenu = $('detailStatusMenu');
+const addListToggle = $('addListToggle');
+const addListCheckboxes = $('addListCheckboxes');
+const addEpisodesBtn = $('addEpisodesBtn');
+const detailListToggle = $('detailListToggle');
+const detailListCheckboxes = $('detailListCheckboxes');
 const statusWrapper = $('statusWrapper');
 const statusToggleBtn = $('statusToggleBtn');
 const statusMenu = $('statusMenu');
@@ -83,39 +84,13 @@ const profileDropdown = $('profileDropdown');
 const profileEmail = $('profileEmail');
 const profileEmailFull = $('profileEmailFull');
 
-// Helper to sync visible button labels with their authoritative select elements
-function setToggleLabel(btn, select) {
-  if (!btn || !select) return;
-  let span = btn.querySelector('.tool-btn-label');
-  if (!span) {
-    span = document.createElement('span');
-    span.className = 'tool-btn-label';
-    btn.innerHTML = '';
-    btn.appendChild(span);
-  }
-  const opt = select.options[select.selectedIndex];
-  span.textContent = opt ? opt.textContent : '';
-}
-
 function densityLabelForValue(v) {
   const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
   return map[String(v)] || 'Padrão';
 }
 
-// Keep visible labels in sync only for modal buttons (toolbar keeps icons)
-if (tipo && addTipoToggleBtn) tipo.addEventListener('change', () => setToggleLabel(addTipoToggleBtn, tipo));
-if (statusSelect && addStatusToggleBtn) statusSelect.addEventListener('change', () => setToggleLabel(addStatusToggleBtn, statusSelect));
-if (detailTipo && detailTipoToggleBtn) detailTipo.addEventListener('change', () => setToggleLabel(detailTipoToggleBtn, detailTipo));
-if (detailStatus && detailStatusToggleBtn) detailStatus.addEventListener('change', () => setToggleLabel(detailStatusToggleBtn, detailStatus));
-
-// initialize labels from current state
 setTimeout(() => {
     try {
-      // initialize only modal labels
-      setToggleLabel(addTipoToggleBtn, tipo);
-      setToggleLabel(addStatusToggleBtn, statusSelect);
-      setToggleLabel(detailTipoToggleBtn, detailTipo);
-      setToggleLabel(detailStatusToggleBtn, detailStatus);
       // density: keep icon, set accessible title instead of replacing content
       if (densityToggleBtn) {
         const label = densityLabelForValue(gridDensity);
@@ -129,8 +104,8 @@ setTimeout(() => {
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebarToggleIcon = document.getElementById('sidebarToggleIcon');
-const statNumber = document.getElementById('statNumber');
-const statLabel = document.getElementById('statLabel');
+const headerListName = document.getElementById('headerListName');
+const headerCount = document.getElementById('headerCount');
 
 // ADD MODAL
 const addTemporadaInput = $('addTemporada');
@@ -139,20 +114,29 @@ const addTemporadaDisplay = $('addTemporadaDisplay');
 const addEpisodioDisplay = $('addEpisodioDisplay');
 const addTierBadge = $('addTierBadge');
 const addTierDropdown = $('addTierDropdown');
-const addImageContainer = $('addImageContainer');
-const addContent = $('addContent');
 const addYearDisplay = $('addYearDisplay');
+const addLogoContainer = document.getElementById('addLogoContainer');
+const addLogoImg = document.getElementById('addLogoImg');
+const addOriginalTitle = $('addOriginalTitle');
+const addSinopse = document.getElementById('addSinopse');
+const addSinopseLoading = document.getElementById('addSinopseLoading');
+const addBlurBg = document.getElementById('addBlurBg');
+const addPosterWrap = document.getElementById('addPosterWrap');
 const modalTitleText = $('modalTitleText');
 
 // ========== ESTADO GLOBAL ==========
 let items = [];
 let editingIndex = null;
-let currentTab = 'anime';
+let currentTab = 'all';
+let currentListId = null;
+let userLists = [];
 let cachedShowDetails = null;
 let selectedTmdbId = null;
 let selectedMediaType = null;
 let selectedPosterPath = null;
 let selectedAno = null;
+let selectedName = '';
+let existingItemForSearch = null;
 let gridDensity = parseInt(localStorage.getItem('gridDensity')) || 8;
 let groupingActive = localStorage.getItem('groupingActive') === 'true' || false;
 let addSeasonLimits = {};
@@ -190,17 +174,6 @@ async function checkSession() {
     } else {
       authMessage.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
     }
-  }
-}
-
-async function handleLogout() {
-  try {
-    await logoutUser();
-    setAuthUI(true);
-    authMessage.textContent = 'Logout realizado.';
-  } catch (error) {
-    console.error('Erro ao fazer logout:', error);
-    authMessage.textContent = 'Erro ao fazer logout.';
   }
 }
 
@@ -251,7 +224,20 @@ async function fetchItemsFromSupabase() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
   
-  const { data, error } = await supabase.from('items').select('*').eq('user_id', user.id).order('data_criacao', { ascending: false });
+  // Buscar itens com suas listas relacionadas
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      *,
+      item_lists (
+        list_id,
+        user_lists (
+          id, nome, is_system
+        )
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('data_criacao', { ascending: false });
   
   if (error) { 
     console.error('Erro ao buscar itens:', error);
@@ -265,7 +251,8 @@ async function fetchItemsFromSupabase() {
     seasonEpisodesMap: item.season_episodes_map || {}, status: item.status, nota: item.nota,
     imagem: item.imagem, dataCriacao: item.data_criacao, dataAtualizacao: item.data_atualizacao,
     tmdb_id: item.tmdb_id, tier: item.tier || null,
-    ano: item.ano || null
+    ano: item.ano || null,
+    lists: item.item_lists?.map(il => il.user_lists).filter(Boolean) || []
   }));
 }
 
@@ -306,11 +293,383 @@ async function loadItems() {
   try {
     const data = await fetchItemsFromSupabase();
     items = data;
+    await loadUserLists();
     render();
   } catch (error) {
     console.error('Erro ao carregar itens:', error);
     throw error;
   }
+}
+
+async function loadUserLists() {
+  try {
+    userLists = await fetchUserLists();
+    renderSidebar();
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error);
+    throw error;
+  }
+}
+
+// ========== RENDER SIDEBAR ==========
+let sortableInstance = null;
+
+function renderSidebar() {
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (!sidebarNav) return;
+  
+  const scrollTop = sidebarNav.scrollTop;
+  const fragment = document.createDocumentFragment();
+
+  // --- Main navigation ---
+  const todosBtn = document.createElement('button');
+  todosBtn.className = `nav-item ${currentTab === 'all' && !currentListId ? 'active' : ''}`;
+  todosBtn.dataset.tab = 'all';
+  todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Todos</span>';
+  todosBtn.addEventListener('click', () => {
+    currentTab = 'all';
+    currentListId = null;
+    updateActiveNav();
+    render();
+  });
+  fragment.appendChild(todosBtn);
+
+  const systemLists = userLists.filter(l => l.is_system);
+  const wishlist = systemLists.find(l => l.nome === 'Lista de Desejos');
+
+  const wishlistBtn = document.createElement('button');
+  wishlistBtn.className = `nav-item nav-item-system ${currentTab === 'planejado' && !currentListId ? 'active' : ''}`;
+  wishlistBtn.dataset.tab = 'planejado';
+  wishlistBtn.dataset.system = 'true';
+  if (wishlist) { wishlistBtn.dataset.listId = wishlist.id; }
+  wishlistBtn.innerHTML = '<i class="fas fa-heart"></i> <span>Lista de Desejos</span>';
+  wishlistBtn.addEventListener('click', () => {
+    currentTab = 'planejado';
+    currentListId = null;
+    updateActiveNav();
+    render();
+  });
+  fragment.appendChild(wishlistBtn);
+
+  const pesquisaBtn = document.createElement('button');
+  pesquisaBtn.className = `nav-item ${currentTab === 'pesquisa' ? 'active' : ''}`;
+  pesquisaBtn.dataset.tab = 'pesquisa';
+  pesquisaBtn.innerHTML = '<i class="fas fa-search"></i> <span>Pesquisa</span>';
+  pesquisaBtn.addEventListener('click', () => {
+    currentTab = 'pesquisa';
+    currentListId = null;
+    updateActiveNav();
+    render();
+  });
+  fragment.appendChild(pesquisaBtn);
+
+  // --- Separator ---
+  const separator = document.createElement('div');
+  separator.className = 'nav-separator';
+  fragment.appendChild(separator);
+
+  // --- "Minhas Listas" label ---
+  const sectionLabel = document.createElement('div');
+  sectionLabel.className = 'nav-section-label';
+  sectionLabel.textContent = 'Minhas Listas';
+  fragment.appendChild(sectionLabel);
+
+  // --- User lists ---
+  const userListsOnly = userLists.filter(l => !l.is_system);
+
+  userListsOnly.forEach(list => {
+    const listBtn = document.createElement('button');
+    listBtn.className = `nav-item ${currentListId === list.id ? 'active' : ''}`;
+    listBtn.dataset.listId = list.id;
+
+    const dragHandle = document.createElement('i');
+    dragHandle.className = 'fas fa-grip-vertical nav-drag-handle';
+    listBtn.appendChild(dragHandle);
+
+    const contentSpan = document.createElement('span');
+    contentSpan.className = 'nav-item-label';
+    contentSpan.textContent = list.nome;
+    listBtn.appendChild(contentSpan);
+
+    const actionsWrap = document.createElement('span');
+    actionsWrap.className = 'nav-item-actions';
+
+    const renameIcon = document.createElement('i');
+    renameIcon.className = 'fas fa-pencil-alt nav-action-icon';
+    renameIcon.title = 'Editar';
+    renameIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startInlineEdit(listBtn, list, contentSpan, actionsWrap);
+    });
+    actionsWrap.appendChild(renameIcon);
+
+    listBtn.appendChild(actionsWrap);
+
+    listBtn.addEventListener('click', () => {
+      if (listBtn.classList.contains('editing')) return;
+      currentTab = 'list';
+      currentListId = list.id;
+      updateActiveNav();
+      render();
+    });
+
+    fragment.appendChild(listBtn);
+  });
+
+  // --- Nova Lista ---
+  const addListBtn = document.createElement('button');
+  addListBtn.className = 'nav-item add-list-btn';
+  addListBtn.innerHTML = '<i class="fas fa-plus"></i> <span>Nova Lista</span>';
+  addListBtn.addEventListener('click', promptCreateList);
+  fragment.appendChild(addListBtn);
+  
+  sidebarNav.innerHTML = '';
+  sidebarNav.appendChild(fragment);
+  sidebarNav.scrollTop = scrollTop;
+  
+  initSidebarSortable();
+}
+
+function initSidebarSortable() {
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (!sidebarNav || typeof Sortable === 'undefined') return;
+  
+  if (sortableInstance) sortableInstance.destroy();
+  
+  sortableInstance = new Sortable(sidebarNav, {
+    animation: 150,
+    handle: '.nav-drag-handle',
+    filter: '.add-list-btn, [data-tab], [data-system], .editing',
+    ghostClass: 'nav-item-ghost',
+    chosenClass: 'nav-item-chosen',
+    dragClass: 'nav-item-drag',
+    onMove: (evt) => {
+      const related = evt.related;
+      if (related.dataset.tab || related.dataset.system || related.classList.contains('add-list-btn')) {
+        return false;
+      }
+    },
+    onEnd: async () => {
+      const navItems = sidebarNav.querySelectorAll('.nav-item[data-list-id]');
+      const orderedIds = Array.from(navItems).map(el => el.dataset.listId);
+      const updates = orderedIds.map((id, index) => ({ id, ordem: index }));
+      
+      try {
+        await updateListsOrder(updates);
+        userLists.sort((a, b) => {
+          const idxA = orderedIds.indexOf(a.id);
+          const idxB = orderedIds.indexOf(b.id);
+          return idxA - idxB;
+        });
+      } catch (error) {
+        showErrorToast('Erro ao reordenar listas', error);
+        renderSidebar();
+      }
+    }
+  });
+}
+
+function updateActiveNav() {
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    
+    const tab = btn.dataset.tab;
+    const listId = btn.dataset.listId;
+    
+    if ((tab === currentTab && !currentListId) || (listId === currentListId)) {
+      btn.classList.add('active');
+    }
+  });
+  
+  // Gerenciar filtros baseado na aba atual
+  if (currentTab === 'planejado') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    // Esconder opções de ordenação sem sentido para Lista de Desejos
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+    // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
+    const hiddenValues = ['progresso-asc','progresso-desc','tier-asc','tier-desc','temporada-asc','temporada-desc'];
+    if (hiddenValues.includes(sortOrder.value)) {
+      sortOrder.value = 'data-desc';
+      markMenuActive(sortMenu, sortOrder);
+    }
+  } else if (currentTab === 'pesquisa') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+  } else {
+    filterStatus.style.display = '';
+    filterTier.style.display = '';
+    if (statusWrapper) statusWrapper.style.display = '';
+    if (tierWrapper) tierWrapper.style.display = '';
+    // Restaurar todas as opções de ordenação
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = '');
+  }
+}
+
+async function promptCreateList() {
+  const nome = prompt('Nome da nova lista:');
+  if (!nome || nome.trim() === '') return;
+  
+  try {
+    await createList(nome.trim());
+    await loadUserLists();
+    showToast('Lista criada com sucesso!');
+  } catch (error) {
+    showErrorToast('Erro ao criar lista', error);
+  }
+}
+
+let activeInlineEdit = null;
+
+function startInlineEdit(listBtn, list, contentSpan, actionsWrap) {
+  if (activeInlineEdit) cancelInlineEdit();
+  
+  listBtn.classList.add('editing');
+  listBtn.style.pointerEvents = 'auto';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'nav-inline-input';
+  input.value = list.nome;
+  input.maxLength = 100;
+  
+  contentSpan.style.display = 'none';
+  actionsWrap.innerHTML = '';
+  
+  const confirmIcon = document.createElement('i');
+  confirmIcon.className = 'fas fa-check nav-action-icon nav-action-confirm';
+  confirmIcon.title = 'Salvar';
+  
+  const deleteIcon = document.createElement('i');
+  deleteIcon.className = 'fas fa-trash nav-action-icon nav-action-delete';
+  deleteIcon.title = 'Excluir lista';
+  
+  actionsWrap.appendChild(confirmIcon);
+  actionsWrap.appendChild(deleteIcon);
+  
+  listBtn.insertBefore(input, actionsWrap);
+  input.focus();
+  input.select();
+  
+  const save = async () => {
+    const novoNome = input.value.trim();
+    if (!novoNome || novoNome === list.nome) {
+      cancelInlineEdit();
+      return;
+    }
+    try {
+      await renameList(list.id, novoNome);
+      await loadUserLists();
+      showToast('Lista renomeada!');
+    } catch (error) {
+      showErrorToast('Erro ao renomear', error);
+    }
+  };
+  
+  const remove = async () => {
+    if (!confirm(`Tem certeza que deseja excluir a lista "${list.nome}"?`)) return;
+    try {
+      await deleteList(list.id);
+      if (currentListId === list.id) {
+        currentTab = 'all';
+        currentListId = null;
+      }
+      await loadItems();
+      showToast('Lista excluída!');
+    } catch (error) {
+      showErrorToast('Erro ao excluir lista', error);
+    }
+  };
+  
+  confirmIcon.addEventListener('click', (e) => { e.stopPropagation(); save(); });
+  deleteIcon.addEventListener('click', (e) => { e.stopPropagation(); remove(); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') cancelInlineEdit();
+  });
+  input.addEventListener('blur', () => { setTimeout(cancelInlineEdit, 150); });
+  
+  activeInlineEdit = { listBtn, contentSpan, actionsWrap, input };
+}
+
+function cancelInlineEdit() {
+  if (!activeInlineEdit) return;
+  const { listBtn, contentSpan, actionsWrap, input } = activeInlineEdit;
+  
+  if (input && input.parentNode) input.remove();
+  contentSpan.style.display = '';
+  actionsWrap.innerHTML = '';
+  
+  const renameIcon = document.createElement('i');
+  renameIcon.className = 'fas fa-pencil-alt nav-action-icon';
+  renameIcon.title = 'Editar';
+  renameIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const list = userLists.find(l => l.id === listBtn.dataset.listId);
+    if (list) startInlineEdit(listBtn, list, contentSpan, actionsWrap);
+  });
+  actionsWrap.appendChild(renameIcon);
+  
+  listBtn.classList.remove('editing');
+  activeInlineEdit = null;
+}
+
+// ========== SELEÇÃO DE LISTAS NOS MODAIS ==========
+function populateAddListCheckboxes(preselectedIds = []) {
+  if (!addListCheckboxes) return;
+  addListCheckboxes.innerHTML = '';
+
+  const sorted = [...userLists].filter(l => l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
+  sorted.forEach(list => {
+    const label = document.createElement('label');
+    label.className = 'list-checkbox-pill';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = list.id;
+    checkbox.checked = preselectedIds.includes(list.id);
+    
+    const icon = document.createElement('i');
+    icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
+    
+    const text = document.createTextNode(` ${list.nome}`);
+    
+    label.appendChild(checkbox);
+    label.appendChild(icon);
+    label.appendChild(text);
+    addListCheckboxes.appendChild(label);
+  });
+}
+
+function populateDetailListCheckboxes(itemLists = []) {
+  if (!detailListCheckboxes) return;
+  detailListCheckboxes.innerHTML = '';
+
+  const sorted = [...userLists].filter(l => l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
+  sorted.forEach(list => {
+    const label = document.createElement('label');
+    label.className = 'list-checkbox-pill';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = list.id;
+    checkbox.checked = itemLists.some(l => l.id === list.id);
+    
+    const icon = document.createElement('i');
+    icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
+    
+    const text = document.createTextNode(` ${list.nome}`);
+    
+    label.appendChild(checkbox);
+    label.appendChild(icon);
+    label.appendChild(text);
+    detailListCheckboxes.appendChild(label);
+  });
 }
 
 // ========== STEPPER ADAPTERS ==========
@@ -321,8 +680,6 @@ const addInputs = {
 };
 
 function handleStepperUpdate(btn, modalType) {
-  const limits = modalType === 'add' ? addSeasonLimits : detailModalAPI.getSeasonLimits();
-  const inputs = modalType === 'add' ? addInputs : detailInputs;
   updateStepperValue(btn, modalType, addSeasonLimits, detailModalAPI.getSeasonLimits(), addInputs, detailInputs);
 }
 
@@ -369,11 +726,16 @@ const detailModalAPI = setupDetailModal({
   detailWikiLink: $('detailWikiLink'),
   detailImdbLink: $('detailImdbLink'),
   detailYoutubeLink: $('detailYoutubeLink'),
-  detailEpisodesBtn: $('detailEpisodesBtn')
+  detailEpisodesBtn: $('detailEpisodesBtn'),
+  detailListCheckboxes: $('detailListCheckboxes')
 }, {
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
-  onOpenEpisodes: (index) => episodesModalAPI.open(index, items),
+  onOpenEpisodes: (index, curTemp, curEp) => episodesModalAPI.open(index, items, curTemp, curEp),
+  populateDetailListCheckboxes: (itemLists) => populateDetailListCheckboxes(itemLists),
+  onAddItemToList: (itemId, listId) => addItemToList(itemId, listId),
+  onRemoveItemFromList: (itemId, listId) => removeItemFromList(itemId, listId),
+  onGetUserLists: () => userLists,
   updateEpisodeLimit: (stepperType, temp, limits, modalType) => {
     const inputs = modalType === 'add' ? addInputs : detailInputs;
     const maxEp = limits.maxEpByTemp?.[temp] || 1;
@@ -382,9 +744,6 @@ const detailModalAPI = setupDetailModal({
       inputs.epInput.value = maxEp;
       inputs.epDisplay.textContent = maxEp;
     }
-  },
-  updateSeasonLimits: (limits) => {
-    if (limits) addSeasonLimits = limits;
   },
   onRefreshGrid: () => render()
 });
@@ -402,49 +761,27 @@ const episodesModalAPI = setupEpisodesModal({
   onToast: showToast
 });
 
-// Suggestions
-const suggestionsAPI = setupSuggestions(nome, suggestions, {
-  onSelect: (data) => {
-    selectedTmdbId = data.tmdbId;
-    selectedMediaType = data.mediaType;
-    selectedPosterPath = data.posterPath;
-  },
-  onSetPreview: (poster) => {
-    previewImg.src = poster.startsWith('http') ? poster : `https://image.tmdb.org/t/p/original${poster}`;
-    previewImg.style.display = 'block';
-    previewPlaceholder.style.display = 'none';
-  },
-  onClearPreview: () => {
-    previewImg.style.display = 'none';
-    previewImg.src = '';
-    previewPlaceholder.style.display = 'block';
-  },
-  onSetLoading: (show) => {
-    formLoading.style.display = show ? 'flex' : 'none';
-    btnSubmit.disabled = show;
-    btnCancel.disabled = show;
-  },
-  onToast: showToast,
-  onSetupSteppers: (maxTemp, maxEpByTemp, year) => {
-    addSeasonLimits = { maxTemp, maxEpByTemp };
-    if (year) selectedAno = year;
-    setupSteppers('#modalOverlay .stepper-btn', 'add', handleStepperUpdate);
-  },
-  onSetYear: (year) => {
-    addYearDisplay.textContent = year || '--';
-  },
-  onSetTipo: (detectedTipo) => {
-    if (tipo) {
-      tipo.value = detectedTipo;
-      tipo.dispatchEvent(new Event('change'));
-      markMenuActive(addTipoMenu, tipo);
-    }
-  }
-});
-
 // ========== RENDER ==========
 function render() {
-  renderContinueWatching(items, currentTab, continueSection, continueGrid, (item, variant) => createCardElement(item, variant, items, handleCardClick));
+  // Pesquisa tab — show search view, hide everything else
+  if (currentTab === 'pesquisa') {
+    continueSection.style.display = 'none';
+    gridSection.style.display = 'none';
+    searchView.style.display = '';
+    toolbar.style.display = 'none';
+    headerListName.textContent = 'Pesquisa';
+    headerCount.textContent = '';
+    // Focus the search input
+    setTimeout(() => pesquisaInput && pesquisaInput.focus(), 100);
+    return;
+  }
+
+  // Normal tabs — hide search view, show grid
+  searchView.style.display = 'none';
+  gridSection.style.display = '';
+  toolbar.style.display = '';
+
+  renderContinueWatching(items, currentTab, currentListId, continueSection, continueGrid, (item, variant) => createCardElement(item, variant, items, handleCardClick));
 
   const search = searchInput.value;
   const statusFilter = filterStatus.value;
@@ -456,19 +793,25 @@ function render() {
     tierFilter = 'todos';
   }
 
-  const filtered = sortItems(filterItems(items, { currentTab, search, statusFilter, tierFilter }), sortKey);
+  const filtered = sortItems(filterItems(items, { currentTab, search, statusFilter, tierFilter, currentListId }), sortKey);
 
   const count = filtered.length;
   let label = '';
-  switch (currentTab) {
-    case 'anime': label = 'Animes'; break;
-    case 'animacao': label = 'Animações'; break;
-    case 'serie': label = 'Séries'; break;
-    case 'planejado': label = 'Lista de Desejos'; break;
-    default: label = 'Total';
+  
+  // Determinar label baseado na aba ou lista atual
+  if (currentTab === 'all') {
+    label = 'Total';
+  } else if (currentTab === 'planejado') {
+    label = 'Lista de Desejos';
+  } else if (currentListId) {
+    const currentList = userLists.find(l => l.id === currentListId);
+    label = currentList ? currentList.nome : 'Lista';
+  } else {
+    label = 'Total';
   }
-  statNumber.textContent = count;
-  statLabel.textContent = label;
+  
+  headerListName.textContent = label;
+  headerCount.textContent = count;
 
   if (currentTab === 'planejado') {
     groupToggle.style.display = 'none';
@@ -546,7 +889,7 @@ async function addItem(e) {
 
   if (addItemInFlight) return;
 
-  const nomeVal = nome.value.trim();
+  const nomeVal = selectedName.trim();
   const tempVal = parseInt(addTemporadaInput.value);
   const epVal = parseInt(addEpisodioInput.value);
   const statusVal = statusSelect.value;
@@ -555,11 +898,19 @@ async function addItem(e) {
   clearAllFieldErrors(form);
 
   let hasError = false;
-  if (!nomeVal) { setFieldError(nome, 'Digite o nome.'); hasError = true; }
-  if (nomeVal.length > 150) { setFieldError(nome, 'Nome muito longo (máx. 150 caracteres).'); hasError = true; }
+  if (!nomeVal) { hasError = true; }
+  if (nomeVal.length > 150) { hasError = true; }
   if (isNaN(tempVal) || tempVal < 1) { setFieldError(addTemporadaInput, 'Temporada inválida.'); hasError = true; }
   if (isNaN(epVal) || epVal < 0) { setFieldError(addEpisodioInput, 'Episódio inválido.'); hasError = true; }
   if (hasError) { showToast('Corrija os campos destacados.'); return; }
+  // Validate at least one list selected
+  const selectedListCheckboxes = addListCheckboxes ? addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked') : [];
+  if (selectedListCheckboxes.length === 0) {
+    showToast('Selecione pelo menos uma lista.');
+    const addListModal = document.getElementById('addListModal');
+    if (addListModal) addListModal.classList.add('active');
+    return;
+  }
   const tipoVal = tipo.value;
 
   addItemInFlight = true;
@@ -613,13 +964,49 @@ async function addItem(e) {
       return;
     }
 
+    // If opened from search and item already exists, just add to new lists
+    if (existingItemForSearch) {
+      const existingItem = existingItemForSearch;
+      const selectedListIds = Array.from(addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      const existingListIds = (existingItem.lists || []).map(l => l.id);
+      const toAdd = selectedListIds.filter(id => !existingListIds.includes(id));
+
+      if (toAdd.length > 0) {
+        const addPromises = toAdd.map(listId => addItemToList(existingItem.id, listId));
+        await Promise.allSettled(addPromises);
+        const addedLists = userLists.filter(l => toAdd.includes(l.id));
+        existingItem.lists = [...(existingItem.lists || []), ...addedLists];
+        showToast(`Adicionado a ${toAdd.length > 1 ? toAdd.length + ' listas' : addedLists[0]?.nome || 'nova lista'}.`);
+      } else {
+        showToast('Este título já pertence a todas as listas selecionadas.');
+      }
+
+      existingItemForSearch = null;
+      render();
+      closeModal();
+      form.reset();
+      clearPreview();
+      cachedShowDetails = null;
+      selectedTmdbId = null;
+      selectedMediaType = null;
+      selectedPosterPath = null;
+      selectedAno = null;
+      selectedName = '';
+      addTemporadaInput.value = 1;
+      addTemporadaDisplay.textContent = 1;
+      addEpisodioInput.value = 0;
+      addEpisodioDisplay.textContent = 0;
+      addSeasonLimits = {};
+      return;
+    }
+
     const duplicate = items.some((it, i) => {
       if (i === editingIndex) return false;
+      if (it.tmdb_id && selectedTmdbId) {
+        return String(it.tmdb_id) === String(selectedTmdbId);
+      }
       const sameName = it.nome.toLowerCase() === nomeVal.toLowerCase();
       const sameType = it.tipo === tipoVal;
-      if (it.tmdb_id && selectedTmdbId) {
-        return sameName && sameType && it.tmdb_id === selectedTmdbId;
-      }
       if (it.ano && ano) {
         return sameName && sameType && it.ano === ano;
       }
@@ -642,6 +1029,12 @@ async function addItem(e) {
     const saved = await addItemToSupabase(newItem);
     items.push(saved);
     
+    // Adicionar às listas selecionadas no modal
+    const selectedListIds = Array.from(addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    const listPromises = selectedListIds.map(listId => addItemToList(saved.id, listId));
+    await Promise.allSettled(listPromises);
+    saved.lists = userLists.filter(l => selectedListIds.includes(l.id));
+    
     showToast('Item adicionado!');
     
     if (selectedPosterPath) {
@@ -655,11 +1048,12 @@ async function addItem(e) {
     form.reset();
     clearPreview();
     cachedShowDetails = null;
-    suggestionsAPI.clearSuggestions();
     selectedTmdbId = null;
     selectedMediaType = null;
     selectedPosterPath = null;
     selectedAno = null;
+    selectedName = '';
+    existingItemForSearch = null;
     addTemporadaInput.value = 1;
     addTemporadaDisplay.textContent = 1;
     addEpisodioInput.value = 0;
@@ -716,11 +1110,14 @@ function openModal() {
   if (typeof window !== 'undefined' && window.anime) {
     window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
   }
-  setTimeout(() => nome.focus(), 100);
+  syncAddStatusBtns();
 }
 
 function closeModal() {
   modalOverlay.classList.remove('active');
+  const addListModal = document.getElementById('addListModal');
+  if (addListModal) addListModal.classList.remove('active');
+  if (addEpisodesBtn) { addEpisodesBtn.style.display = 'none'; addEpisodesBtn.onclick = null; }
   unlockScreen();
   releaseFocusTrap();
 }
@@ -729,20 +1126,29 @@ function cancelEdit() {
   editingIndex = null;
   btnSubmit.innerHTML = '<i class="fas fa-save"></i> Salvar';
   modalTitleText.textContent = 'Adicionar título';
+  modalTitle.style.display = '';
   btnCancel.style.display = 'inline-flex';
   clearAllFieldErrors(form);
   form.reset();
   clearPreview();
   cachedShowDetails = null;
-  suggestionsAPI.clearSuggestions();
   updateAddTierBadge('');
   addYearDisplay.textContent = '--';
+  if (addLogoContainer) addLogoContainer.style.display = 'none';
+  if (addLogoImg) addLogoImg.src = '';
+  if (addOriginalTitle) { addOriginalTitle.style.display = 'none'; addOriginalTitle.textContent = ''; }
+  if (addSinopse) addSinopse.textContent = '';
+  if (addSinopseLoading) addSinopseLoading.style.display = 'none';
+  if (addBlurBg) addBlurBg.style.backgroundImage = '';
+  if (addPosterWrap) addPosterWrap.classList.remove('sinopse-open');
   closeModal();
   setLoading(false);
   selectedTmdbId = null;
   selectedMediaType = null;
   selectedPosterPath = null;
   selectedAno = null;
+  selectedName = '';
+  existingItemForSearch = null;
   addTemporadaInput.value = 1;
   addTemporadaDisplay.textContent = 1;
   addEpisodioInput.value = 1;
@@ -822,31 +1228,6 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 checkSession();
-
-// Event listeners de navegação
-openFormBtn.addEventListener('click', (e) => {
-  // Prevent clicks from propagating to elements behind the floating button
-  e.stopPropagation();
-  e.preventDefault();
-  if (editingIndex !== null) cancelEdit();
-  clearAllFieldErrors(form);
-  clearPreview();
-  cachedShowDetails = null;
-  statusSelect.value = 'assistindo';
-  tierForm.value = '';
-  updateAddTierBadge('');
-  addYearDisplay.textContent = '--';
-  selectedTmdbId = null;
-  selectedMediaType = null;
-  selectedPosterPath = null;
-  selectedAno = null;
-  addTemporadaInput.value = 1;
-  addTemporadaDisplay.textContent = 1;
-  addEpisodioInput.value = 0;
-  addEpisodioDisplay.textContent = 0;
-  addSeasonLimits = {};
-  openModal();
-});
 
 // Tier badge e dropdown do modal de adição
 addTierBadge.addEventListener('click', (e) => {
@@ -975,49 +1356,42 @@ sortOrder.addEventListener('change', render);
     });
   }
 
-  // Modal toggles (add / detail) — open corresponding menus
-  if (addTipoToggleBtn && addTipoMenu) {
-    addTipoToggleBtn.addEventListener('click', (e) => {
+  // Modal list toggles — show/hide list checkboxes
+  if (addListToggle && addListCheckboxes) {
+    const addListModal = document.getElementById('addListModal');
+    const addListModalClose = document.getElementById('addListModalClose');
+    addListToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = addTipoMenu.classList.contains('show');
-      closeAllFilterMenus();
-      addTipoMenu.classList.toggle('show', !isOpen);
-      if (!isOpen) markMenuActive(addTipoMenu, tipo);
-      addTipoToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      if (addListModal) addListModal.classList.add('active');
     });
+    if (addListModalClose) {
+      addListModalClose.addEventListener('click', () => {
+        addListModal.classList.remove('active');
+      });
+    }
+    if (addListModal) {
+      addListModal.addEventListener('click', (e) => {
+        if (e.target === addListModal) addListModal.classList.remove('active');
+      });
+    }
   }
-
-  if (addStatusToggleBtn && addStatusMenu) {
-    addStatusToggleBtn.addEventListener('click', (e) => {
+  if (detailListToggle && detailListCheckboxes) {
+    const detailListModal = document.getElementById('detailListModal');
+    const detailListModalClose = document.getElementById('detailListModalClose');
+    detailListToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = addStatusMenu.classList.contains('show');
-      closeAllFilterMenus();
-      addStatusMenu.classList.toggle('show', !isOpen);
-      if (!isOpen) markMenuActive(addStatusMenu, statusSelect);
-      addStatusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      if (detailListModal) detailListModal.classList.add('active');
     });
-  }
-
-  if (detailTipoToggleBtn && detailTipoMenu) {
-    detailTipoToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = detailTipoMenu.classList.contains('show');
-      closeAllFilterMenus();
-      detailTipoMenu.classList.toggle('show', !isOpen);
-      if (!isOpen) markMenuActive(detailTipoMenu, detailTipo);
-      detailTipoToggleBtn.setAttribute('aria-expanded', String(!isOpen));
-    });
-  }
-
-  if (detailStatusToggleBtn && detailStatusMenu) {
-    detailStatusToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = detailStatusMenu.classList.contains('show');
-      closeAllFilterMenus();
-      detailStatusMenu.classList.toggle('show', !isOpen);
-      if (!isOpen) markMenuActive(detailStatusMenu, detailStatus);
-      detailStatusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
-    });
+    if (detailListModalClose) {
+      detailListModalClose.addEventListener('click', () => {
+        detailListModal.classList.remove('active');
+      });
+    }
+    if (detailListModal) {
+      detailListModal.addEventListener('click', (e) => {
+        if (e.target === detailListModal) detailListModal.classList.remove('active');
+      });
+    }
   }
 
   // Clicking an option sets the hidden select and triggers change
@@ -1050,11 +1424,59 @@ sortOrder.addEventListener('change', render);
     updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
   });
 
-  // modal menus (add/detail) should also show active selection
-  if (addTipoMenu && tipo) markMenuActive(addTipoMenu, tipo);
-  if (addStatusMenu && statusSelect) markMenuActive(addStatusMenu, statusSelect);
-  if (detailTipoMenu && detailTipo) markMenuActive(detailTipoMenu, detailTipo);
-  if (detailStatusMenu && detailStatus) markMenuActive(detailStatusMenu, detailStatus);
+  // Poster click toggles synopsis overlay
+  const detailPosterWrap = document.getElementById('detailPosterWrap');
+  if (detailPosterWrap) {
+    const togglePosterSinopse = () => {
+      detailPosterWrap.classList.toggle('sinopse-open');
+    };
+    detailPosterWrap.addEventListener('click', (e) => {
+      if (e.target.closest('.poster-stepper') || e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.poster-top-links')) return;
+      togglePosterSinopse();
+    });
+    detailPosterWrap.addEventListener('keydown', (e) => {
+      if (e.target.closest('.poster-stepper')) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        togglePosterSinopse();
+      }
+    });
+    // Close overlay when detail modal closes
+    const detailModalEl = document.getElementById('detailModal');
+    if (detailModalEl) {
+      const observer = new MutationObserver(() => {
+        if (!detailModalEl.classList.contains('active')) {
+          detailPosterWrap.classList.remove('sinopse-open');
+        }
+      });
+      observer.observe(detailModalEl, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+
+  // Add modal poster sinopse toggle
+  if (addPosterWrap) {
+    const toggleAddSinopse = () => {
+      addPosterWrap.classList.toggle('sinopse-open');
+    };
+    addPosterWrap.addEventListener('click', (e) => {
+      if (e.target.closest('.poster-stepper') || e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.add-poster-bar')) return;
+      toggleAddSinopse();
+    });
+    addPosterWrap.addEventListener('keydown', (e) => {
+      if (e.target.closest('.poster-stepper')) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAddSinopse(); }
+    });
+    // Auto-close sinopse when add modal closes
+    const addModalEl = document.getElementById('modalOverlay');
+    if (addModalEl) {
+      const addModalObserver = new MutationObserver(() => {
+        if (!addModalEl.classList.contains('active')) {
+          addPosterWrap.classList.remove('sinopse-open');
+        }
+      });
+      addModalObserver.observe(addModalEl, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
 
   // ensure toolbar toggles reflect current select values on init
   updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
@@ -1072,54 +1494,62 @@ groupToggle.addEventListener('click', () => {
   render();
 });
 
-// Botão concluído
-document.getElementById('btnConcluido').addEventListener('click', function() {
-  const maxTemp = addSeasonLimits.maxTemp || 1;
-  if (maxTemp === 0) { showToast('Selecione um título primeiro.', 2000); return; }
-  const maxEp = addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
-  addTemporadaInput.value = maxTemp;
-  addTemporadaDisplay.textContent = maxTemp;
-  addEpisodioInput.value = maxEp;
-  addEpisodioDisplay.textContent = maxEp;
-  statusSelect.value = 'concluido';
-  btnSubmit.focus();
-  showToast(`Concluído! T${maxTemp} • Ep ${maxEp}`, 2500);
-});
-
-// Navegação por abas
-document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
-  item.addEventListener('click', () => {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    item.classList.add('active');
-    const tab = item.dataset.tab;
-    if (tab) { 
-      currentTab = tab; 
-      // Ocultar filtros na aba Lista de Desejos
-      if (tab === 'planejado') {
-        filterStatus.style.display = 'none';
-        filterTier.style.display = 'none';
-        if (statusWrapper) statusWrapper.style.display = 'none';
-        if (tierWrapper) tierWrapper.style.display = 'none';
-        // Esconder opções de ordenação sem sentido para Lista de Desejos
-        document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-        // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
-        const hiddenValues = ['progresso-asc','progresso-desc','tier-asc','tier-desc','temporada-asc','temporada-desc'];
-        if (hiddenValues.includes(sortOrder.value)) {
-          sortOrder.value = 'data-desc';
-          markMenuActive(sortMenu, sortOrder);
-        }
-      } else {
-        filterStatus.style.display = '';
-        filterTier.style.display = '';
-        if (statusWrapper) statusWrapper.style.display = '';
-        if (tierWrapper) tierWrapper.style.display = '';
-        // Restaurar todas as opções de ordenação
-        document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = '');
-      }
-      render(); 
-    }
+// Botão concluído — atalho via status "concluido"
+const btnConcluido = document.getElementById('btnConcluido');
+if (btnConcluido) {
+  btnConcluido.addEventListener('click', function() {
+    const maxTemp = addSeasonLimits.maxTemp || 1;
+    if (maxTemp === 0) { showToast('Selecione um título primeiro.', 2000); return; }
+    const maxEp = addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
+    addTemporadaInput.value = maxTemp;
+    addTemporadaDisplay.textContent = maxTemp;
+    addEpisodioInput.value = maxEp;
+    addEpisodioDisplay.textContent = maxEp;
+    statusSelect.value = 'concluido';
+    syncAddStatusBtns();
+    btnSubmit.focus();
+    showToast(`Concluído! T${maxTemp} \u2022 Ep ${maxEp}`, 2500);
   });
-});
+}
+
+// Add modal status buttons sync
+const addPosterStatusBar = document.getElementById('addPosterStatusBar');
+if (addPosterStatusBar) {
+  addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const newStatus = btn.dataset.status;
+      const prevStatus = statusSelect.value;
+      statusSelect.value = newStatus;
+      statusSelect.dispatchEvent(new Event('change'));
+      syncAddStatusBtns();
+      // Concluído: auto-set max temporada/episodio
+      if (newStatus === 'concluido' && prevStatus !== 'concluido') {
+        const maxTemp = addSeasonLimits.maxTemp || 1;
+        if (maxTemp > 0) {
+          addTemporadaInput.value = maxTemp;
+          addTemporadaDisplay.textContent = maxTemp;
+          const maxEp = addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
+          addEpisodioInput.value = maxEp;
+          addEpisodioDisplay.textContent = maxEp;
+        }
+      } else if (prevStatus === 'concluido' && newStatus !== 'concluido') {
+        // Revert to defaults when leaving concluido
+        addTemporadaInput.value = 1;
+        addTemporadaDisplay.textContent = 1;
+        addEpisodioInput.value = 0;
+        addEpisodioDisplay.textContent = 0;
+      }
+    });
+  });
+}
+function syncAddStatusBtns() {
+  if (!addPosterStatusBar) return;
+  addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === statusSelect.value);
+  });
+}
+
+// Navegação por abas (removido - agora usando renderSidebar dinâmico)
 
 // Function to update logos
 function updateLogos() {
@@ -1161,5 +1591,264 @@ document.addEventListener('keydown', (e) => {
     if (episodesModal.classList.contains('active')) episodesModalAPI.close();
     else if (detailModal.classList.contains('active')) detailModalAPI.close();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
+    else if (currentTab === 'pesquisa') {
+      currentTab = 'all';
+      currentListId = null;
+      updateActiveNav();
+      render();
+    }
   }
 });
+
+// ========== PESQUISA TMDB ==========
+let pesquisaTimeout = null;
+
+if (pesquisaInput) {
+  pesquisaInput.addEventListener('input', () => {
+    clearTimeout(pesquisaTimeout);
+    const q = pesquisaInput.value.trim();
+
+    if (q.length < 2) {
+      pesquisaGrid.innerHTML = '';
+      pesquisaEmpty.style.display = '';
+      pesquisaLoading.style.display = 'none';
+      pesquisaEmpty.querySelector('p').textContent = 'Digite pelo menos 2 caracteres para buscar';
+      return;
+    }
+
+    pesquisaLoading.style.display = '';
+    pesquisaEmpty.style.display = 'none';
+    pesquisaGrid.innerHTML = '';
+
+    pesquisaTimeout = setTimeout(async () => {
+      try {
+        const data = await callTMDB('search/multi', { query: q }, 'pt-BR');
+        pesquisaLoading.style.display = 'none';
+
+        if (!data.results || data.results.length === 0) {
+          pesquisaEmpty.style.display = '';
+          pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        data.results.forEach(res => {
+          const name = res.name || res.title;
+          if (!name) return;
+          const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
+          const mediaType = res.media_type === 'tv' ? 'Série' : res.media_type === 'movie' ? 'Filme' : null;
+          if (!mediaType) return;
+          const poster = res.poster_path || '';
+          const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
+          const safeName = escapeHTML(name);
+          const safePoster = escapeHTML(posterUrl);
+
+          const card = document.createElement('div');
+          card.className = 'pesquisa-card';
+          card.dataset.tmdbId = res.id;
+          card.dataset.mediaType = res.media_type;
+          card.dataset.poster = poster;
+          card.dataset.name = name;
+          card.dataset.year = year;
+          card.setAttribute('role', 'listitem');
+          card.setAttribute('tabindex', '0');
+          card.setAttribute('aria-label', `Adicionar ${name}`);
+          card.innerHTML = `
+            <div class="pesquisa-card-img">
+              ${safePoster ? `<img src="${safePoster}" alt="${safeName}" loading="lazy" />` : `<i class="fas fa-film"></i>`}
+            </div>
+            <div class="pesquisa-card-body">
+              <span class="badge">${mediaType}</span>
+              <h3 title="${safeName}">${safeName}</h3>
+              ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
+            </div>
+          `;
+
+          const openAddModal = () => {
+            if (editingIndex !== null) cancelEdit();
+            clearAllFieldErrors(form);
+            clearPreview();
+            cachedShowDetails = null;
+            statusSelect.value = 'assistindo';
+            syncAddStatusBtns();
+            tierForm.value = '';
+            updateAddTierBadge('');
+            addYearDisplay.textContent = year || '--';
+            selectedTmdbId = res.id;
+            selectedMediaType = res.media_type;
+            selectedPosterPath = poster;
+            selectedAno = year || null;
+            selectedName = name;
+            addTemporadaInput.value = 1;
+            addTemporadaDisplay.textContent = 1;
+            addEpisodioInput.value = 0;
+            addEpisodioDisplay.textContent = 0;
+            addSeasonLimits = {};
+            // Reset logo and original title
+            if (addLogoContainer) addLogoContainer.style.display = 'none';
+            if (addLogoImg) addLogoImg.src = '';
+            if (addOriginalTitle) { addOriginalTitle.style.display = 'none'; addOriginalTitle.textContent = ''; }
+            // Reset sinopse
+            if (addSinopse) addSinopse.textContent = '';
+            if (addSinopseLoading) addSinopseLoading.style.display = 'flex';
+            if (addBlurBg) addBlurBg.style.backgroundImage = '';
+            if (addPosterWrap) addPosterWrap.classList.remove('sinopse-open');
+            // Hide title text, will show logo if available
+            modalTitle.style.display = 'none';
+            // Check if this title already exists in catalog
+            existingItemForSearch = items.find(it => it.tmdb_id && String(it.tmdb_id) === String(res.id)) || null;
+            const preselectedIds = existingItemForSearch
+              ? (existingItemForSearch.lists || []).map(l => l.id)
+              : [];
+            populateAddListCheckboxes(preselectedIds);
+            // Highlight pre-existing list checkboxes
+            if (existingItemForSearch && preselectedIds.length > 0 && addListCheckboxes) {
+              addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                cb.closest('.list-checkbox-pill')?.classList.add('list-existing');
+              });
+            }
+            // Show episodes button for existing items
+            if (addEpisodesBtn) {
+              if (existingItemForSearch) {
+                addEpisodesBtn.style.display = 'inline-flex';
+                addEpisodesBtn.onclick = () => {
+                  const existingIndex = items.indexOf(existingItemForSearch);
+                  if (existingIndex !== -1) {
+                    closeModal();
+                    episodesModalAPI.open(existingIndex, items);
+                  }
+                };
+              } else {
+                addEpisodesBtn.style.display = 'none';
+                addEpisodesBtn.onclick = null;
+              }
+            }
+
+            // Fetch full details: backdrop, logo, original title, steppers
+            (async () => {
+              try {
+                let details = null;
+                if (res.media_type === 'tv') {
+                  details = await callTMDB(`tv/${res.id}`, {}, 'pt-BR');
+                  const seasons = details.seasons || [];
+                  const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
+                  const maxEpByTemp = {};
+                  seasons.forEach(s => {
+                    if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0;
+                  });
+                  const yr = details.first_air_date ? details.first_air_date.substring(0, 4) : year;
+                  addSeasonLimits = { maxTemp, maxEpByTemp };
+                  addTemporadaInput.value = 1;
+                  addTemporadaDisplay.textContent = 1;
+                  addEpisodioInput.value = 0;
+                  addEpisodioDisplay.textContent = 0;
+                  addYearDisplay.textContent = yr || '--';
+                  if (yr) selectedAno = yr;
+                  // Detect type
+                  const genres = details.genre_ids || (details.genres || []).map(g => g.id);
+                  const countries = details.origin_country || [];
+                  const isAnimation = genres.includes(16);
+                  const isJapanese = countries.includes('JP');
+                  let detectedTipo = 'serie';
+                  if (isAnimation && isJapanese) detectedTipo = 'anime';
+                  else if (isAnimation) detectedTipo = 'animacao';
+                  tipo.value = detectedTipo;
+                } else if (res.media_type === 'movie') {
+                  details = await callTMDB(`movie/${res.id}`, {}, 'pt-BR');
+                  addSeasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
+                  addTemporadaInput.value = 1;
+                  addTemporadaDisplay.textContent = 1;
+                  addEpisodioInput.value = 0;
+                  addEpisodioDisplay.textContent = 0;
+                  tipo.value = 'serie';
+                }
+
+                // Backdrop image (16:9)
+                let backdropUrl = '';
+                if (details && details.backdrop_path) {
+                  backdropUrl = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
+                  previewImg.src = backdropUrl;
+                  previewImg.style.display = 'block';
+                  previewPlaceholder.style.display = 'none';
+                } else if (poster) {
+                  backdropUrl = `https://image.tmdb.org/t/p/w1280${poster}`;
+                  previewImg.src = backdropUrl;
+                  previewImg.style.display = 'block';
+                  previewPlaceholder.style.display = 'none';
+                }
+
+                // Blur background for sinopse
+                if (addBlurBg && backdropUrl) {
+                  addBlurBg.style.backgroundImage = `url(${backdropUrl})`;
+                }
+
+                // Sinopse
+                if (addSinopse) {
+                  addSinopse.textContent = details?.overview || 'Sinopse não disponível.';
+                }
+                if (addSinopseLoading) addSinopseLoading.style.display = 'none';
+
+                // Original title
+                if (details) {
+                  const originalName = details.original_name || details.original_title || '';
+                  if (originalName && originalName !== name) {
+                    addOriginalTitle.textContent = originalName;
+                    addOriginalTitle.style.display = '';
+                  }
+                }
+
+                // Logo
+                const logoUrl = await fetchTitleLogo(res.id, res.media_type);
+                if (logoUrl) {
+                  addLogoImg.src = logoUrl;
+                  addLogoImg.alt = `Logo de ${name}`;
+                  addLogoContainer.style.display = 'flex';
+                  modalTitle.style.display = 'none';
+                } else {
+                  addLogoContainer.style.display = 'none';
+                  modalTitle.style.display = '';
+                }
+              } catch (err) {
+                console.warn('Erro ao buscar detalhes:', err);
+                // Fallback: show poster as backdrop
+                if (poster) {
+                  const fallbackUrl = `https://image.tmdb.org/t/p/w1280${poster}`;
+                  previewImg.src = fallbackUrl;
+                  previewImg.style.display = 'block';
+                  previewPlaceholder.style.display = 'none';
+                  if (addBlurBg) addBlurBg.style.backgroundImage = `url(${fallbackUrl})`;
+                }
+                if (addSinopse) addSinopse.textContent = 'Erro ao carregar sinopse.';
+                if (addSinopseLoading) addSinopseLoading.style.display = 'none';
+                modalTitle.style.display = '';
+              }
+            })();
+
+            openModal();
+          };
+
+          card.addEventListener('click', openAddModal);
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAddModal(); }
+          });
+
+          fragment.appendChild(card);
+        });
+
+        pesquisaGrid.appendChild(fragment);
+
+        if (typeof anime !== 'undefined') {
+          const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');
+          if (cards.length) {
+            anime({ targets: cards, translateY: [24, 0], opacity: [0, 1], duration: 500, delay: anime.stagger(60), easing: 'easeOutQuad' });
+          }
+        }
+      } catch (err) {
+        pesquisaLoading.style.display = 'none';
+        pesquisaEmpty.style.display = '';
+        pesquisaEmpty.querySelector('p').textContent = 'Erro ao buscar. Tente novamente.';
+        console.warn('Erro na pesquisa TMDB:', err);
+      }
+    }, 400);
+  });
+}

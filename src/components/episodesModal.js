@@ -38,7 +38,7 @@ export function setupEpisodesModal(elements, callbacks) {
     releaseFocusTrap();
   }
 
-  async function openEpisodesModal(index, items) {
+  async function openEpisodesModal(index, items, curTemp, curEp) {
     const item = items[index];
     if (!item) return;
     if (item.tipo !== 'serie' && item.tipo !== 'anime' && item.tipo !== 'animacao') {
@@ -125,11 +125,17 @@ export function setupEpisodesModal(elements, callbacks) {
       );
       const seasonsData = await Promise.all(seasonPromises);
 
+      const currentSeason = Number(curTemp) || Number(item.temporada) || 1;
+      const currentEpisode = Number(curEp) || Number(item.episodio) || 0;
+
       let html = '';
+      let currentSeasonFound = false;
       seasonsData.forEach((seasonData, idx) => {
-        const seasonNum = seasons[idx].season_number;
+        const seasonNum = Number(seasons[idx].season_number);
         const seasonName = seasons[idx].name || `${seasonNum}ª Temporada`;
         const episodeCount = seasonData.episodes ? seasonData.episodes.length : 0;
+        const isCurrentSeason = seasonNum === currentSeason;
+        if (isCurrentSeason) currentSeasonFound = true;
         
         html += `<div class="season-container">`;
         html += `<div class="season-header" data-season="${seasonNum}" tabindex="0" role="button" aria-expanded="false" aria-label="Expandir/recolher ${escapeHTML(seasonName)}">`;
@@ -142,13 +148,14 @@ export function setupEpisodesModal(elements, callbacks) {
         }
         if (seasonData.episodes && seasonData.episodes.length > 0) {
           seasonData.episodes.forEach(ep => {
-            const epNum = ep.episode_number;
+            const epNum = Number(ep.episode_number);
             const epTitle = ep.name || `Episódio ${epNum}`;
             const epAirDate = ep.air_date ? formatDateBR(ep.air_date) : 'Data desconhecida';
             const epOverview = ep.overview || 'Sinopse não disponível.';
             const thumbUrl = ep.still_path ? `https://image.tmdb.org/t/p/w92${ep.still_path}` : null;
+            const isCurrent = isCurrentSeason && epNum === currentEpisode;
             
-            html += `<div class="episode-item">`;
+            html += `<div class="episode-item${isCurrent ? ' episode-current' : ''}"${isCurrent ? ' id="currentEpisode"' : ''}>`;
             html += `<div class="episode-number">E${epNum}</div>`;
             html += `<div class="episode-thumb">`;
             if (thumbUrl) {
@@ -172,6 +179,18 @@ export function setupEpisodesModal(elements, callbacks) {
       episodesContent.innerHTML = html;
       episodesLoading.style.display = 'none';
       episodesContent.style.display = 'block';
+
+      // Auto-expand current season and scroll to current episode
+      if (currentSeasonFound) {
+        const currentSeasonHeader = document.querySelector(`.season-header[data-season="${String(currentSeason)}"]`);
+        if (currentSeasonHeader) toggleSeason(currentSeasonHeader);
+        setTimeout(() => {
+          const currentEpEl = document.getElementById('currentEpisode');
+          if (currentEpEl) {
+            currentEpEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 350);
+      }
 
       function toggleSeason(header) {
         const seasonNum = header.dataset.season;
@@ -229,7 +248,7 @@ export function setupEpisodesModal(elements, callbacks) {
   });
 
   return {
-    open: (index, items) => openEpisodesModal(index, items),
+    open: (index, items, curTemp, curEp) => openEpisodesModal(index, items, curTemp, curEp),
     close: closeEpisodesModal
   };
 }

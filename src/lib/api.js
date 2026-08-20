@@ -31,13 +31,6 @@ export function setLogoInCache(tmdbId, mediaType, logoUrl) {
 }
 
 /**
- * Limpa o cache de logos (útil para testes ou força atualização)
- */
-function clearLogoCache() {
-  logoCache.clear();
-}
-
-/**
  * Invoca a Edge Function 'clever-endpoint' para consultar a API do TMDB.
  * @param {string} endpoint - Endpoint do TMDB (ex: 'tv/12345' ou 'search/multi').
  * @param {Object} params - Parâmetros de query da requisição.

@@ -3,7 +3,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, TIER_COLORS, escapeHTML, formatDateBR } from '../lib/catalog.js';
+import { getTierClass, escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
 /**
@@ -42,7 +42,8 @@ export function setupDetailModal(elements, callbacks) {
     detailImdbLink,
     detailYoutubeLink,
     detailEpisodesBtn,
-    detailAddedDate
+    detailAddedDate,
+    detailListCheckboxes
   } = elements;
 
   const {
@@ -50,8 +51,11 @@ export function setupDetailModal(elements, callbacks) {
     onDeleteItem,
     onOpenEpisodes,
     updateEpisodeLimit,
-    updateSeasonLimits,
-    onRefreshGrid
+    onRefreshGrid,
+    populateDetailListCheckboxes,
+    onAddItemToList,
+    onRemoveItemFromList,
+    onGetUserLists
   } = callbacks;
 
   let detailCurrentIndex = null;
@@ -137,6 +141,23 @@ export function setupDetailModal(elements, callbacks) {
       let overview = detailsData?.overview || 'Sinopse não disponível.';
 
       if (detailsData) {
+        // Usar o backdrop (formato 16:9) em alta qualidade para não cortar a imagem no pôster horizontal
+        if (detailsData.backdrop_path) {
+          const backdropUrl = `https://image.tmdb.org/t/p/w1280${detailsData.backdrop_path}`;
+          detailPosterImg.src = backdropUrl;
+          const blurBg = document.getElementById('detailBlurBg');
+          if (blurBg) {
+            blurBg.style.backgroundImage = `url(${backdropUrl})`;
+          }
+        } else if (item.imagem) {
+          // Fallback: sem backdrop, usar a imagem do card
+          detailPosterImg.src = item.imagem;
+          const blurBg = document.getElementById('detailBlurBg');
+          if (blurBg) {
+            blurBg.style.backgroundImage = `url(${item.imagem})`;
+          }
+        }
+
         const start = detailsData.first_air_date
           ? detailsData.first_air_date.substring(0, 4)
           : detailsData.release_date
@@ -176,6 +197,13 @@ export function setupDetailModal(elements, callbacks) {
           if (detailYoutubeLink) {
             detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
           }
+      } else if (item.imagem) {
+        // Sem dados do TMDB: usar a imagem do card
+        detailPosterImg.src = item.imagem;
+        const blurBg = document.getElementById('detailBlurBg');
+        if (blurBg) {
+          blurBg.style.backgroundImage = `url(${item.imagem})`;
+        }
       }
 
       let logoUrl = null;
@@ -200,6 +228,14 @@ export function setupDetailModal(elements, callbacks) {
       console.warn('Erro ao buscar detalhes:', e);
       detailSinopse.textContent = 'Erro ao carregar sinopse.';
       detailLoading.style.display = 'none';
+      // Fallback: exibir a imagem do card caso a busca falhe
+      if (item.imagem && !detailPosterImg.src) {
+        detailPosterImg.src = item.imagem;
+        const blurBg = document.getElementById('detailBlurBg');
+        if (blurBg) {
+          blurBg.style.backgroundImage = `url(${item.imagem})`;
+        }
+      }
     }
   }
 
@@ -214,6 +250,9 @@ export function setupDetailModal(elements, callbacks) {
     detailTitleText.textContent = item.nome;
 
     detailStatus.value = item.status || 'assistindo';
+    document.querySelectorAll('.dm-status-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.status === detailStatus.value);
+    });
     detailTipo.value = item.tipo || 'anime';
     if (detailTier) {
       detailTier.value = item.tier || '';
@@ -261,13 +300,17 @@ export function setupDetailModal(elements, callbacks) {
     detailEpisodioDisplay.textContent = epVal;
     updateEpisodeLimit('detail', tempVal, detailSeasonLimits, 'detail');
 
+    // Popular checkboxes de listas
+    if (callbacks.populateDetailListCheckboxes) {
+      callbacks.populateDetailListCheckboxes(item.lists || []);
+    }
+
     const imagemUrl = item.imagem || null;
-    if (imagemUrl) {
-      detailPosterImg.src = imagemUrl;
-    } else {
-      const tierColor = item.tier ? getComputedStyle(document.documentElement).getPropertyValue(`--tier-${item.tier.toLowerCase()}`).trim() || '#6b7280' : '#6b7280';
-      const placeholder = `https://placehold.co/500x750/${tierColor.replace('#','')}/FFFFFF?text=${encodeURIComponent(item.nome)}`;
-      detailPosterImg.src = placeholder;
+    // Não exibir a imagem do card: aguardar o backdrop de alta qualidade do TMDB
+    detailPosterImg.src = '';
+    const blurBg = document.getElementById('detailBlurBg');
+    if (blurBg) {
+      blurBg.style.backgroundImage = 'none';
     }
 
     updateTierBadge(item.tier);
@@ -292,18 +335,13 @@ export function setupDetailModal(elements, callbacks) {
     }
     trapFocus(modalElem);
 
-    const blurBg = document.getElementById('detailBlurBg');
-    if (item.imagem) {
-      blurBg.style.backgroundImage = `url(${item.imagem})`;
-    } else {
-      blurBg.style.backgroundImage = 'none';
-    }
-
     fetchFullDetailsAndPopulate(item);
   }
 
   function closeDetailModal() {
     detailModal.classList.remove('active');
+    const listModal = document.getElementById('detailListModal');
+    if (listModal) listModal.classList.remove('active');
     unlockScreen();
     detailCurrentIndex = null;
     detailSeasonLimits = {};
@@ -319,7 +357,6 @@ export function setupDetailModal(elements, callbacks) {
     const newEpisodio = parseInt(detailEpisodioInput.value);
     const newStatus = detailStatus.value;
     const newTier = detailTier?.value || null;
-    const newTipo = detailTipo.value;
 
     const maxTemp = detailSeasonLimits.maxTemp || 1;
     const maxEp = detailSeasonLimits.maxEpByTemp?.[newTemporada] || 1;
@@ -333,10 +370,27 @@ export function setupDetailModal(elements, callbacks) {
     if (hasError) { return false; }
 
     try {
-      const updates = { temporada: newTemporada, episodio: newEpisodio, status: newStatus, tier: newTier, tipo: newTipo };
+      const updates = { temporada: newTemporada, episodio: newEpisodio, status: newStatus, tier: newTier };
       const saved = await onUpdateItem(item.id, updates);
       items[index] = saved;
       updateTierBadge(newTier);
+
+      // Salvar mudanças nas listas
+      if (detailListCheckboxes) {
+        const userLists = onGetUserLists ? onGetUserLists() : [];
+        const selectedIds = Array.from(detailListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const currentListIds = (item.lists || []).map(l => l.id);
+        
+        const toAdd = selectedIds.filter(id => !currentListIds.includes(id));
+        const toRemove = currentListIds.filter(id => !selectedIds.includes(id));
+        
+        const addPromises = toAdd.map(listId => onAddItemToList(item.id, listId));
+        const removePromises = toRemove.map(listId => onRemoveItemFromList(item.id, listId));
+        
+        await Promise.allSettled([...addPromises, ...removePromises]);
+        saved.lists = userLists.filter(l => selectedIds.includes(l.id));
+      }
+
       closeDetailModal();
       if (onRefreshGrid) onRefreshGrid();
       return true;
@@ -391,7 +445,9 @@ export function setupDetailModal(elements, callbacks) {
   detailDelete.addEventListener('click', () => deleteFromDetail(currentItems));
   detailEpisodesBtn.addEventListener('click', () => {
     if (detailCurrentIndex !== null) {
-      onOpenEpisodes(detailCurrentIndex);
+      const curTemp = parseInt(detailTemporadaInput.value) || 1;
+      const curEp = parseInt(detailEpisodioInput.value) || 0;
+      onOpenEpisodes(detailCurrentIndex, curTemp, curEp);
     }
   });
 
