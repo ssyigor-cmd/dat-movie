@@ -84,15 +84,22 @@ export function calcularProgresso(item) {
 }
 
 /**
- * Filtra a lista de itens com base na aba atual, termo de busca, status e tier.
+ * Filtra a lista de itens com base na aba atual, termo de busca, status, tier e lista específica.
  * @param {Array} items - Lista completa de itens.
  * @param {Object} filters - Objeto com os critérios de filtro.
  * @returns {Array} Lista filtrada.
  */
-export function filterItems(items, { currentTab = 'all', search = '', statusFilter = 'todos', tierFilter = 'todos' } = {}) {
+export function filterItems(items, { currentTab = 'all', search = '', statusFilter = 'todos', tierFilter = 'todos', currentListId = null } = {}) {
   if (!Array.isArray(items)) return [];
 
   let baseItems = items.slice();
+
+  // Filtro por lista específica (quando não é "Todos" ou "Desejos")
+  if (currentListId && currentTab !== 'all' && currentTab !== 'planejado') {
+    baseItems = baseItems.filter(item => 
+      item.lists?.some(list => list.id === currentListId)
+    );
+  }
 
   // Filtro por aba
   if (currentTab === 'planejado') {
@@ -101,7 +108,8 @@ export function filterItems(items, { currentTab = 'all', search = '', statusFilt
     baseItems = baseItems.filter(item => item.status !== 'planejado');
   }
 
-  if (currentTab !== 'planejado' && currentTab !== 'all') {
+  // Manter compatibilidade com filtro por tipo para abas antigas
+  if (currentTab !== 'planejado' && currentTab !== 'all' && !currentListId) {
     baseItems = baseItems.filter(item => item.tipo === currentTab);
   }
 

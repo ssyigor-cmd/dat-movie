@@ -3,23 +3,27 @@
  */
 
 import { calcularProgresso, getTierClass, escapeHTML } from '../lib/catalog.js';
-import { fetchTitleLogo, setLogoInCache } from '../lib/api.js';
+import { fetchTitleLogo } from '../lib/api.js';
 
 /**
  * Renderiza a seção "Assistindo" com todos os títulos em andamento
  * @param {Array} items - Lista completa de itens
  * @param {string} currentTab - Aba atual
+ * @param {string|null} currentListId - ID da lista selecionada
  * @param {HTMLElement} continueSection - Elemento do container do bento
  * @param {HTMLElement} continueGrid - Elemento da grade do bento
  * @param {Function} createCardElement - Função para criar cards
  */
-export function renderContinueWatching(items, currentTab, continueSection, continueGrid, createCardElement) {
+export function renderContinueWatching(items, currentTab, currentListId, continueSection, continueGrid, createCardElement) {
   let pool = items.slice();
   if (currentTab === 'planejado') {
     pool = pool.filter(i => i.status === 'planejado');
+  } else if (currentTab === 'list' && currentListId) {
+    pool = pool.filter(i => i.lists?.some(l => l.id === currentListId));
+  } else if (currentTab !== 'all') {
+    pool = pool.filter(i => i.status !== 'planejado' && i.tipo === currentTab);
   } else {
     pool = pool.filter(i => i.status !== 'planejado');
-    if (currentTab !== 'all') pool = pool.filter(i => i.tipo === currentTab);
   }
   pool = pool.filter(i => i.status === 'assistindo');
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
@@ -47,8 +51,6 @@ export function renderContinueWatching(items, currentTab, continueSection, conti
 export function createCardElement(item, variant = null, items, onCardClick) {
   const realIndex = items.indexOf(item);
   const progress = calcularProgresso(item);
-  const icon = item.tipo === 'anime' ? 'fa-tv' : item.tipo === 'animacao' ? 'fa-paint-brush' : 'fa-video';
-  const tipoLabel = item.tipo === 'anime' ? 'Anime' : item.tipo === 'animacao' ? 'Animação' : 'Série';
   const card = document.createElement('div');
   card.className = variant ? `card card-${variant}` : 'card';
   card.dataset.index = realIndex;
@@ -66,11 +68,10 @@ export function createCardElement(item, variant = null, items, onCardClick) {
   const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';
   card.innerHTML = `
     <div class="card-img" data-index="${realIndex}">
-      ${safeImagem ? `<img src="${safeImagem}" alt="${safeNome}" loading="lazy" />` : `<i class="fas ${icon}" style="font-size:1.8rem; opacity:0.3;"></i>`}
+      ${safeImagem ? `<img src="${safeImagem}" alt="${safeNome}" loading="lazy" />` : `<i class="fas fa-video" style="font-size:1.8rem; opacity:0.3;"></i>`}
       ${tierStampHtml}
     </div>
     <div class="card-body">
-      <span class="badge">${tipoLabel}</span>
       <h3 title="${safeNome}${anoDisplay}">${safeNome}${anoDisplay}</h3>
       <div class="info">
         <span>T${item.temporada} - Ep ${String(item.episodio).padStart(2, '0')}</span>

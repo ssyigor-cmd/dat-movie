@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="importmap">
   {
     "imports": {
@@ -65,12 +66,8 @@
     <button class="sidebar-toggle" id="sidebarToggle" aria-label="Recolher/expandir menu">
       <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
     </button>
-    <nav class="sidebar-nav">
-      <button class="nav-item active" data-tab="anime"><i class="fas fa-child"></i> <span>Animes</span></button>
-      <button class="nav-item" data-tab="animacao"><i class="fas fa-shapes"></i> <span>Animações</span></button>
-      <button class="nav-item" data-tab="serie"><i class="fas fa-video"></i> <span>Séries</span></button>
-      <button class="nav-item" data-tab="all"><i class="fas fa-th"></i> <span>Todos</span></button>
-      <button class="nav-item" data-tab="planejado"><i class="fas fa-heart"></i> <span>Lista de Desejos</span></button>
+    <nav class="sidebar-nav" id="sidebarNav">
+      <!-- Navegação será populada dinamicamente via JavaScript -->
     </nav>
     <div class="sidebar-footer">
       <div class="profile-menu">
@@ -91,15 +88,9 @@
   <!-- CONTEÚDO PRINCIPAL -->
   <main class="main-content" id="mainContent">
     <header class="main-header">
-      <div>
-        <h1>Meu Catálogo</h1>
-        <p class="subtitle">Gerencie animes, animações e séries</p>
-      </div>
-      <div class="stats">
-        <div class="stat-main" id="statMain">
-          <span class="stat-number" id="statNumber">0</span>
-          <span class="stat-label" id="statLabel">Total</span>
-        </div>
+      <div class="header-info">
+        <span class="header-list-name" id="headerListName">Total</span>
+        <span class="header-count" id="headerCount">0</span>
       </div>
     </header>
 
@@ -207,7 +198,23 @@
       </div>
     </div>
 
-    <section class="grid-section">
+    <section class="search-view" id="searchView" style="display:none;">
+      <div class="search-view-input">
+        <i class="fas fa-search"></i>
+        <input type="text" id="pesquisaInput" placeholder="Buscar no TMDB..." aria-label="Pesquisar título" />
+      </div>
+      <div id="pesquisaGrid" class="grid grid-cols-8" role="list"></div>
+      <div class="pesquisa-empty" id="pesquisaEmpty">
+        <i class="fas fa-search"></i>
+        <p>Digite pelo menos 2 caracteres para buscar</p>
+      </div>
+      <div class="pesquisa-loading" id="pesquisaLoading" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Buscando...</p>
+      </div>
+    </section>
+
+    <section class="grid-section" id="gridSection">
       <div id="grid" class="grid" role="list"></div>
     </section>
   </main>
@@ -215,7 +222,10 @@
   <!-- MODAL DE ADIÇÃO/EDIÇÃO -->
   <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal modal-detail">
-      <!-- Linha 1: Header -->
+      <input type="hidden" id="tipo" value="serie" />
+      <input type="hidden" id="tierForm" value="" />
+
+      <!-- HEADER -->
       <header class="detail-header">
         <div class="detail-header-left">
           <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
@@ -230,9 +240,13 @@
           </div>
         </div>
         <div class="detail-header-center">
+          <div id="addLogoContainer" style="display: none; max-width: 80%; margin: 0 auto;">
+            <img id="addLogoImg" src="" alt="Logo" style="max-height: 60px; width: auto; max-width: 100%; display: block; margin: 0 auto;" />
+          </div>
           <h2 id="modalTitle" style="display: block;">
             <i class="fas fa-pen"></i> <span id="modalTitleText">Adicionar título</span>
           </h2>
+          <div id="addOriginalTitle" class="dm-original-title" style="display:none;"></div>
         </div>
         <div class="detail-header-right">
           <span class="detail-meta-top">
@@ -242,112 +256,84 @@
         <button class="modal-close" id="modalClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
       </header>
 
-      <!-- Linha 2: Sub-header (links) -->
-      <div class="detail-links">
-        <div class="detail-links-right" style="margin-left: auto;">
-          <button type="button" id="btnConcluido" class="detail-link-btn" title="Marcar como concluído">
-            <i class="fas fa-check"></i> Concluído
-          </button>
-        </div>
-      </div>
+      <!-- POSTER / IMAGE PREVIEW (16:9 backdrop) -->
+      <div class="dm-poster-wrap add-poster-wrap" id="addPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
+        <img id="previewImg" src="" alt="Pré-visualização" style="display:none;" />
+        <span id="previewPlaceholder" class="add-placeholder"><i class="fas fa-image"></i> Nenhuma imagem</span>
 
-      <!-- Linha 3: Body – grid 45% / 55% -->
-      <div class="modal-body detail-body">
-        <!-- Coluna esquerda (45%) – imagem e busca -->
-        <div class="detail-left-col">
-          <div class="detail-image-container" id="addImageContainer">
-            <img id="previewImg" src="" alt="Pré-visualização" style="display:none; width: 100%; height: 100%; object-fit: contain;" />
-            <span id="previewPlaceholder" style="color: var(--text-muted);">Nenhuma imagem</span>
+        <div class="dm-poster-sinopse">
+          <div id="addSinopseLoading" class="form-loading" style="display:none;">
+            <i class="fas fa-spinner fa-spin"></i> Carregando...
           </div>
+          <p id="addSinopse" class="dm-sinopse-text" aria-live="polite"></p>
         </div>
+        <div id="addBlurBg" class="dm-poster-blur"></div>
 
-        <!-- Coluna direita (55%) – formulário -->
-        <div class="detail-right-col">
-          <form id="form" autocomplete="off" novalidate>
-            <div id="addContent" style="position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; height: 100%; padding: 16px 20px; overflow-y: auto;">
-              <div class="search-group" style="position: relative;">
-                <label for="nome" style="display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); margin-bottom: 6px;">
-                  <i class="fas fa-search"></i> Buscar título
-                </label>
-                <input type="text" id="nome" placeholder="Ex: Scavengers Reign, Attack on Titan..." maxlength="150" required 
-                  style="width: 100%; padding: 10px 14px; border: 1px solid var(--glass-border); border-radius: var(--radius-sm); background: rgba(var(--bg-primary-rgb), 0.3); color: var(--text-primary); font-size: 0.9rem;" />
-                <input type="hidden" id="tierForm" value="" />
-                <div id="suggestions" class="suggestions" role="listbox" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 100; max-height: 200px; overflow-y: auto; background: var(--bg-secondary); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); margin-top: 4px;"></div>
-              </div>
-
-              <div class="detail-info-blocks">
-                <div class="info-block">
-                  <span class="info-label">TIPO</span>
-                  <select id="tipo" class="info-value" required>
-                    <option value="anime">Anime</option>
-                    <option value="animacao">Animação</option>
-                    <option value="serie">Série</option>
-                  </select>
-                  <div class="filter-wrapper-item">
-                    <button id="addTipoToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Tipo">
-                      <span class="tool-btn-label">Anime</span>
-                    </button>
-                    <div id="addTipoMenu" class="filter-menu" role="menu" aria-hidden="true">
-                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="anime">Anime</button>
-                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="animacao">Animação</button>
-                      <button role="menuitem" class="filter-option" data-target="tipo" data-value="serie">Série</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="info-block">
-                  <span class="info-label">STATUS</span>
-                  <select id="status" class="info-value" required>
-                    <option value="assistindo">Assistindo</option>
-                    <option value="concluido">Concluído</option>
-                    <option value="planejado">Planejado</option>
-                    <option value="pausado">Pausado</option>
-                  </select>
-                  <div class="filter-wrapper-item">
-                    <button id="addStatusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Status">
-                      <span class="tool-btn-label">Assistindo</span>
-                    </button>
-                    <div id="addStatusMenu" class="filter-menu" role="menu" aria-hidden="true">
-                      <button role="menuitem" class="filter-option" data-target="status" data-value="assistindo">Assistindo</button>
-                      <button role="menuitem" class="filter-option" data-target="status" data-value="concluido">Concluído</button>
-                      <button role="menuitem" class="filter-option" data-target="status" data-value="planejado">Planejado</button>
-                      <button role="menuitem" class="filter-option" data-target="status" data-value="pausado">Pausado</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-steppers">
-                <div class="stepper" id="addStepperTemporada">
-                  <span class="stepper-label">TEMPORADA</span>
-                  <div class="stepper-controls">
-                    <button type="button" class="stepper-btn stepper-down" data-target="addTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
-                    <span class="stepper-value" id="addTemporadaDisplay">1</span>
-                    <button type="button" class="stepper-btn stepper-up" data-target="addTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
-                  </div>
-                  <input type="hidden" id="addTemporada" value="1" />
-                </div>
-                <div class="stepper" id="addStepperEpisodio">
-                  <span class="stepper-label">EPISÓDIO</span>
-                  <div class="stepper-controls">
-                    <button type="button" class="stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-                    <span class="stepper-value" id="addEpisodioDisplay">0</span>
-                    <button type="button" class="stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
-                  </div>
-                  <input type="hidden" id="addEpisodio" value="0" />
-                </div>
-              </div>
-
-              <div class="form-actions" style="display: flex; gap: 12px; margin-top: auto;">
-                <button type="submit" id="btnSubmit" class="detail-link-btn" style="flex: 1; justify-content: center;"><i class="fas fa-save"></i> Salvar</button>
-                <button type="button" id="btnCancel" class="detail-link-btn" style="flex: 1; justify-content: center;"><i class="fas fa-times"></i> Cancelar</button>
-              </div>
-            </div>
-          </form>
+        <div class="poster-bottom-bar add-poster-bar">
+          <div class="poster-bottom-left">
+            <button type="button" id="addListToggle" class="dm-action-btn"><i class="fas fa-layer-group"></i> Listas</button>
+            <button type="button" id="addEpisodesBtn" class="dm-action-btn" style="display:none;"><i class="fas fa-film"></i> Episodios</button>
+          </div>
+          <div class="poster-status-bar" id="addPosterStatusBar">
+            <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
+            <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluido</button>
+            <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
+            <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
+          </div>
+          <select id="status" style="display:none;" required>
+            <option value="assistindo">Assistindo</option>
+            <option value="concluido">Concluido</option>
+            <option value="planejado">Planejado</option>
+            <option value="pausado">Pausado</option>
+          </select>
         </div>
       </div>
-      <div id="formLoading" class="form-loading" style="display:none;">
-          <i class="fas fa-spinner fa-spin"></i> Carregando...
+
+      <!-- STEPPERS (below poster) -->
+      <div class="poster-steppers-row">
+        <div class="poster-stepper" id="addStepperTemporada">
+          <span class="poster-stepper-label">Temporada</span>
+          <div class="poster-stepper-controls">
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="addTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-chevron-up"></i></button>
+            <span class="poster-stepper-val" id="addTemporadaDisplay" aria-live="polite">1</span>
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="addTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <input type="hidden" id="addTemporada" value="1" />
         </div>
+        <div class="poster-stepper" id="addStepperEpisodio">
+          <span class="poster-stepper-label">Episodio</span>
+          <div class="poster-stepper-controls">
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-chevron-up"></i></button>
+            <span class="poster-stepper-val" id="addEpisodioDisplay" aria-live="polite">0</span>
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <input type="hidden" id="addEpisodio" value="0" />
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <footer class="dm-footer">
+        <button type="button" id="btnCancel" class="dm-btn dm-btn-danger"><i class="fas fa-times"></i> Cancelar</button>
+        <div></div>
+        <button type="submit" id="btnSubmit" class="dm-btn dm-btn-primary" form="form"><i class="fas fa-save"></i> Salvar</button>
+      </footer>
+      <div id="formLoading" class="form-loading" style="display:none;">
+        <i class="fas fa-spinner fa-spin"></i> Carregando...
+      </div>
+      <form id="form" autocomplete="off" novalidate style="display:none;"></form>
+    </div>
+  </div>
+
+  <!-- MODAL DE LISTAS (ADD) -->
+  <div id="addListModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addListModalTitle">
+    <div class="modal modal-lists">
+      <div class="modal-header">
+        <h2 id="addListModalTitle"><i class="fas fa-layer-group"></i> Selecionar Listas</h2>
+        <button type="button" id="addListModalClose" class="modal-close" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="addListCheckboxes" class="list-select-body"></div>
+      </div>
     </div>
   </div>
 
@@ -356,7 +342,9 @@
   <!-- ================================================================ -->
   <div class="modal-overlay" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle" aria-describedby="detailSinopse">
     <div class="modal modal-detail">
-      <!-- Linha 1: Header -->
+      <input type="hidden" id="detailTipo" value="serie" />
+      <input type="hidden" id="detailTier" value="" />
+
       <header class="detail-header">
         <div class="detail-header-left">
           <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
@@ -371,14 +359,13 @@
           </div>
         </div>
         <div class="detail-header-center">
-          <!-- Container para a logo -->
           <div id="detailLogoContainer" style="display: none; max-width: 80%; margin: 0 auto;">
             <img id="detailLogoImg" src="" alt="Logo" style="max-height: 60px; width: auto; max-width: 100%; display: block; margin: 0 auto;" />
           </div>
-          <!-- Título textual (fallback) -->
           <h2 id="detailTitle" style="display: none;">
             <i class="fas fa-info-circle"></i> <span id="detailTitleText">Detalhes</span>
           </h2>
+          <div id="detailOriginalTitle" class="dm-original-title">--</div>
         </div>
         <div class="detail-header-right">
           <span class="detail-meta-top">
@@ -389,128 +376,91 @@
         <button class="modal-close" id="detailClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
       </header>
 
-      <!-- Linha 2: Sub-header (links) -->
-      <div class="detail-links">
-        <button id="detailEpisodesBtn" class="detail-link-btn" title="Ver episódios">
-          <i class="fas fa-list-ul"></i> Episódios
+      <div class="dm-poster-wrap" id="detailPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
+        <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
+        <div class="dm-poster-sinopse">
+          <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+          <p id="detailSinopse" class="dm-sinopse-text" aria-live="polite">Carregando sinopse...</p>
+        </div>
+        <div id="detailBlurBg" class="dm-poster-blur"></div>
+        <div class="poster-top-links">
+          <a href="#" target="_blank" id="detailYoutubeLink" class="poster-icon-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" id="detailWikiLink" class="poster-icon-btn" title="Wikipedia"><i class="fab fa-wikipedia-w"></i></a>
+          <a href="#" target="_blank" id="detailImdbLink" class="poster-icon-btn" title="IMDb"><i class="fas fa-star"></i></a>
+        </div>
+        <div class="poster-bottom-bar" id="posterBottomBar">
+          <div class="poster-bottom-left">
+            <button id="detailEpisodesBtn" class="dm-action-btn" title="Ver episodios"><i class="fas fa-film"></i> Episodios</button>
+            <button type="button" id="detailListToggle" class="dm-action-btn"><i class="fas fa-layer-group"></i> Listas</button>
+          </div>
+          <div class="poster-status-bar" id="posterStatusBar">
+            <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
+            <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluido</button>
+            <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
+            <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="detailListModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="detailListModalTitle">
+        <div class="modal modal-lists">
+          <div class="modal-header">
+            <h2 id="detailListModalTitle"><i class="fas fa-layer-group"></i> Selecionar Listas</h2>
+            <button type="button" id="detailListModalClose" class="modal-close" aria-label="Fechar"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div id="detailListCheckboxes" class="list-select-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="poster-steppers-row" id="posterSteppersRow">
+        <div class="poster-stepper" id="stepperTemporada">
+          <span class="poster-stepper-label">Temporada</span>
+          <div class="poster-stepper-controls">
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-chevron-up"></i></button>
+            <span class="poster-stepper-val" id="detailTemporadaDisplay" aria-live="polite">1</span>
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <input type="hidden" id="detailTemporada" value="1" />
+        </div>
+        <div class="poster-stepper" id="stepperEpisodio">
+          <span class="poster-stepper-label">Episodio</span>
+          <div class="poster-stepper-controls">
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-chevron-up"></i></button>
+            <span class="poster-stepper-val" id="detailEpisodioDisplay" aria-live="polite">0</span>
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-chevron-down"></i></button>
+          </div>
+          <input type="hidden" id="detailEpisodio" value="1" />
+        </div>
+      </div>
+
+      <div class="dm-status-bar" style="display:none;">
+        <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
+        <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluido</button>
+        <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
+        <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
+        <select id="detailStatus" class="dm-select" aria-label="Status" style="display:none;">
+          <option value="assistindo">Assistindo</option>
+          <option value="concluido">Concluido</option>
+          <option value="planejado">Planejado</option>
+          <option value="pausado">Pausado</option>
+        </select>
+        <button id="detailStatusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Status" style="display:none;">
+          <span class="tool-btn-label">Assistindo</span>
         </button>
-        <div class="detail-original-title-inline" id="detailOriginalTitle">--</div>
-        <div class="detail-links-right">
-          <a href="#" target="_blank" id="detailWikiLink" class="detail-link-btn" title="Abrir no Wikipedia">
-            <i class="fab fa-wikipedia-w"></i> Wikipedia
-          </a>
-          <a href="#" target="_blank" id="detailImdbLink" class="detail-link-btn" title="Abrir no IMDb">
-            <i class="fab fa-imdb"></i> IMDb
-          </a>
-          <a href="#" target="_blank" id="detailYoutubeLink" class="detail-link-btn" title="Procurar no YouTube">
-            <i class="fab fa-youtube"></i> YouTube
-          </a>
+        <div id="detailStatusMenu" class="filter-menu" role="menu" aria-hidden="true" style="display:none;">
+          <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="assistindo">Assistindo</button>
+          <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="concluido">Concluido</button>
+          <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="planejado">Planejado</button>
+          <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="pausado">Pausado</button>
         </div>
       </div>
 
-      <!-- Linha 3: Body – grid 40% / 60% -->
-      <div class="modal-body detail-body">
-        <!-- Coluna esquerda (40%) – apenas a imagem do pôster -->
-        <div class="detail-left-col">
-          <div class="detail-image-container">
-            <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
-          </div>
-        </div>
-
-        <!-- Coluna direita (60%) – com fundo borrado APENAS na sinopse -->
-        <div class="detail-right-col" id="detailRightCol" style="position: relative; overflow: hidden;">
-          <div id="detailContent" style="position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; height: 100%;">
-            <div class="detail-info-blocks">
-              <div class="info-block">
-                <span class="info-label">TIPO</span>
-                <select id="detailTipo" class="info-value" aria-label="Tipo">
-                  <option value="anime">Anime</option>
-                  <option value="animacao">Animação</option>
-                  <option value="serie">Série</option>
-                </select>
-                <div class="filter-wrapper-item">
-                  <button id="detailTipoToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Tipo">
-                    <span class="tool-btn-label">Anime</span>
-                  </button>
-                  <div id="detailTipoMenu" class="filter-menu" role="menu" aria-hidden="true">
-                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="anime">Anime</button>
-                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="animacao">Animação</button>
-                    <button role="menuitem" class="filter-option" data-target="detailTipo" data-value="serie">Série</button>
-                  </div>
-                </div>
-              </div>
-              <div class="info-block">
-                <span class="info-label">STATUS</span>
-                <select id="detailStatus" class="info-value" aria-label="Status">
-                  <option value="assistindo">Assistindo</option>
-                  <option value="concluido">Concluído</option>
-                  <option value="planejado">Planejado</option>
-                  <option value="pausado">Pausado</option>
-                </select>
-                <div class="filter-wrapper-item">
-                  <button id="detailStatusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Status">
-                    <span class="tool-btn-label">Assistindo</span>
-                  </button>
-                  <div id="detailStatusMenu" class="filter-menu" role="menu" aria-hidden="true">
-                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="assistindo">Assistindo</button>
-                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="concluido">Concluído</button>
-                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="planejado">Planejado</button>
-                    <button role="menuitem" class="filter-option" data-target="detailStatus" data-value="pausado">Pausado</button>
-                  </div>
-                </div>
-              </div>
-              <input type="hidden" id="detailTier" value="" />
-            </div>
-
-            <div class="detail-steppers">
-              <div class="stepper" id="stepperTemporada">
-                <span class="stepper-label">TEMPORADA</span>
-                <div class="stepper-controls">
-                  <button type="button" class="stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-arrow-down"></i></button>
-                  <span class="stepper-value" id="detailTemporadaDisplay" aria-live="polite">1</span>
-                  <button type="button" class="stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-arrow-up"></i></button>
-                </div>
-                <input type="hidden" id="detailTemporada" value="1" />
-              </div>
-              <div class="stepper" id="stepperEpisodio">
-                <span class="stepper-label">EPISÓDIO</span>
-                <div class="stepper-controls">
-                  <button type="button" class="stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episódio"><i class="fas fa-arrow-down"></i></button>
-                  <span class="stepper-value" id="detailEpisodioDisplay" aria-live="polite">0</span>
-                  <button type="button" class="stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episódio"><i class="fas fa-arrow-up"></i></button>
-                </div>
-                <input type="hidden" id="detailEpisodio" value="1" />
-              </div>
-            </div>
-
-            <!-- Área da sinopse com fundo borrado DENTRO -->
-            <div class="detail-sinopse-wrap" style="position: relative; overflow: hidden;">
-              <!-- Fundo borrado (agora dentro da sinopse) -->
-              <div id="detailBlurBg" style="
-                position: absolute;
-                inset: 0;
-                background-size: cover;
-                background-position: center;
-                filter: blur(8px);
-                opacity: 0.5;
-                z-index: 0;
-              "></div>
-              <!-- Conteúdo da sinopse (acima do fundo) -->
-              <div style="position: relative; z-index: 1;">
-                <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-                <div class="detail-sinopse-container">
-                  <p id="detailSinopse" class="detail-sinopse" aria-live="polite">Carregando sinopse...</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <footer class="detail-actions">
-        <button type="button" id="detailDelete"><i class="fas fa-trash"></i> Remover</button>
-        <div id="detailAddedDate" class="detail-added-date" aria-live="polite">Adicionado: --/--/----</div>
-        <button type="button" id="detailSave"><i class="fas fa-save"></i> Salvar alterações</button>
+      <footer class="dm-footer">
+        <button type="button" id="detailDelete" class="dm-btn dm-btn-danger"><i class="fas fa-trash"></i> Remover</button>
+        <div id="detailAddedDate" class="dm-added-date" aria-live="polite">Adicionado: --/--/----</div>
+        <button type="button" id="detailSave" class="dm-btn dm-btn-primary"><i class="fas fa-save"></i> Salvar</button>
       </footer>
     </div>
   </div>
@@ -531,13 +481,6 @@
 
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
-
-  <!-- BOTÃO FLUTUANTE DE ADIÇÃO (permanece visível ao rolar a página) -->
-  <div id="floatingAdd" class="floating-add" aria-hidden="false">
-    <button id="openFormBtn" class="fab" aria-label="Adicionar título">
-      <i class="fas fa-plus"></i>
-    </button>
-  </div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
