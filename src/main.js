@@ -4,11 +4,11 @@
  */
 
 import { supabase } from './lib/supabase.js';
-import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER } from './lib/catalog.js';
+import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
-import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, initOrb, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
+import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
 import { updateStepperValue, setupSteppers } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
@@ -123,6 +123,7 @@ const addSinopseLoading = document.getElementById('addSinopseLoading');
 const addBlurBg = document.getElementById('addBlurBg');
 const addPosterWrap = document.getElementById('addPosterWrap');
 const modalTitleText = $('modalTitleText');
+const addPosterSteppersRow = $('addPosterSteppersRow');
 
 // ========== ESTADO GLOBAL ==========
 let items = [];
@@ -676,11 +677,87 @@ function populateDetailListCheckboxes(itemLists = []) {
 const addInputs = {
   tempInput: addTemporadaInput,
   epInput: addEpisodioInput,
-  epDisplay: addEpisodioDisplay
+  epDisplay: addEpisodioDisplay,
+  tempDisplay: addTemporadaDisplay
 };
+
+// ========== ADD MODAL EPISODE PROGRESS PANEL ==========
+const addSeasonMaxEl = $('addSeasonMax');
+const addSeasonNameEl = $('addSeasonName');
+const addEpMaxEl = $('addEpMax');
+const addEpTitleEl = $('addEpTitle');
+const addEpDateEl = $('addEpDate');
+const addEpOverviewEl = $('addEpOverview');
+const addEpLoadingEl = $('addEpLoading');
+
+let addEpisodeInfoRequestId = 0;
+const addSeasonDataCache = new Map();
+
+function resetAddProgressPanel() {
+  const temp = parseInt(addTemporadaInput.value) || 1;
+  const ep = parseInt(addEpisodioInput.value) || 0;
+  const maxTemp = addSeasonLimits.maxTemp || 1;
+  const maxEp = addSeasonLimits.maxEpByTemp?.[temp] || 1;
+
+  addTemporadaDisplay.textContent = temp;
+  addEpisodioDisplay.textContent = String(ep).padStart(2, '0');
+  if (addSeasonMaxEl) addSeasonMaxEl.textContent = String(maxTemp).padStart(2, '0');
+  if (addEpMaxEl) addEpMaxEl.textContent = String(maxEp || 1).padStart(2, '0');
+  if (addSeasonNameEl) addSeasonNameEl.textContent = '';
+  if (addEpTitleEl) addEpTitleEl.textContent = ep === 0 ? 'Ainda não iniciado' : `Episódio ${ep}`;
+  if (addEpDateEl) addEpDateEl.textContent = '';
+  if (addEpOverviewEl) addEpOverviewEl.textContent = '';
+  if (addEpLoadingEl) addEpLoadingEl.style.display = 'none';
+}
+
+async function syncAddProgressPanel() {
+  resetAddProgressPanel();
+
+  const temp = parseInt(addTemporadaInput.value) || 1;
+  const ep = parseInt(addEpisodioInput.value) || 0;
+
+  if (!selectedTmdbId || selectedMediaType !== 'tv' || ep === 0) return;
+
+  const requestId = ++addEpisodeInfoRequestId;
+
+  try {
+    const key = `${selectedTmdbId}:${temp}`;
+    let seasonData = addSeasonDataCache.get(key);
+    if (!seasonData) {
+      seasonData = await callTMDB(`tv/${selectedTmdbId}/season/${temp}`, {}, 'pt-BR');
+      addSeasonDataCache.set(key, seasonData);
+    }
+    if (requestId !== addEpisodeInfoRequestId) return;
+
+    if (addSeasonNameEl && seasonData?.name) addSeasonNameEl.textContent = seasonData.name;
+    if (addEpLoadingEl) addEpLoadingEl.style.display = 'flex';
+
+    const episode = seasonData.episodes?.find(e => Number(e.episode_number) === ep);
+    if (episode) {
+      if (addEpTitleEl) addEpTitleEl.textContent = episode.name || `Episódio ${ep}`;
+      if (addEpDateEl) addEpDateEl.textContent = episode.air_date ? formatDateBR(episode.air_date) : '';
+      if (addEpOverviewEl) addEpOverviewEl.textContent = episode.overview || 'Sinopse não disponível.';
+    } else if (addEpTitleEl) {
+      addEpTitleEl.textContent = `Episódio ${ep}`;
+    }
+  } catch (e) {
+    if (requestId !== addEpisodeInfoRequestId) return;
+    console.warn('Erro ao buscar detalhes do episódio:', e);
+    if (addEpTitleEl) addEpTitleEl.textContent = `Episódio ${ep}`;
+  } finally {
+    if (requestId === addEpisodeInfoRequestId && addEpLoadingEl) {
+      addEpLoadingEl.style.display = 'none';
+    }
+  }
+}
 
 function handleStepperUpdate(btn, modalType) {
   updateStepperValue(btn, modalType, addSeasonLimits, detailModalAPI.getSeasonLimits(), addInputs, detailInputs);
+  if (modalType === 'detail') {
+    detailModalAPI.onStepperChange();
+  } else if (modalType === 'add') {
+    syncAddProgressPanel();
+  }
 }
 
 // ========== CONFIGURAÇÃO DE COMPONENTES ==========
@@ -727,7 +804,14 @@ const detailModalAPI = setupDetailModal({
   detailImdbLink: $('detailImdbLink'),
   detailYoutubeLink: $('detailYoutubeLink'),
   detailEpisodesBtn: $('detailEpisodesBtn'),
-  detailListCheckboxes: $('detailListCheckboxes')
+  detailListCheckboxes: $('detailListCheckboxes'),
+  detailEpMax: $('detailEpMax'),
+  detailEpTitle: $('detailEpTitle'),
+  detailEpDate: $('detailEpDate'),
+  detailEpOverview: $('detailEpOverview'),
+  detailEpLoading: $('detailEpLoading'),
+  posterSteppersRow: $('posterSteppersRow'),
+  detailSeasonName: $('detailSeasonName')
 }, {
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -739,10 +823,10 @@ const detailModalAPI = setupDetailModal({
   updateEpisodeLimit: (stepperType, temp, limits, modalType) => {
     const inputs = modalType === 'add' ? addInputs : detailInputs;
     const maxEp = limits.maxEpByTemp?.[temp] || 1;
-    const currentEp = parseInt(inputs.epInput.value) || 1;
+    const currentEp = parseInt(inputs.epInput.value) || 0;
     if (currentEp > maxEp) {
       inputs.epInput.value = maxEp;
-      inputs.epDisplay.textContent = maxEp;
+      if (inputs.epDisplay) inputs.epDisplay.textContent = modalType === 'add' ? maxEp : String(maxEp).padStart(2, '0');
     }
   },
   onRefreshGrid: () => render()
@@ -918,7 +1002,7 @@ async function addItem(e) {
 
   try {
     let totalEp = 0, seasonEpisodesMap = {};
-    let ano = null;
+    let ano = selectedAno;
     
     if (!cachedShowDetails || cachedShowDetails.totalEpisodes === 0) {
       showToast('Buscando informações do título...', 2000);
@@ -997,6 +1081,7 @@ async function addItem(e) {
       addEpisodioInput.value = 0;
       addEpisodioDisplay.textContent = 0;
       addSeasonLimits = {};
+      resetAddProgressPanel();
       return;
     }
 
@@ -1059,6 +1144,7 @@ async function addItem(e) {
     addEpisodioInput.value = 0;
     addEpisodioDisplay.textContent = 0;
     addSeasonLimits = {};
+    resetAddProgressPanel();
   } catch (error) {
     showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
   } finally {
@@ -1133,6 +1219,7 @@ function cancelEdit() {
   clearPreview();
   cachedShowDetails = null;
   updateAddTierBadge('');
+  hideAddTierDropdown();
   addYearDisplay.textContent = '--';
   if (addLogoContainer) addLogoContainer.style.display = 'none';
   if (addLogoImg) addLogoImg.src = '';
@@ -1154,10 +1241,10 @@ function cancelEdit() {
   addEpisodioInput.value = 1;
   addEpisodioDisplay.textContent = 1;
   addSeasonLimits = {};
+  resetAddProgressPanel();
 }
 
 // ========== INICIALIZAÇÃO ==========
-initOrb();
 
 // Sidebar
 const mobileLayoutQuery = window.matchMedia('(max-width: 700px)');
@@ -1184,6 +1271,34 @@ function applySidebarCollapseForViewport() {
 }
 applySidebarCollapseForViewport();
 mobileLayoutQuery.addEventListener('change', applySidebarCollapseForViewport);
+
+// Menu mobile (sidebar off-canvas)
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function closeMobileSidebar() {
+  sidebar.classList.remove('open');
+  if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+  if (mobileMenuToggle) mobileMenuToggle.setAttribute('aria-expanded', 'false');
+}
+
+if (mobileMenuToggle) {
+  mobileMenuToggle.addEventListener('click', () => {
+    const isOpen = sidebar.classList.toggle('open');
+    if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpen);
+    mobileMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+}
+
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener('click', closeMobileSidebar);
+}
+
+if (sidebar) {
+  sidebar.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-item')) closeMobileSidebar();
+  });
+}
 
 // Configurar steppers
 setupSteppers('#modalOverlay .stepper-btn', 'add', handleStepperUpdate);
@@ -1431,11 +1546,11 @@ sortOrder.addEventListener('change', render);
       detailPosterWrap.classList.toggle('sinopse-open');
     };
     detailPosterWrap.addEventListener('click', (e) => {
-      if (e.target.closest('.poster-stepper') || e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.poster-top-links')) return;
+      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.poster-top-links')) return;
       togglePosterSinopse();
     });
     detailPosterWrap.addEventListener('keydown', (e) => {
-      if (e.target.closest('.poster-stepper')) return;
+      if (e.target.closest('.poster-steppers-row')) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         togglePosterSinopse();
@@ -1459,11 +1574,11 @@ sortOrder.addEventListener('change', render);
       addPosterWrap.classList.toggle('sinopse-open');
     };
     addPosterWrap.addEventListener('click', (e) => {
-      if (e.target.closest('.poster-stepper') || e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.add-poster-bar')) return;
+      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.add-poster-bar')) return;
       toggleAddSinopse();
     });
     addPosterWrap.addEventListener('keydown', (e) => {
-      if (e.target.closest('.poster-stepper')) return;
+      if (e.target.closest('.poster-steppers-row')) return;
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAddSinopse(); }
     });
     // Auto-close sinopse when add modal closes
@@ -1493,24 +1608,6 @@ groupToggle.addEventListener('click', () => {
   groupToggle.innerHTML = groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
   render();
 });
-
-// Botão concluído — atalho via status "concluido"
-const btnConcluido = document.getElementById('btnConcluido');
-if (btnConcluido) {
-  btnConcluido.addEventListener('click', function() {
-    const maxTemp = addSeasonLimits.maxTemp || 1;
-    if (maxTemp === 0) { showToast('Selecione um título primeiro.', 2000); return; }
-    const maxEp = addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
-    addTemporadaInput.value = maxTemp;
-    addTemporadaDisplay.textContent = maxTemp;
-    addEpisodioInput.value = maxEp;
-    addEpisodioDisplay.textContent = maxEp;
-    statusSelect.value = 'concluido';
-    syncAddStatusBtns();
-    btnSubmit.focus();
-    showToast(`Concluído! T${maxTemp} \u2022 Ep ${maxEp}`, 2500);
-  });
-}
 
 // Add modal status buttons sync
 const addPosterStatusBar = document.getElementById('addPosterStatusBar');
@@ -1588,8 +1685,10 @@ if (btnCancel) {
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    if (episodesModal.classList.contains('active')) episodesModalAPI.close();
-    else if (detailModal.classList.contains('active')) detailModalAPI.close();
+    if ($('episodesModal').classList.contains('active')) episodesModalAPI.close();
+    else if ($('detailListModal')?.classList.contains('active')) $('detailListModal').classList.remove('active');
+    else if ($('addListModal')?.classList.contains('active')) $('addListModal').classList.remove('active');
+    else if ($('detailModal').classList.contains('active')) detailModalAPI.close();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
     else if (currentTab === 'pesquisa') {
       currentTab = 'all';
@@ -1676,6 +1775,7 @@ if (pesquisaInput) {
             addYearDisplay.textContent = year || '--';
             selectedTmdbId = res.id;
             selectedMediaType = res.media_type;
+            if (addPosterSteppersRow) addPosterSteppersRow.style.display = res.media_type === 'tv' ? 'flex' : 'none';
             selectedPosterPath = poster;
             selectedAno = year || null;
             selectedName = name;
@@ -1684,6 +1784,7 @@ if (pesquisaInput) {
             addEpisodioInput.value = 0;
             addEpisodioDisplay.textContent = 0;
             addSeasonLimits = {};
+            resetAddProgressPanel();
             // Reset logo and original title
             if (addLogoContainer) addLogoContainer.style.display = 'none';
             if (addLogoImg) addLogoImg.src = '';
@@ -1744,6 +1845,8 @@ if (pesquisaInput) {
                   addEpisodioDisplay.textContent = 0;
                   addYearDisplay.textContent = yr || '--';
                   if (yr) selectedAno = yr;
+                  if (addPosterSteppersRow) addPosterSteppersRow.style.display = 'flex';
+                  syncAddProgressPanel();
                   // Detect type
                   const genres = details.genre_ids || (details.genres || []).map(g => g.id);
                   const countries = details.origin_country || [];
@@ -1760,7 +1863,9 @@ if (pesquisaInput) {
                   addTemporadaDisplay.textContent = 1;
                   addEpisodioInput.value = 0;
                   addEpisodioDisplay.textContent = 0;
-                  tipo.value = 'serie';
+                  tipo.value = 'filme';
+                  if (addPosterSteppersRow) addPosterSteppersRow.style.display = 'none';
+                  syncAddProgressPanel();
                 }
 
                 // Backdrop image (16:9)
