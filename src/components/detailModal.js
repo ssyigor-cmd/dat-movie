@@ -25,13 +25,13 @@ export function setupDetailModal(elements, callbacks) {
     detailEpisodioInput,
     detailTemporadaDisplay,
     detailEpisodioDisplay,
-    detailTempMax,
     detailEpMax,
     detailEpTitle,
     detailEpDate,
     detailEpOverview,
     detailEpLoading,
     posterSteppersRow,
+    detailSeasonName,
     detailStatus,
     detailTier,
     detailTipo,
@@ -121,8 +121,8 @@ export function setupDetailModal(elements, callbacks) {
 
     detailTemporadaDisplay.textContent = temp;
     detailEpisodioDisplay.textContent = String(ep).padStart(2, '0');
-    if (detailTempMax) detailTempMax.textContent = `/${maxTemp}`;
-    if (detailEpMax) detailEpMax.textContent = `de ${maxEp}`;
+    if (detailEpMax) detailEpMax.textContent = String(maxEp).padStart(2, '0');
+    if (detailSeasonName) detailSeasonName.textContent = '';
   }
 
   async function fetchSeasonData(tmdbId, seasonNum) {
@@ -150,6 +150,22 @@ export function setupDetailModal(elements, callbacks) {
     const temp = parseInt(detailTemporadaInput.value) || 1;
     const ep = parseInt(detailEpisodioInput.value) || 0;
     const requestId = ++episodeInfoRequestId;
+
+    // Atualizar nome da temporada
+    if (detailSeasonName && item.tmdb_id && isSeriesType(item.tipo)) {
+      try {
+        const seasonData = await fetchSeasonData(item.tmdb_id, temp);
+        if (requestId === episodeInfoRequestId && seasonData?.name) {
+          detailSeasonName.textContent = seasonData.name;
+        }
+      } catch (e) {
+        if (requestId === episodeInfoRequestId) {
+          detailSeasonName.textContent = '';
+        }
+      }
+    } else if (detailSeasonName) {
+      detailSeasonName.textContent = '';
+    }
 
     if (ep === 0) {
       if (detailEpLoading) detailEpLoading.style.display = 'none';
@@ -394,6 +410,11 @@ export function setupDetailModal(elements, callbacks) {
     detailEpisodioInput.value = epVal;
     updateProgressLimitsDisplay();
     updateEpisodeLimit('detail', tempVal, detailSeasonLimits, 'detail');
+    
+    const seasonMaxEl = document.getElementById('detailSeasonMax');
+    if (seasonMaxEl) {
+      seasonMaxEl.textContent = String(maxTemp).padStart(2, '0');
+    }
 
     setEpisodeInfoPlaceholder('Carregando...');
     if (detailEpLoading) detailEpLoading.style.display = isSeriesType(item.tipo) ? 'flex' : 'none';
@@ -436,12 +457,14 @@ export function setupDetailModal(elements, callbacks) {
     detailModal.classList.remove('active');
     const listModal = document.getElementById('detailListModal');
     if (listModal) listModal.classList.remove('active');
+    hideTierDropdown();
     unlockScreen();
     detailCurrentIndex = null;
     detailSeasonLimits = {};
     episodeInfoRequestId++;
     releaseFocusTrap();
     detailOriginalTitle.textContent = '--';
+    if (detailSeasonName) detailSeasonName.textContent = '';
   }
 
   async function saveDetailChanges(items) {

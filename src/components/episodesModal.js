@@ -36,6 +36,9 @@ export function setupEpisodesModal(elements, callbacks) {
     episodesContent.style.display = 'none';
     episodesLoading.style.display = 'flex';
     releaseFocusTrap();
+    if (detailModal.classList.contains('active')) {
+      trapFocus(detailModal.querySelector('.modal'));
+    }
   }
 
   async function openEpisodesModal(index, items, curTemp, curEp) {
