@@ -748,11 +748,142 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .poster-steppers-row {
   display: flex !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-  gap: 20px !important;
-  padding: 10px 28px !important;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+  padding: 0 28px 10px !important;
   flex-shrink: 0 !important;
+}
+
+/* ── Episode Progress Panel (detail modal) ───────────────── */
+.episode-progress-panel {
+  display: flex;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.dm-poster-wrap:has(+ .poster-steppers-row:not([style*="display: none"])) img {
+  border-radius: 8px 8px 0 0;
+}
+.epp-season {
+  flex: 0 0 25%;
+  max-width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 10px 6px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+}
+.epp-season-btn {
+  width: 40px !important;
+  height: 36px !important;
+}
+.epp-season-val {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  font-family: var(--font-body);
+  min-height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.epp-season-max {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+.epp-episode {
+  flex: 1 1 75%;
+  max-width: 75%;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.epp-episode-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.epp-episode-controls .poster-stepper-btn {
+  width: 40px !important;
+  height: 40px !important;
+}
+.epp-ep-badge {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  font-family: var(--font-body);
+  min-width: 3ch;
+  letter-spacing: 0.02em;
+}
+.epp-max {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.epp-episode-info {
+  min-width: 0;
+}
+.epp-episode-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.epp-episode-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.epp-episode-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.epp-episode-date:empty {
+  display: none;
+}
+.epp-episode-overview {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.45;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.epp-episode-overview:empty {
+  display: none;
+}
+.epp-loading {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .poster-bottom-bar {
   position: absolute !important;
@@ -2462,6 +2593,37 @@ a:focus-visible,
   .dm-sinopse-text {
     font-size: 0.78rem;
     padding: 12px;
+  }
+  .poster-steppers-row {
+    padding: 0 16px 8px !important;
+  }
+  .epp-season {
+    padding: 8px 4px;
+  }
+  .epp-season-val {
+    font-size: 1.5rem;
+  }
+  .epp-season-btn {
+    width: 36px !important;
+    height: 32px !important;
+  }
+  .epp-episode {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .epp-ep-badge {
+    font-size: 1rem;
+  }
+  .epp-episode-controls .poster-stepper-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .epp-episode-title {
+    font-size: 0.78rem;
+  }
+  .epp-episode-overview {
+    font-size: 0.7rem;
+    -webkit-line-clamp: 2;
   }
   .season-header h3 {
     font-size: 0.9rem;

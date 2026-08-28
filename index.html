@@ -415,23 +415,31 @@
       </div>
 
       <div class="poster-steppers-row" id="posterSteppersRow">
-        <div class="poster-stepper" id="stepperTemporada">
-          <span class="poster-stepper-label">Temporada</span>
-          <div class="poster-stepper-controls">
-            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-chevron-up"></i></button>
-            <span class="poster-stepper-val" id="detailTemporadaDisplay" aria-live="polite">1</span>
-            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-chevron-down"></i></button>
+        <div class="episode-progress-panel">
+          <div class="epp-season" id="stepperTemporada">
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-up epp-season-btn" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-chevron-up"></i></button>
+            <span class="epp-season-val" id="detailTemporadaDisplay" aria-live="polite">1</span>
+            <button type="button" class="poster-stepper-btn stepper-btn stepper-down epp-season-btn" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-chevron-down"></i></button>
+            <span class="epp-season-max" id="detailTempMax" aria-hidden="true">/1</span>
+            <input type="hidden" id="detailTemporada" value="1" />
           </div>
-          <input type="hidden" id="detailTemporada" value="1" />
-        </div>
-        <div class="poster-stepper" id="stepperEpisodio">
-          <span class="poster-stepper-label">Episodio</span>
-          <div class="poster-stepper-controls">
-            <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-chevron-up"></i></button>
-            <span class="poster-stepper-val" id="detailEpisodioDisplay" aria-live="polite">0</span>
-            <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-chevron-down"></i></button>
+          <div class="epp-episode" id="stepperEpisodio">
+            <div class="epp-episode-controls">
+              <span class="epp-ep-badge">E<span id="detailEpisodioDisplay" aria-live="polite">00</span></span>
+              <button type="button" class="poster-stepper-btn stepper-btn stepper-down" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-chevron-down"></i></button>
+              <button type="button" class="poster-stepper-btn stepper-btn stepper-up" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-chevron-up"></i></button>
+              <span class="epp-max" id="detailEpMax">de 1</span>
+              <input type="hidden" id="detailEpisodio" value="0" />
+            </div>
+            <div class="epp-episode-info">
+              <div class="epp-episode-title-row">
+                <h3 class="epp-episode-title" id="detailEpTitle">—</h3>
+                <span class="epp-episode-date" id="detailEpDate"></span>
+              </div>
+              <p class="epp-episode-overview" id="detailEpOverview"></p>
+            </div>
+            <div id="detailEpLoading" class="epp-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Carregando episódio...</div>
           </div>
-          <input type="hidden" id="detailEpisodio" value="1" />
         </div>
       </div>
 

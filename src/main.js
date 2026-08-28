@@ -681,6 +681,9 @@ const addInputs = {
 
 function handleStepperUpdate(btn, modalType) {
   updateStepperValue(btn, modalType, addSeasonLimits, detailModalAPI.getSeasonLimits(), addInputs, detailInputs);
+  if (modalType === 'detail') {
+    detailModalAPI.onStepperChange();
+  }
 }
 
 // ========== CONFIGURAÇÃO DE COMPONENTES ==========
@@ -727,7 +730,14 @@ const detailModalAPI = setupDetailModal({
   detailImdbLink: $('detailImdbLink'),
   detailYoutubeLink: $('detailYoutubeLink'),
   detailEpisodesBtn: $('detailEpisodesBtn'),
-  detailListCheckboxes: $('detailListCheckboxes')
+  detailListCheckboxes: $('detailListCheckboxes'),
+  detailTempMax: $('detailTempMax'),
+  detailEpMax: $('detailEpMax'),
+  detailEpTitle: $('detailEpTitle'),
+  detailEpDate: $('detailEpDate'),
+  detailEpOverview: $('detailEpOverview'),
+  detailEpLoading: $('detailEpLoading'),
+  posterSteppersRow: $('posterSteppersRow')
 }, {
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -739,10 +749,10 @@ const detailModalAPI = setupDetailModal({
   updateEpisodeLimit: (stepperType, temp, limits, modalType) => {
     const inputs = modalType === 'add' ? addInputs : detailInputs;
     const maxEp = limits.maxEpByTemp?.[temp] || 1;
-    const currentEp = parseInt(inputs.epInput.value) || 1;
+    const currentEp = parseInt(inputs.epInput.value) || 0;
     if (currentEp > maxEp) {
       inputs.epInput.value = maxEp;
-      inputs.epDisplay.textContent = maxEp;
+      if (inputs.epDisplay) inputs.epDisplay.textContent = modalType === 'add' ? maxEp : String(maxEp).padStart(2, '0');
     }
   },
   onRefreshGrid: () => render()

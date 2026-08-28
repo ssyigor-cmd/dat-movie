@@ -3,8 +3,10 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, escapeHTML, formatDateBR } from '../lib/catalog.js';
+import { getTierClass, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
+
+const seasonDataCache = new Map();
 
 /**
  * Configura e controla o modal de detalhes
@@ -23,6 +25,13 @@ export function setupDetailModal(elements, callbacks) {
     detailEpisodioInput,
     detailTemporadaDisplay,
     detailEpisodioDisplay,
+    detailTempMax,
+    detailEpMax,
+    detailEpTitle,
+    detailEpDate,
+    detailEpOverview,
+    detailEpLoading,
+    posterSteppersRow,
     detailStatus,
     detailTier,
     detailTipo,
@@ -61,6 +70,11 @@ export function setupDetailModal(elements, callbacks) {
   let detailCurrentIndex = null;
   let detailSeasonLimits = {};
   let currentItems = [];
+  let episodeInfoRequestId = 0;
+
+  function isSeriesType(tipo) {
+    return tipo === 'serie' || tipo === 'anime' || tipo === 'animacao';
+  }
 
   function updateTierBadge(tier) {
     const badge = detailTierBadge;
@@ -97,6 +111,88 @@ export function setupDetailModal(elements, callbacks) {
     if (tier && typeof window !== 'undefined' && window.anime) {
       window.anime({ targets: badge, scale: [0.5, 1.2, 1], duration: 400, easing: 'easeOutQuad' });
     }
+  }
+
+  function updateProgressLimitsDisplay() {
+    const temp = parseInt(detailTemporadaInput.value) || 1;
+    const ep = parseInt(detailEpisodioInput.value) || 0;
+    const maxTemp = detailSeasonLimits.maxTemp || 1;
+    const maxEp = detailSeasonLimits.maxEpByTemp?.[temp] || 1;
+
+    detailTemporadaDisplay.textContent = temp;
+    detailEpisodioDisplay.textContent = String(ep).padStart(2, '0');
+    if (detailTempMax) detailTempMax.textContent = `/${maxTemp}`;
+    if (detailEpMax) detailEpMax.textContent = `de ${maxEp}`;
+  }
+
+  async function fetchSeasonData(tmdbId, seasonNum) {
+    const key = `${tmdbId}:${seasonNum}`;
+    if (seasonDataCache.has(key)) return seasonDataCache.get(key);
+    const data = await callTMDB(`tv/${tmdbId}/season/${seasonNum}`, {}, 'pt-BR');
+    seasonDataCache.set(key, data);
+    return data;
+  }
+
+  function setEpisodeInfoPlaceholder(title, date = '', overview = '') {
+    if (detailEpTitle) detailEpTitle.textContent = title;
+    if (detailEpDate) detailEpDate.textContent = date;
+    if (detailEpOverview) detailEpOverview.textContent = overview;
+  }
+
+  async function updateEpisodeInfoDisplay() {
+    if (!posterSteppersRow || posterSteppersRow.style.display === 'none') return;
+
+    const item = detailCurrentIndex !== null ? currentItems[detailCurrentIndex] : null;
+    if (!item) return;
+
+    updateProgressLimitsDisplay();
+
+    const temp = parseInt(detailTemporadaInput.value) || 1;
+    const ep = parseInt(detailEpisodioInput.value) || 0;
+    const requestId = ++episodeInfoRequestId;
+
+    if (ep === 0) {
+      if (detailEpLoading) detailEpLoading.style.display = 'none';
+      setEpisodeInfoPlaceholder('Ainda não iniciado');
+      return;
+    }
+
+    if (!item.tmdb_id || !isSeriesType(item.tipo)) {
+      if (detailEpLoading) detailEpLoading.style.display = 'none';
+      setEpisodeInfoPlaceholder(`Episódio ${ep}`);
+      return;
+    }
+
+    if (detailEpLoading) detailEpLoading.style.display = 'flex';
+
+    try {
+      const seasonData = await fetchSeasonData(item.tmdb_id, temp);
+      if (requestId !== episodeInfoRequestId) return;
+
+      const episode = seasonData.episodes?.find(e => Number(e.episode_number) === ep);
+      if (episode) {
+        setEpisodeInfoPlaceholder(
+          episode.name || `Episódio ${ep}`,
+          episode.air_date ? formatDateBR(episode.air_date) : '',
+          episode.overview || 'Sinopse não disponível.'
+        );
+      } else {
+        setEpisodeInfoPlaceholder(`Episódio ${ep}`);
+      }
+    } catch (e) {
+      if (requestId !== episodeInfoRequestId) return;
+      console.warn('Erro ao buscar detalhes do episódio:', e);
+      setEpisodeInfoPlaceholder(`Episódio ${ep}`);
+    } finally {
+      if (requestId === episodeInfoRequestId && detailEpLoading) {
+        detailEpLoading.style.display = 'none';
+      }
+    }
+  }
+
+  function setProgressPanelVisibility(tipo) {
+    if (!posterSteppersRow) return;
+    posterSteppersRow.style.display = isSeriesType(tipo) ? 'flex' : 'none';
   }
 
   async function fetchFullDetailsAndPopulate(item) {
@@ -141,7 +237,6 @@ export function setupDetailModal(elements, callbacks) {
       let overview = detailsData?.overview || 'Sinopse não disponível.';
 
       if (detailsData) {
-        // Usar o backdrop (formato 16:9) em alta qualidade para não cortar a imagem no pôster horizontal
         if (detailsData.backdrop_path) {
           const backdropUrl = `https://image.tmdb.org/t/p/w1280${detailsData.backdrop_path}`;
           detailPosterImg.src = backdropUrl;
@@ -150,7 +245,6 @@ export function setupDetailModal(elements, callbacks) {
             blurBg.style.backgroundImage = `url(${backdropUrl})`;
           }
         } else if (item.imagem) {
-          // Fallback: sem backdrop, usar a imagem do card
           detailPosterImg.src = item.imagem;
           const blurBg = document.getElementById('detailBlurBg');
           if (blurBg) {
@@ -192,13 +286,12 @@ export function setupDetailModal(elements, callbacks) {
         if (detailsData.imdb_id) {
           imdbLink = `https://www.imdb.com/title/${detailsData.imdb_id}/`;
         }
-          detailWikiLink.href = wikiLink;
-          detailImdbLink.href = imdbLink;
-          if (detailYoutubeLink) {
-            detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
-          }
+        detailWikiLink.href = wikiLink;
+        detailImdbLink.href = imdbLink;
+        if (detailYoutubeLink) {
+          detailYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
+        }
       } else if (item.imagem) {
-        // Sem dados do TMDB: usar a imagem do card
         detailPosterImg.src = item.imagem;
         const blurBg = document.getElementById('detailBlurBg');
         if (blurBg) {
@@ -224,11 +317,11 @@ export function setupDetailModal(elements, callbacks) {
 
       detailSinopse.textContent = overview;
       detailLoading.style.display = 'none';
+      await updateEpisodeInfoDisplay();
     } catch (e) {
       console.warn('Erro ao buscar detalhes:', e);
       detailSinopse.textContent = 'Erro ao carregar sinopse.';
       detailLoading.style.display = 'none';
-      // Fallback: exibir a imagem do card caso a busca falhe
       if (item.imagem && !detailPosterImg.src) {
         detailPosterImg.src = item.imagem;
         const blurBg = document.getElementById('detailBlurBg');
@@ -236,6 +329,7 @@ export function setupDetailModal(elements, callbacks) {
           blurBg.style.backgroundImage = `url(${item.imagem})`;
         }
       }
+      await updateEpisodeInfoDisplay();
     }
   }
 
@@ -267,7 +361,9 @@ export function setupDetailModal(elements, callbacks) {
     detailStatusLabel.textContent = '--';
     detailOriginalTitle.textContent = '--';
 
-    if (item.tipo === 'serie' || item.tipo === 'anime' || item.tipo === 'animacao') {
+    setProgressPanelVisibility(item.tipo);
+
+    if (isSeriesType(item.tipo)) {
       detailEpisodesBtn.style.display = 'inline-flex';
     } else {
       detailEpisodesBtn.style.display = 'none';
@@ -295,18 +391,17 @@ export function setupDetailModal(elements, callbacks) {
     const epVal = Math.min(item.episodio || 0, maxEp);
 
     detailTemporadaInput.value = tempVal;
-    detailTemporadaDisplay.textContent = tempVal;
     detailEpisodioInput.value = epVal;
-    detailEpisodioDisplay.textContent = epVal;
+    updateProgressLimitsDisplay();
     updateEpisodeLimit('detail', tempVal, detailSeasonLimits, 'detail');
 
-    // Popular checkboxes de listas
+    setEpisodeInfoPlaceholder('Carregando...');
+    if (detailEpLoading) detailEpLoading.style.display = isSeriesType(item.tipo) ? 'flex' : 'none';
+
     if (callbacks.populateDetailListCheckboxes) {
       callbacks.populateDetailListCheckboxes(item.lists || []);
     }
 
-    const imagemUrl = item.imagem || null;
-    // Não exibir a imagem do card: aguardar o backdrop de alta qualidade do TMDB
     detailPosterImg.src = '';
     const blurBg = document.getElementById('detailBlurBg');
     if (blurBg) {
@@ -315,7 +410,6 @@ export function setupDetailModal(elements, callbacks) {
 
     updateTierBadge(item.tier);
 
-    // Mostrar data de adição, se disponível
     if (detailAddedDate) {
       try {
         const iso = item.dataCriacao || item.dataCriacao === 0 ? item.dataCriacao : null;
@@ -345,6 +439,7 @@ export function setupDetailModal(elements, callbacks) {
     unlockScreen();
     detailCurrentIndex = null;
     detailSeasonLimits = {};
+    episodeInfoRequestId++;
     releaseFocusTrap();
     detailOriginalTitle.textContent = '--';
   }
@@ -375,18 +470,17 @@ export function setupDetailModal(elements, callbacks) {
       items[index] = saved;
       updateTierBadge(newTier);
 
-      // Salvar mudanças nas listas
       if (detailListCheckboxes) {
         const userLists = onGetUserLists ? onGetUserLists() : [];
         const selectedIds = Array.from(detailListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
         const currentListIds = (item.lists || []).map(l => l.id);
-        
+
         const toAdd = selectedIds.filter(id => !currentListIds.includes(id));
         const toRemove = currentListIds.filter(id => !selectedIds.includes(id));
-        
+
         const addPromises = toAdd.map(listId => onAddItemToList(item.id, listId));
         const removePromises = toRemove.map(listId => onRemoveItemFromList(item.id, listId));
-        
+
         await Promise.allSettled([...addPromises, ...removePromises]);
         saved.lists = userLists.filter(l => selectedIds.includes(l.id));
       }
@@ -417,30 +511,33 @@ export function setupDetailModal(elements, callbacks) {
     }
   }
 
+  function onStepperChange() {
+    updateProgressLimitsDisplay();
+    updateEpisodeInfoDisplay();
+  }
+
   // Event listeners
   detailClose.addEventListener('click', closeDetailModal);
   detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetailModal(); });
-  
-  // Tier badge e dropdown
+
   detailTierBadge.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleTierDropdown();
   });
-  
+
   detailTierDropdown.addEventListener('click', (e) => {
     if (e.target.classList.contains('tier-option')) {
       const tier = e.target.dataset.tier;
       selectTier(tier);
     }
   });
-  
-  // Fechar dropdown ao clicar fora
+
   document.addEventListener('click', (e) => {
     if (!detailTierBadge.contains(e.target) && !detailTierDropdown.contains(e.target)) {
       hideTierDropdown();
     }
   });
-  
+
   detailSave.addEventListener('click', () => saveDetailChanges(currentItems));
   detailDelete.addEventListener('click', () => deleteFromDetail(currentItems));
   detailEpisodesBtn.addEventListener('click', () => {
@@ -451,11 +548,25 @@ export function setupDetailModal(elements, callbacks) {
     }
   });
 
+  const detailStatusBar = document.getElementById('posterStatusBar');
+  if (detailStatusBar) {
+    detailStatusBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.dm-status-btn');
+      if (!btn) return;
+      const value = btn.dataset.status;
+      detailStatus.value = value;
+      detailStatusBar.querySelectorAll('.dm-status-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.status === value);
+      });
+    });
+  }
+
   return {
     open: (index, items) => openDetailModal(index, items),
     close: closeDetailModal,
     save: (items) => saveDetailChanges(items),
     delete: (items) => deleteFromDetail(items),
-    getSeasonLimits: () => detailSeasonLimits
+    getSeasonLimits: () => detailSeasonLimits,
+    onStepperChange
   };
 }
