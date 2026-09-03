@@ -14,7 +14,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="importmap">
   {
     "imports": {
@@ -50,82 +49,26 @@
     </div>
   </div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Navegação">
-    <div class="sidebar-header">
-      <div class="sidebar-brand">
-        <div class="brand-icon">
-          <img src="/assets/icon/icon-face.svg" alt="datmovie" class="brand-icon-img" />
-        </div>
-        <div class="brand-text">
-          <img src="/assets/logo/logotype-text-dark.svg" alt="datmovie" class="brand-logo" />
-        </div>
-      </div>
+  <!-- TOP NAVBAR -->
+  <header class="top-navbar" id="topNavbar" role="navigation" aria-label="Navegação principal">
+    <div class="navbar-brand">
+      <img src="/assets/icon/icon-face.svg" alt="datmovie" class="navbar-brand-icon" />
     </div>
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Recolher/expandir menu">
-      <i class="fas fa-chevron-right" id="sidebarToggleIcon"></i>
-    </button>
-    <nav class="sidebar-nav" id="sidebarNav">
-      <!-- Navegação será populada dinamicamente via JavaScript -->
-    </nav>
-    <div class="sidebar-footer">
-      <div class="profile-menu">
-        <button class="nav-item" id="profileToggle">
-          <i class="fas fa-user-circle"></i>
-          <span id="profileEmail">Carregando...</span>
-          <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.6rem;"></i>
-        </button>
-        <div class="profile-dropdown" id="profileDropdown">
-          <div class="profile-info"><i class="fas fa-envelope"></i> <span id="profileEmailFull">---</span></div>
-          <hr />
-          <button id="logoutBtn" class="nav-item" style="width:100%;"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
-        </div>
-      </div>
+    <div class="navbar-center">
+      <nav class="navbar-nav" id="navbarNav">
+        <!-- Navegação será populada dinamicamente via JavaScript -->
+      </nav>
     </div>
-  </aside>
-
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="main-content" id="mainContent">
-    <header class="main-header">
-      <div class="header-info">
-        <span class="header-list-name" id="headerListName">Total</span>
-        <span class="header-count" id="headerCount">0</span>
-      </div>
-    </header>
-
-    <section class="continue-section" id="continueSection" style="display:none;">
-      <h2 class="section-heading"><i class="fas fa-play"></i> Assistindo</h2>
-      <div id="continueGrid" class="continue-grid"></div>
-    </section>
-
-    <div class="toolbar">
-      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Abrir menu">
-        <i class="fas fa-bars"></i>
-      </button>
-      <div class="search-wrapper">
-        <i class="fas fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Buscar título..." aria-label="Buscar" />
-      </div>
-      <div class="filter-wrapper">
+    <div class="navbar-actions">
+      
+      <!-- Selects ocultos (fonte de verdade para os filtros) -->
+      <div hidden>
         <select id="filterStatus" aria-label="Filtrar por status">
           <option value="todos">Todos</option>
           <option value="assistindo">Assistindo</option>
           <option value="concluido">Concluído</option>
           <option value="pausado">Pausado</option>
         </select>
-        <div id="statusWrapper" class="filter-wrapper-item">
-          <button id="statusToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por status">
-            <i class="fas fa-filter"></i>
-          </button>
-          <div id="statusMenu" class="filter-menu" role="menu" aria-hidden="true">
-            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="todos">Todos</button>
-            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="assistindo">Assistindo</button>
-            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="concluido">Concluído</button>
-            <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="pausado">Pausado</button>
-          </div>
-        </div>
-
         <select id="filterTier" aria-label="Filtrar por tier">
           <option value="todos">Todos os Tiers</option>
           <option value="S+">S+</option>
@@ -136,21 +79,6 @@
           <option value="D">D</option>
           <option value="null">Sem tier</option>
         </select>
-        <div id="tierWrapper" class="filter-wrapper-item">
-          <button id="tierToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por tier">
-            <i class="fas fa-star"></i>
-          </button>
-          <div id="tierMenu" class="filter-menu" role="menu" aria-hidden="true">
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="todos">Todos os Tiers</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S+">S+</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S">S</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="A">A</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="B">B</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="C">C</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="D">D</button>
-            <button role="menuitem" class="filter-option" data-target="filterTier" data-value="null">Sem tier</button>
-          </div>
-        </div>
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
           <option value="nome-desc">Nome (Z–A)</option>
@@ -163,46 +91,110 @@
           <option value="temporada-asc" data-wishlist-hidden>Temporada ↑</option>
           <option value="temporada-desc" data-wishlist-hidden>Temporada ↓</option>
         </select>
-        <div id="sortWrapper" class="filter-wrapper-item">
-          <button id="sortToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar">
-            <i class="fas fa-sort"></i>
-          </button>
-          <div id="sortMenu" class="filter-menu" role="menu" aria-hidden="true">
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-desc">Nome (Z–A)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc" data-wishlist-hidden>Progresso ↑</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso ↓</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-asc">Mais antigo</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Mais recente</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc" data-wishlist-hidden>Temporada ↑</button>
-            <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc" data-wishlist-hidden>Temporada ↓</button>
-          </div>
-        </div>
       </div>
-      <div class="toolbar-actions">
-        <button id="groupToggle" class="tool-btn" aria-label="Agrupar por tier"><i class="fas fa-layer-group"></i></button>
-        <!-- Density dropdown (Português) -->
-        <div class="density-wrapper">
-          <button id="densityToggleBtn" class="tool-btn" aria-haspopup="true" aria-expanded="false" aria-label="Densidade da grade">
-            <i class="fas fa-th"></i>
-          </button>
-          <div id="densityMenu" class="density-menu" role="menu" aria-hidden="true">
-            <button role="menuitem" class="density-option" data-value="8">Compacto</button>
-            <button role="menuitem" class="density-option" data-value="10">Padrão</button>
-            <button role="menuitem" class="density-option" data-value="12">Amplo</button>
-          </div>
+
+      <!-- Profile menu -->
+      <div class="navbar-profile">
+        <button class="nav-item" id="profileToggle">
+          <i class="fas fa-user-circle"></i>
+          <span id="profileEmail">Carregando...</span>
+          <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.6rem;"></i>
+        </button>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="profile-info"><i class="fas fa-envelope"></i> <span id="profileEmailFull">---</span></div>
+          <hr />
+          <button id="logoutBtn" class="nav-item" style="width:100%;"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
         </div>
-        <!-- Botão Adicionar movido para um botão flutuante fixo fora do fluxo -->
       </div>
     </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main-content" id="mainContent">
+    <section class="continue-section" id="continueSection" style="display:none;">
+      <h2 class="section-heading"><i class="fas fa-play"></i> Assistindo</h2>
+      <div id="continueGrid" class="continue-grid"></div>
+    </section>
+
+    <header class="main-header">
+      <div class="header-info">
+        <span class="header-list-name" id="headerListName">Total</span>
+      </div>
+
+      <div class="toolbar-left" id="contentToolbar">
+        <div class="toolbar-search" id="toolbarSearchLocal">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" placeholder="Buscar título..." aria-label="Buscar" />
+        </div>
+        <div class="toolbar-search" id="toolbarSearchTmdb" style="display:none;">
+          <i class="fas fa-search"></i>
+          <input type="text" id="pesquisaInput" placeholder="Pesquise seu titulo aqui" aria-label="Pesquisar título" />
+        </div>
+
+        <div class="toolbar-filters" id="toolbarFilters">
+          <div id="statusWrapper" class="filter-wrapper-item">
+            <button id="statusToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por status">
+              <i class="fas fa-filter"></i>
+            </button>
+            <div id="statusMenu" class="filter-menu" role="menu" aria-hidden="true">
+              <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="todos">Todos</button>
+              <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="assistindo">Assistindo</button>
+              <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="concluido">Concluído</button>
+              <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="pausado">Pausado</button>
+            </div>
+          </div>
+
+          <div id="tierWrapper" class="filter-wrapper-item">
+            <button id="tierToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por tier">
+              <i class="fas fa-star"></i>
+            </button>
+            <div id="tierMenu" class="filter-menu" role="menu" aria-hidden="true">
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="todos">Todos os Tiers</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S+">S+</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S">S</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="A">A</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="B">B</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="C">C</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="D">D</button>
+              <button role="menuitem" class="filter-option" data-target="filterTier" data-value="null">Sem tier</button>
+            </div>
+          </div>
+
+          <div id="sortWrapper" class="filter-wrapper-item">
+            <button id="sortToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar">
+              <i class="fas fa-sort"></i>
+            </button>
+            <div id="sortMenu" class="filter-menu filter-menu-wide" role="menu" aria-hidden="true">
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-desc">Nome (Z–A)</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc" data-wishlist-hidden>Progresso ↑</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso ↓</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-asc">Mais antigo</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Mais recente</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc" data-wishlist-hidden>Temporada ↑</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc" data-wishlist-hidden>Temporada ↓</button>
+            </div>
+          </div>
+
+          <button id="groupToggle" class="tool-btn tool-btn-sm" aria-label="Agrupar por tier"><i class="fas fa-layer-group"></i></button>
+
+          <div class="density-wrapper">
+            <button id="densityToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Densidade da grade">
+              <i class="fas fa-th"></i>
+            </button>
+            <div id="densityMenu" class="density-menu" role="menu" aria-hidden="true">
+              <button role="menuitem" class="density-option" data-value="8">Compacto</button>
+              <button role="menuitem" class="density-option" data-value="10">Padrão</button>
+              <button role="menuitem" class="density-option" data-value="12">Amplo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
 
     <section class="search-view" id="searchView" style="display:none;">
-      <div class="search-view-input">
-        <i class="fas fa-search"></i>
-        <input type="text" id="pesquisaInput" placeholder="Buscar no TMDB..." aria-label="Pesquisar título" />
-      </div>
       <div id="pesquisaGrid" class="grid grid-cols-8" role="list"></div>
       <div class="pesquisa-empty" id="pesquisaEmpty">
         <i class="fas fa-search"></i>
@@ -228,16 +220,18 @@
       <!-- HEADER -->
       <header class="detail-header">
         <div class="detail-header-left">
-          <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
-          <div id="addTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
+          <span class="tier-badge-rotate">
+            <button id="addTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
+            <div id="addTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
             <button class="tier-option" data-tier="S+" role="option">S+</button>
             <button class="tier-option" data-tier="S" role="option">S</button>
             <button class="tier-option" data-tier="A" role="option">A</button>
             <button class="tier-option" data-tier="B" role="option">B</button>
             <button class="tier-option" data-tier="C" role="option">C</button>
             <button class="tier-option" data-tier="D" role="option">D</button>
-            <button class="tier-option" data-tier="" role="option">Sem tier</button>
-          </div>
+            <button class="tier-option" data-tier="" role="option">N/A</button>
+            </div>
+          </span>
         </div>
         <div class="detail-header-center">
           <div id="addLogoContainer" style="display: none; max-width: 80%; margin: 0 auto;">
@@ -256,11 +250,13 @@
         <button class="modal-close" id="modalClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
       </header>
 
-      <!-- POSTER / IMAGE PREVIEW (16:9 backdrop) -->
-      <div class="dm-poster-wrap add-poster-wrap" id="addPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
-        <img id="previewImg" src="" alt="Pré-visualização" style="display:none;" />
-        <span id="previewPlaceholder" class="add-placeholder"><i class="fas fa-image"></i> Nenhuma imagem</span>
-
+      <!-- POSTER / IMAGE PREVIEW (dual: card left + backdrop right) -->
+      <div class="dm-poster-wrap" id="addPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
+        <div class="dm-poster-dual">
+          <img id="previewImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
+          <img id="previewImg" src="" alt="Pôster" role="img" aria-label="Pôster" style="display:none;" />
+        </div>
+        <span id="previewPlaceholder" class="add-placeholder" style="display:none;"><i class="fas fa-image"></i> Nenhuma imagem</span>
         <div class="dm-poster-sinopse">
           <div id="addSinopseLoading" class="form-loading" style="display:none;">
             <i class="fas fa-spinner fa-spin"></i> Carregando...
@@ -268,23 +264,17 @@
           <p id="addSinopse" class="dm-sinopse-text" aria-live="polite"></p>
         </div>
         <div id="addBlurBg" class="dm-poster-blur"></div>
-
-        <div class="poster-bottom-bar add-poster-bar">
-          <div class="poster-bottom-left">
-            <button type="button" id="addListToggle" class="dm-action-btn"><i class="fas fa-layer-group"></i> Listas</button>
-            <button type="button" id="addEpisodesBtn" class="dm-action-btn" style="display:none;"><i class="fas fa-film"></i> Episodios</button>
-          </div>
-          <div class="poster-status-bar" id="addPosterStatusBar">
-            <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
-            <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluido</button>
-            <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
-            <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
-          </div>
+        <div class="poster-top-links">
+          <a href="#" target="_blank" id="addYoutubeLink" class="poster-icon-btn" title="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" id="addWikiLink" class="poster-icon-btn" title="Wikipedia" style="display:none;"><i class="fab fa-wikipedia-w"></i></a>
+          <a href="#" target="_blank" id="addImdbLink" class="poster-icon-btn" title="IMDb" style="display:none;"><i class="fas fa-star"></i></a>
+        </div>
+        <div class="poster-bottom-bar" id="addPosterBottomBar" style="display: none !important;">
           <select id="status" style="display:none;" required>
             <option value="assistindo">Assistindo</option>
             <option value="concluido">Concluido</option>
-            <option value="planejado">Planejado</option>
             <option value="pausado">Pausado</option>
+            <option value="planejado">Planejado</option>
           </select>
         </div>
       </div>
@@ -292,50 +282,64 @@
       <!-- STEPPERS (below poster) -->
       <div class="poster-steppers-row" id="addPosterSteppersRow" style="display: none;">
         <div class="episode-progress-panel">
-          <div class="epp-season" id="addStepperTemporada">
-            <div class="epp-season-row">
+          <div class="epp-status" id="addPosterStatusBar">
+            <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
+            <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluído</button>
+            <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
+            <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
+          </div>
+          <div class="epp-combined">
+            <div class="epp-season" id="addStepperTemporada">
+              <span class="epp-season-label">Temporada</span>
+              <div class="epp-season-info">
+                <span class="epp-season-val"><span id="addTemporadaDisplay" aria-live="polite">01</span></span>
+                <span class="epp-season-text">/</span>
+                <span class="epp-season-max"><span id="addSeasonMax">--</span></span>
+              </div>
               <div class="epp-season-controls">
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-up epp-season-btn stepper-plus" data-target="addTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-plus"></i></button>
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-down epp-season-btn stepper-minus" data-target="addTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-minus"></i></button>
               </div>
-              <span class="epp-separator">|</span>
-              <div class="epp-season-info">
-                <span class="epp-season-val">T<span id="addTemporadaDisplay" aria-live="polite">1</span></span>
-                <span class="epp-season-text">de</span>
-                <span class="epp-season-max" id="addSeasonMax">--</span>
-              </div>
+              <input type="hidden" id="addTemporada" value="1" />
             </div>
-            <span class="epp-season-name" id="addSeasonName"></span>
-            <input type="hidden" id="addTemporada" value="1" />
-          </div>
-          <div class="epp-episode" id="addStepperEpisodio">
-            <div class="epp-episode-row">
+            <div class="epp-divider-h"></div>
+            <div class="epp-episode" id="addStepperEpisodio">
+              <span class="epp-episode-label">Episódio</span>
+              <div class="epp-episode-info">
+                <span class="epp-ep-badge"><span id="addEpisodioDisplay" aria-live="polite">00</span></span>
+                <span class="epp-season-text">/</span>
+                <span class="epp-max"><span id="addEpMax">--</span></span>
+              </div>
               <div class="epp-episode-controls">
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-up stepper-plus" data-target="addEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-plus"></i></button>
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-down stepper-minus" data-target="addEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-minus"></i></button>
               </div>
-              <span class="epp-separator">|</span>
-              <div class="epp-episode-info">
-                <span class="epp-ep-badge">E<span id="addEpisodioDisplay" aria-live="polite">00</span></span>
-                <span class="epp-season-text">de</span>
-                <span class="epp-max" id="addEpMax">--</span>
-              </div>
+              <input type="hidden" id="addEpisodio" value="0" />
+              <div id="addEpLoading" class="epp-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Carregando episódio...</div>
             </div>
-            <div class="epp-episode-details">
-              <div class="epp-episode-title-row">
-                <h3 class="epp-episode-title" id="addEpTitle">—</h3>
-                <span class="epp-episode-date" id="addEpDate"></span>
+            <div class="epp-divider-h"></div>
+            <div class="epp-episode-meta">
+              <div class="epp-episode-details">
+                <div class="epp-episode-title-row">
+                  <h3 class="epp-episode-title" id="addEpTitle">—</h3>
+                  <span class="epp-episode-date" id="addEpDate"></span>
+                </div>
               </div>
-              <p class="epp-episode-overview" id="addEpOverview"></p>
+              <p id="addEpOverview" class="epp-episode-overview"></p>
             </div>
-            <input type="hidden" id="addEpisodio" value="0" />
-            <div id="addEpLoading" class="epp-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Carregando episódio...</div>
+          </div>
+          <div class="epp-actions" id="addPosterActionsBar">
+            <button type="button" id="addListToggle" class="dm-action-btn"><i class="fas fa-layer-group"></i> Listas</button>
+            <button type="button" id="addEpisodesBtn" class="dm-action-btn"><i class="fas fa-film"></i> Episódios</button>
+            <div class="epp-actions-bottom">
+              <button type="submit" id="addPanelSave" class="dm-icon-btn" title="Salvar" form="form"><i class="fas fa-save"></i> Salvar</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- FOOTER -->
-      <footer class="dm-footer">
+      <!-- FOOTER (oculto — botões movidos para o bloco) -->
+      <footer class="dm-footer" style="display: none !important;">
         <button type="button" id="btnCancel" class="dm-btn dm-btn-danger"><i class="fas fa-times"></i> Cancelar</button>
         <div></div>
         <button type="submit" id="btnSubmit" class="dm-btn dm-btn-primary" form="form"><i class="fas fa-save"></i> Salvar</button>
@@ -370,16 +374,18 @@
 
       <header class="detail-header">
         <div class="detail-header-left">
-          <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
-          <div id="detailTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
-            <button class="tier-option" data-tier="S+" role="option">S+</button>
-            <button class="tier-option" data-tier="S" role="option">S</button>
-            <button class="tier-option" data-tier="A" role="option">A</button>
-            <button class="tier-option" data-tier="B" role="option">B</button>
-            <button class="tier-option" data-tier="C" role="option">C</button>
-            <button class="tier-option" data-tier="D" role="option">D</button>
-            <button class="tier-option" data-tier="" role="option">Sem tier</button>
-          </div>
+          <span class="tier-badge-rotate">
+            <button id="detailTierBadge" class="tier-badge-large" style="display: none;" aria-label="Selecionar tier" aria-expanded="false" aria-haspopup="listbox">S</button>
+            <div id="detailTierDropdown" class="tier-dropdown" style="display: none;" role="listbox">
+              <button class="tier-option" data-tier="S+" role="option">S+</button>
+              <button class="tier-option" data-tier="S" role="option">S</button>
+              <button class="tier-option" data-tier="A" role="option">A</button>
+              <button class="tier-option" data-tier="B" role="option">B</button>
+              <button class="tier-option" data-tier="C" role="option">C</button>
+              <button class="tier-option" data-tier="D" role="option">D</button>
+              <button class="tier-option" data-tier="" role="option">N/A</button>
+            </div>
+          </span>
         </div>
         <div class="detail-header-center">
           <div id="detailLogoContainer" style="display: none; max-width: 80%; margin: 0 auto;">
@@ -400,7 +406,10 @@
       </header>
 
       <div class="dm-poster-wrap" id="detailPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
-        <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
+        <div class="dm-poster-dual">
+          <img id="detailPosterImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
+          <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
+        </div>
         <div class="dm-poster-sinopse">
           <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
           <p id="detailSinopse" class="dm-sinopse-text" aria-live="polite">Carregando sinopse...</p>
@@ -411,60 +420,64 @@
           <a href="#" target="_blank" id="detailWikiLink" class="poster-icon-btn" title="Wikipedia"><i class="fab fa-wikipedia-w"></i></a>
           <a href="#" target="_blank" id="detailImdbLink" class="poster-icon-btn" title="IMDb"><i class="fas fa-star"></i></a>
         </div>
-        <div class="poster-bottom-bar" id="posterBottomBar">
-          <div class="poster-bottom-left">
-            <button id="detailEpisodesBtn" class="dm-action-btn" title="Ver episodios"><i class="fas fa-film"></i> Episodios</button>
-            <button type="button" id="detailListToggle" class="dm-action-btn"><i class="fas fa-layer-group"></i> Listas</button>
-          </div>
-          <div class="poster-status-bar" id="posterStatusBar">
-            <button type="button" class="dm-status-btn" data-status="assistindo"><i class="fas fa-play"></i> Assistindo</button>
-            <button type="button" class="dm-status-btn" data-status="concluido"><i class="fas fa-check-circle"></i> Concluido</button>
-            <button type="button" class="dm-status-btn" data-status="planejado"><i class="fas fa-calendar"></i> Planejado</button>
-            <button type="button" class="dm-status-btn" data-status="pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
-          </div>
-        </div>
+        <div class="poster-bottom-bar" id="posterBottomBar" style="display: none !important;"></div>
       </div>
 
       <div class="poster-steppers-row" id="posterSteppersRow">
         <div class="episode-progress-panel">
-          <div class="epp-season" id="stepperTemporada">
-            <div class="epp-season-row">
+          <div class="epp-status" id="posterStatusBar">
+            <button type="button" class="dm-status-btn" data-status="assistindo" title="Assistindo"><i class="fas fa-play"></i> Assistindo</button>
+            <button type="button" class="dm-status-btn" data-status="concluido" title="Concluido"><i class="fas fa-check-circle"></i> Concluído</button>
+            <button type="button" class="dm-status-btn" data-status="pausado" title="Pausado"><i class="fas fa-pause-circle"></i> Pausado</button>
+            <button type="button" class="dm-status-btn" data-status="planejado" title="Planejado"><i class="fas fa-calendar"></i> Planejado</button>
+          </div>
+          <div class="epp-combined">
+            <div class="epp-season" id="stepperTemporada">
+              <span class="epp-season-label">Temporada</span>
+              <div class="epp-season-info">
+                <span class="epp-season-val"><span id="detailTemporadaDisplay" aria-live="polite">01</span></span>
+                <span class="epp-season-text">/</span>
+                <span class="epp-season-max"><span id="detailSeasonMax">08</span></span>
+              </div>
               <div class="epp-season-controls">
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-up epp-season-btn stepper-plus" data-target="detailTemporada" data-step="1" data-type="temp" aria-label="Aumentar temporada"><i class="fas fa-plus"></i></button>
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-down epp-season-btn stepper-minus" data-target="detailTemporada" data-step="-1" data-type="temp" aria-label="Diminuir temporada"><i class="fas fa-minus"></i></button>
               </div>
-              <span class="epp-separator">|</span>
-              <div class="epp-season-info">
-                <span class="epp-season-val">T<span id="detailTemporadaDisplay" aria-live="polite">1</span></span>
-                <span class="epp-season-text">de</span>
-                <span class="epp-season-max" id="detailSeasonMax">08</span>
-              </div>
+              <input type="hidden" id="detailTemporada" value="1" />
             </div>
-            <span class="epp-season-name" id="detailSeasonName"></span>
-            <input type="hidden" id="detailTemporada" value="1" />
-          </div>
-          <div class="epp-episode" id="stepperEpisodio">
-            <div class="epp-episode-row">
+            <div class="epp-divider-h"></div>
+            <div class="epp-episode" id="stepperEpisodio">
+              <span class="epp-episode-label">Episódio</span>
+              <div class="epp-episode-info">
+                <span class="epp-ep-badge"><span id="detailEpisodioDisplay" aria-live="polite">00</span></span>
+                <span class="epp-season-text">/</span>
+                <span class="epp-max"><span id="detailEpMax">32</span></span>
+              </div>
               <div class="epp-episode-controls">
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-up stepper-plus" data-target="detailEpisodio" data-step="1" data-type="ep" aria-label="Aumentar episodio"><i class="fas fa-plus"></i></button>
                 <button type="button" class="poster-stepper-btn stepper-btn stepper-down stepper-minus" data-target="detailEpisodio" data-step="-1" data-type="ep" aria-label="Diminuir episodio"><i class="fas fa-minus"></i></button>
               </div>
-              <span class="epp-separator">|</span>
-              <div class="epp-episode-info">
-                <span class="epp-ep-badge">E<span id="detailEpisodioDisplay" aria-live="polite">00</span></span>
-                <span class="epp-season-text">de</span>
-                <span class="epp-max" id="detailEpMax">32</span>
-              </div>
+              <input type="hidden" id="detailEpisodio" value="0" />
+              <div id="detailEpLoading" class="epp-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Carregando episódio...</div>
             </div>
-            <div class="epp-episode-details">
-              <div class="epp-episode-title-row">
-                <h3 class="epp-episode-title" id="detailEpTitle">—</h3>
-                <span class="epp-episode-date" id="detailEpDate"></span>
+            <div class="epp-divider-h"></div>
+            <div class="epp-episode-meta">
+              <div class="epp-episode-details">
+                <div class="epp-episode-title-row">
+                  <h3 class="epp-episode-title" id="detailEpTitle">—</h3>
+                  <span class="epp-episode-date" id="detailEpDate"></span>
+                </div>
               </div>
-              <p class="epp-episode-overview" id="detailEpOverview"></p>
+              <p id="detailEpOverview" class="epp-episode-overview"></p>
             </div>
-            <input type="hidden" id="detailEpisodio" value="0" />
-            <div id="detailEpLoading" class="epp-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Carregando episódio...</div>
+          </div>
+          <div class="epp-actions" id="posterActionsBar">
+            <button type="button" id="detailListToggle" class="dm-action-btn" title="Listas"><i class="fas fa-layer-group"></i> Listas</button>
+            <button id="detailEpisodesBtn" class="dm-action-btn" title="Ver episodios"><i class="fas fa-film"></i> Episódios</button>
+            <div class="epp-actions-bottom">
+              <button type="button" id="detailSave" class="dm-icon-btn" title="Salvar"><i class="fas fa-save"></i> Salvar</button>
+              <button type="button" id="detailDelete" class="dm-icon-btn dm-icon-btn-danger" title="Remover"><i class="fas fa-trash"></i> Remover</button>
+            </div>
           </div>
         </div>
       </div>
@@ -484,15 +497,9 @@
       <select id="detailStatus" class="dm-select" aria-label="Status" style="display:none;">
         <option value="assistindo">Assistindo</option>
         <option value="concluido">Concluido</option>
-        <option value="planejado">Planejado</option>
         <option value="pausado">Pausado</option>
+        <option value="planejado">Planejado</option>
       </select>
-
-      <footer class="dm-footer">
-        <button type="button" id="detailDelete" class="dm-btn dm-btn-danger"><i class="fas fa-trash"></i> Remover</button>
-        <div id="detailAddedDate" class="dm-added-date" aria-live="polite">Adicionado: --/--/----</div>
-        <button type="button" id="detailSave" class="dm-btn dm-btn-primary"><i class="fas fa-save"></i> Salvar</button>
-      </footer>
     </div>
   </div>
 
@@ -513,6 +520,7 @@
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
