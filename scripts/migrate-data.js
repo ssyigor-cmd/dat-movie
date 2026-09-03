@@ -101,9 +101,9 @@ async function migrateData() {
         }
       }
       
-      // 4. Criar Lista de Desejos para todos
+      // 4. Criar Próximos para todos
       const wishlist = await getOrCreateWishlist();
-      console.log('   ✅ Lista de Desejos garantida');
+      console.log('   ✅ Próximos garantida');
       
       // 5. Migrar itens para as listas correspondentes
       console.log('   🔄 Migrando itens para as listas...');
@@ -140,12 +140,12 @@ async function migrateData() {
           }
         }
         
-        // Se for planejado, adicionar também à Lista de Desejos
+        // Se for planejado, adicionar também à Próximos
         if (item.status === 'planejado') {
           try {
             await addItemToList(item.id, wishlist.id);
           } catch (e) {
-            console.log(`   ⚠️  Item "${item.nome}" já estava na Lista de Desejos`);
+            console.log(`   ⚠️  Item "${item.nome}" já estava em Próximos`);
           }
         }
       }

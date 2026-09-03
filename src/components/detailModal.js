@@ -40,6 +40,7 @@ export function setupDetailModal(elements, callbacks) {
     detailSave,
     detailDelete,
     detailPosterImg,
+    detailPosterImgCard,
     detailStartYear,
     detailEndYear,
     detailStatusLabel,
@@ -51,7 +52,6 @@ export function setupDetailModal(elements, callbacks) {
     detailImdbLink,
     detailYoutubeLink,
     detailEpisodesBtn,
-    detailAddedDate,
     detailListCheckboxes
   } = elements;
 
@@ -119,7 +119,7 @@ export function setupDetailModal(elements, callbacks) {
     const maxTemp = detailSeasonLimits.maxTemp || 1;
     const maxEp = detailSeasonLimits.maxEpByTemp?.[temp] || 1;
 
-    detailTemporadaDisplay.textContent = temp;
+    detailTemporadaDisplay.textContent = String(temp).padStart(2, '0');
     detailEpisodioDisplay.textContent = String(ep).padStart(2, '0');
     if (detailEpMax) detailEpMax.textContent = String(maxEp).padStart(2, '0');
     if (detailSeasonName) detailSeasonName.textContent = '';
@@ -424,23 +424,16 @@ export function setupDetailModal(elements, callbacks) {
     }
 
     detailPosterImg.src = '';
+    if (detailPosterImgCard) {
+      detailPosterImgCard.src = item.imagem || '';
+      detailPosterImgCard.style.display = item.imagem ? 'block' : 'none';
+    }
     const blurBg = document.getElementById('detailBlurBg');
     if (blurBg) {
       blurBg.style.backgroundImage = 'none';
     }
 
     updateTierBadge(item.tier);
-
-    if (detailAddedDate) {
-      try {
-        const iso = item.dataCriacao || item.dataCriacao === 0 ? item.dataCriacao : null;
-        const datePart = iso ? String(iso).split('T')[0] : null;
-        const formatted = datePart ? formatDateBR(datePart) : 'Data desconhecida';
-        detailAddedDate.textContent = `Adicionado: ${formatted}`;
-      } catch (e) {
-        detailAddedDate.textContent = 'Adicionado: Data desconhecida';
-      }
-    }
 
     detailModal.classList.add('active');
     lockScreen();
@@ -501,11 +494,16 @@ export function setupDetailModal(elements, callbacks) {
         const toAdd = selectedIds.filter(id => !currentListIds.includes(id));
         const toRemove = currentListIds.filter(id => !selectedIds.includes(id));
 
-        const addPromises = toAdd.map(listId => onAddItemToList(item.id, listId));
-        const removePromises = toRemove.map(listId => onRemoveItemFromList(item.id, listId));
+        const addResults = await Promise.allSettled(toAdd.map(listId => onAddItemToList(item.id, listId)));
+        const removeResults = await Promise.allSettled(toRemove.map(listId => onRemoveItemFromList(item.id, listId)));
 
-        await Promise.allSettled([...addPromises, ...removePromises]);
-        saved.lists = userLists.filter(l => selectedIds.includes(l.id));
+        const addedOk = new Set(toAdd.filter((_, i) => addResults[i]?.status === 'fulfilled'));
+        const removedOk = new Set(toRemove.filter((_, i) => removeResults[i]?.status === 'fulfilled'));
+
+        saved.lists = userLists
+          .filter(l => currentListIds.includes(l.id))
+          .filter(l => !removedOk.has(l.id))
+          .concat(userLists.filter(l => addedOk.has(l.id)));
       }
 
       closeDetailModal();

@@ -30,7 +30,7 @@ export async function fetchUserLists() {
 /**
  * Cria uma nova lista para o usuário
  * @param {string} nome - Nome da lista
- * @param {boolean} isSystem - Se é uma lista do sistema (ex: Lista de Desejos)
+ * @param {boolean} isSystem - Se é uma lista do sistema (ex: Próximos)
  * @returns {Promise<Object>} Lista criada
  */
 export async function createList(nome, isSystem = false) {
@@ -207,26 +207,30 @@ export async function updateListsOrder(lists) {
 }
 
 /**
- * Busca ou cria a lista de desejos do sistema para o usuário
- * @returns {Promise<Object>} Lista de desejos
+ * Busca ou cria a lista Próximos do sistema para o usuário
+ * @returns {Promise<Object>} Lista Próximos
  */
 export async function getOrCreateWishlist() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Usuário não logado.');
   
-  // Tenta buscar a lista de desejos existente
+  // Tenta buscar a lista do sistema existente (compatível com nome antigo)
   const { data: existingWishlist } = await supabase
     .from('user_lists')
     .select('*')
     .eq('user_id', user.id)
     .eq('is_system', true)
-    .eq('nome', 'Lista de Desejos')
     .single();
   
   if (existingWishlist) {
+    // Migra nome antigo se necessário
+    if (existingWishlist.nome === 'Lista de Desejos') {
+      await supabase.from('user_lists').update({ nome: 'Próximos' }).eq('id', existingWishlist.id);
+      existingWishlist.nome = 'Próximos';
+    }
     return existingWishlist;
   }
   
   // Se não existe, cria
-  return await createList('Lista de Desejos', true);
+  return await createList('Próximos', true);
 }

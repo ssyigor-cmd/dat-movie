@@ -1,5 +1,4 @@
 import { supabase } from './supabase.js';
-import { processImages } from './imageNavigation.js';
 
 // ========== CACHE DE LOGOS ==========
 const logoCache = new Map(); // Cache em memória: tmdbId_mediaType -> logoUrl
@@ -129,30 +128,5 @@ export async function fetchTitleLogo(tmdbId, mediaType = 'tv', useCache = true) 
 }
 
 /**
- * Busca diversas imagens (posters + backdrops) para um título no TMDB.
- * Filtra por idioma (en/pt/null), deduplica por file_path e ordena por largura decrescente.
- * @param {number|string} tmdbId - ID do TMDB.
- * @param {string} mediaType - 'tv' ou 'movie'.
- * @param {number} [limit=12] - Número máximo de imagens a retornar.
- * @returns {Promise<string[]>} Array de URLs absolutas de imagens de alta qualidade.
+ * Busca diversas imagens removida — morta (nenhum caller). Use fetchTitleLogo para logo.
  */
-export async function fetchTitleImages(tmdbId, mediaType = 'tv', limit = 12) {
-  if (!tmdbId) return [];
-  try {
-    const endpoint = mediaType === 'movie' ? `movie/${tmdbId}/images` : `tv/${tmdbId}/images`;
-    // include_image_language garante imagens sem texto (null) e em inglês/português
-    const data = await callTMDB(endpoint, { include_image_language: 'en,pt,null' }, 'pt-BR');
-    const processed = processImages(data);
-    // Constrói URLs de alta qualidade:
-    // posters: w780 (boa resolução sem peso excessivo)
-    // backdrops: w1280 para qualidade cinematic
-    return processed.slice(0, limit).map(img => {
-      const isBackdrop = (img.width || 0) > (img.height || 1);
-      const size = isBackdrop ? 'w1280' : 'w780';
-      return `https://image.tmdb.org/t/p/${size}${img.file_path}`;
-    });
-  } catch (err) {
-    console.warn('Erro ao buscar imagens do TMDB:', err);
-    return [];
-  }
-}

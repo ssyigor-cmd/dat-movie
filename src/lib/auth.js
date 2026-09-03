@@ -55,9 +55,5 @@ export async function signUpWithPassword(email, password) {
 }
 
 /**
- * Desconecta o usuário do Supabase.
+ * Logout removido — morto (main.js usa supabase.auth.signOut direto).
  */
-export async function logoutUser() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}

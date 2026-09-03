@@ -38,11 +38,11 @@ SELECT
 WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'ssy.igor@gmail.com')
 ON CONFLICT (user_id, nome) DO NOTHING;
 
--- 3. Criar Lista de Desejos para todos os usuários
+-- 3. Criar Próximos para todos os usuários
 INSERT INTO user_lists (user_id, nome, is_system, ordem, data_criacao)
 SELECT 
   ui.user_id,
-  'Lista de Desejos',
+  'Próximos',
   TRUE,
   99,
   NOW()
@@ -72,11 +72,11 @@ FROM items i
 WHERE i.tipo IS NOT NULL
 ON CONFLICT (item_id, list_id) DO NOTHING;
 
--- 5. Migrar itens com status 'planejado' para a Lista de Desejos
+-- 5. Migrar itens com status 'planejado' para Próximos
 INSERT INTO item_lists (item_id, list_id, data_adicao)
 SELECT 
   i.id,
-  (SELECT id FROM user_lists WHERE user_id = i.user_id AND nome = 'Lista de Desejos' LIMIT 1),
+  (SELECT id FROM user_lists WHERE user_id = i.user_id AND nome = 'Próximos' LIMIT 1),
   i.data_criacao
 FROM items i
 WHERE i.status = 'planejado'
