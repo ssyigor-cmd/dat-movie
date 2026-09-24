@@ -4,7 +4,7 @@
  */
 
 import { supabase } from './lib/supabase.js';
-import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR } from './lib/catalog.js';
+import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
@@ -13,6 +13,7 @@ import { updateStepperValue, setupSteppers } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
+import { renderHome } from './components/homePage.js';
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
@@ -80,6 +81,7 @@ const groupToggle = $('groupToggle');
 const logoutBtn = $('logoutBtn');
 const continueSection = $('continueSection');
 const continueGrid = $('continueGrid');
+const homeSection = document.getElementById('homeSection');
 const profileToggle = $('profileToggle');
 const profileDropdown = $('profileDropdown');
 const profileEmail = $('profileEmail');
@@ -127,8 +129,10 @@ const addPosterSteppersRow = $('addPosterSteppersRow');
 // ========== ESTADO GLOBAL ==========
 let items = [];
 let editingIndex = null;
-let currentTab = 'all';
-let currentListId = null;
+let currentTab = localStorage.getItem('activeTab') || 'home';
+if (!['home','all','planejado','pesquisa','list'].includes(currentTab)) currentTab = 'home';
+let currentListId = localStorage.getItem('activeListId') || null;
+let currentUser = null;
 let userLists = [];
 let listsSortable = null;
 let cachedShowDetails = null;
@@ -141,6 +145,21 @@ let existingItemForSearch = null;
 let gridDensity = parseInt(localStorage.getItem('gridDensity')) || 8;
 let groupingActive = localStorage.getItem('groupingActive') === 'true' || false;
 let addSeasonLimits = {};
+
+function persistNavState() {
+  try {
+    localStorage.setItem('activeTab', currentTab);
+    if (currentListId) localStorage.setItem('activeListId', currentListId);
+    else localStorage.removeItem('activeListId');
+  } catch (_) {}
+}
+function setActiveTab(tab, listId = null) {
+  currentTab = tab;
+  currentListId = listId;
+  persistNavState();
+  updateActiveNav();
+  render();
+}
 
 // ========== AUTENTICAÇÃO ==========
 function setAuthUI(showLogin) {
@@ -158,9 +177,16 @@ async function checkSession() {
     if (session) {
       setAuthUI(false);
       const user = await getCurrentUser();
+      currentUser = user || null;
       if (user) {
         profileEmail.textContent = user.email.split('@')[0] || user.email;
         profileEmailFull.textContent = user.email;
+      }
+      // Default to home on fresh login if no persisted tab
+      if (!localStorage.getItem('activeTab')) {
+        currentTab = 'home';
+        currentListId = null;
+        persistNavState();
       }
       await loadItems();
     } else {
@@ -345,11 +371,8 @@ function buildListNavItem(list) {
 
   listBtn.addEventListener('click', () => {
     if (listBtn.classList.contains('editing')) return;
-    currentTab = 'list';
-    currentListId = list.id;
     closeListsDropdown();
-    updateActiveNav();
-    render();
+    setActiveTab('list', list.id);
   });
 
   return listBtn;
@@ -419,17 +442,20 @@ function renderNavbar() {
 
   const fragment = document.createDocumentFragment();
 
+  // --- Início (Home) ---
+  const homeBtn = document.createElement('button');
+  homeBtn.className = `nav-item ${currentTab === 'home' ? 'active' : ''}`;
+  homeBtn.dataset.tab = 'home';
+  homeBtn.innerHTML = '<i class="fas fa-home"></i> <span>Início</span>';
+  homeBtn.addEventListener('click', () => setActiveTab('home', null));
+  fragment.appendChild(homeBtn);
+
   // --- Navegação principal (colada ao ícone da marca) ---
   const todosBtn = document.createElement('button');
   todosBtn.className = `nav-item ${currentTab === 'all' && !currentListId ? 'active' : ''}`;
   todosBtn.dataset.tab = 'all';
   todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Todos</span>';
-  todosBtn.addEventListener('click', () => {
-    currentTab = 'all';
-    currentListId = null;
-    updateActiveNav();
-    render();
-  });
+  todosBtn.addEventListener('click', () => setActiveTab('all', null));
   fragment.appendChild(todosBtn);
 
   const systemLists = userLists.filter(l => l.is_system);
@@ -441,24 +467,14 @@ function renderNavbar() {
   wishlistBtn.dataset.system = 'true';
   if (wishlist) { wishlistBtn.dataset.listId = wishlist.id; }
   wishlistBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> <span>Próximos</span>';
-  wishlistBtn.addEventListener('click', () => {
-    currentTab = 'planejado';
-    currentListId = null;
-    updateActiveNav();
-    render();
-  });
+  wishlistBtn.addEventListener('click', () => setActiveTab('planejado', null));
   fragment.appendChild(wishlistBtn);
 
   const pesquisaBtn = document.createElement('button');
   pesquisaBtn.className = `nav-item ${currentTab === 'pesquisa' ? 'active' : ''}`;
   pesquisaBtn.dataset.tab = 'pesquisa';
   pesquisaBtn.innerHTML = '<i class="fas fa-search"></i> <span>Pesquisar</span>';
-  pesquisaBtn.addEventListener('click', () => {
-    currentTab = 'pesquisa';
-    currentListId = null;
-    updateActiveNav();
-    render();
-  });
+  pesquisaBtn.addEventListener('click', () => setActiveTab('pesquisa', null));
   fragment.appendChild(pesquisaBtn);
 
   // --- Botão "Listas" (integrado na navegação centralizada) ---
@@ -571,7 +587,13 @@ function updateActiveNav() {
   }
   
   // Gerenciar filtros baseado na aba atual
-  if (currentTab === 'planejado') {
+  if (currentTab === 'home') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+  } else if (currentTab === 'planejado') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
     if (statusWrapper) statusWrapper.style.display = 'none';
@@ -934,14 +956,194 @@ const episodesModalAPI = setupEpisodesModal({
   onToast: showToast
 });
 
+// ========== HOME HELPERS ==========
+function handleHomeContinueAdd() {
+  setActiveTab('pesquisa', null);
+  setTimeout(() => { const inp = document.getElementById('pesquisaInput'); if (inp) inp.focus(); }, 100);
+}
+
+async function handleTrendingAdd(trendingItem) {
+  if (editingIndex !== null) cancelEdit();
+  clearAllFieldErrors(form);
+  clearPreview();
+  cachedShowDetails = null;
+  statusSelect.value = 'assistindo';
+  // sync status buttons if exists
+  const addPosterStatusBar = document.getElementById('addPosterStatusBar');
+  if (addPosterStatusBar) addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(b => b.classList.toggle('active', b.dataset.status === statusSelect.value));
+  tierForm.value = '';
+  const addTierBadgeEl = document.getElementById('addTierBadge');
+  if (addTierBadgeEl) { addTierBadgeEl.textContent = '?'; addTierBadgeEl.className = 'tier-badge-large'; addTierBadgeEl.style.display = 'flex'; }
+  const addYearDisplayEl = document.getElementById('addYearDisplay');
+  if (addYearDisplayEl) addYearDisplayEl.textContent = trendingItem.date ? trendingItem.date.substring(0,4) : '--';
+  selectedTmdbId = trendingItem.id;
+  selectedMediaType = trendingItem.mediaType || 'tv';
+  selectedPosterPath = trendingItem.posterPath || '';
+  selectedAno = trendingItem.date ? trendingItem.date.substring(0,4) : null;
+  selectedName = trendingItem.title;
+  const addTemporadaInputEl = document.getElementById('addTemporada');
+  const addTemporadaDisplayEl = document.getElementById('addTemporadaDisplay');
+  const addEpisodioInputEl = document.getElementById('addEpisodio');
+  const addEpisodioDisplayEl = document.getElementById('addEpisodioDisplay');
+  if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
+  if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
+  if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
+  if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
+  addSeasonLimits = {};
+  const existing = items.find(it => it.tmdb_id && String(it.tmdb_id) === String(trendingItem.id)) || null;
+  existingItemForSearch = existing;
+  const preselectedIds = existing ? (existing.lists || []).map(l => l.id) : [];
+  populateAddListCheckboxes(preselectedIds);
+  const addListCheckboxesEl = document.getElementById('addListCheckboxes');
+  if (existing && preselectedIds.length > 0 && addListCheckboxesEl) {
+    addListCheckboxesEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+      cb.closest('.list-checkbox-pill')?.classList.add('list-existing');
+    });
+  }
+  const addPosterSteppersRowEl = document.getElementById('addPosterSteppersRow');
+  if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = (selectedMediaType === 'tv') ? 'flex' : 'none';
+  const addLogoContainerEl = document.getElementById('addLogoContainer');
+  const addLogoImgEl = document.getElementById('addLogoImg');
+  const addOriginalTitleEl = document.getElementById('addOriginalTitle');
+  const addSinopseEl = document.getElementById('addSinopse');
+  const addSinopseLoadingEl = document.getElementById('addSinopseLoading');
+  const addBlurBgEl = document.getElementById('addBlurBg');
+  const addPosterWrapEl = document.getElementById('addPosterWrap');
+  if (addLogoContainerEl) addLogoContainerEl.style.display = 'none';
+  if (addLogoImgEl) addLogoImgEl.src = '';
+  if (addOriginalTitleEl) { addOriginalTitleEl.style.display = 'none'; addOriginalTitleEl.textContent = ''; }
+  if (addSinopseEl) addSinopseEl.textContent = '';
+  if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'flex';
+  if (addBlurBgEl) addBlurBgEl.style.backgroundImage = '';
+  if (addPosterWrapEl) addPosterWrapEl.classList.remove('sinopse-open');
+  const modalTitleEl = document.getElementById('modalTitle');
+  if (modalTitleEl) modalTitleEl.style.display = 'none';
+  const previewImgEl = document.getElementById('previewImg');
+  const previewImgCardEl = document.getElementById('previewImgCard');
+  const previewPlaceholderEl = document.getElementById('previewPlaceholder');
+  // Fetch details
+  (async () => {
+    try {
+      let details = null;
+      if (selectedMediaType === 'tv') {
+        details = await callTMDB(`tv/${selectedTmdbId}`, {}, 'pt-BR');
+        const seasons = details.seasons || [];
+        const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
+        const maxEpByTemp = {};
+        seasons.forEach(s => { if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0; });
+        const yr = details.first_air_date ? details.first_air_date.substring(0,4) : (trendingItem.date ? trendingItem.date.substring(0,4) : '');
+        addSeasonLimits = { maxTemp, maxEpByTemp };
+        if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
+        if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
+        if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
+        if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
+        if (addYearDisplayEl) addYearDisplayEl.textContent = yr || '--';
+        if (yr) selectedAno = yr;
+        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'flex';
+        tipo.value = 'serie';
+        const genres = details.genre_ids || (details.genres || []).map(g => g.id);
+        const countries = details.origin_country || [];
+        const isAnimation = genres.includes(16);
+        const isJapanese = countries.includes('JP');
+        let detectedTipo = 'serie';
+        if (isAnimation && isJapanese) detectedTipo = 'anime';
+        else if (isAnimation) detectedTipo = 'animacao';
+        tipo.value = detectedTipo;
+      } else {
+        details = await callTMDB(`movie/${selectedTmdbId}`, {}, 'pt-BR');
+        addSeasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
+        if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
+        if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
+        if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
+        if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
+        tipo.value = 'filme';
+        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'none';
+      }
+      let backdropUrl = '';
+      if (details && details.backdrop_path) {
+        backdropUrl = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
+        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
+        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+      } else if (trendingItem.posterUrl) {
+        backdropUrl = trendingItem.posterUrl.replace('w342','w1280');
+        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
+        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+      }
+      if (previewImgCardEl) {
+        if (trendingItem.posterUrl) { previewImgCardEl.src = trendingItem.posterUrl; previewImgCardEl.style.display = 'block'; }
+        else if (backdropUrl) { previewImgCardEl.src = backdropUrl; previewImgCardEl.style.display = 'block'; }
+        else { previewImgCardEl.style.display = 'none'; previewImgCardEl.src = ''; }
+      }
+      if (addBlurBgEl && backdropUrl) addBlurBgEl.style.backgroundImage = `url(${backdropUrl})`;
+      if (addSinopseEl) addSinopseEl.textContent = details?.overview || 'Sinopse não disponível.';
+      if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'none';
+      if (details) {
+        const originalName = details.original_name || details.original_title || '';
+        if (originalName && originalName !== trendingItem.title && addOriginalTitleEl) {
+          addOriginalTitleEl.textContent = originalName;
+          addOriginalTitleEl.style.display = '';
+        }
+      }
+      const logoUrl = await fetchTitleLogo(selectedTmdbId, selectedMediaType);
+      if (logoUrl && addLogoImgEl && addLogoContainerEl) {
+        addLogoImgEl.src = logoUrl;
+        addLogoImgEl.alt = `Logo de ${trendingItem.title}`;
+        addLogoContainerEl.style.display = 'flex';
+        if (modalTitleEl) modalTitleEl.style.display = 'none';
+      } else {
+        if (addLogoContainerEl) addLogoContainerEl.style.display = 'none';
+        if (modalTitleEl) modalTitleEl.style.display = '';
+        const modalTitleTextEl = document.getElementById('modalTitleText');
+        if (modalTitleTextEl) modalTitleTextEl.textContent = trendingItem.title;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar detalhes trending:', err);
+      if (trendingItem.posterUrl && previewImgEl) {
+        const fallbackUrl = trendingItem.posterUrl.replace('w342','w1280');
+        previewImgEl.src = fallbackUrl;
+        previewImgEl.style.display = 'block';
+        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+        if (previewImgCardEl) { previewImgCardEl.src = trendingItem.posterUrl; previewImgCardEl.style.display = 'block'; }
+        if (addBlurBgEl) addBlurBgEl.style.backgroundImage = `url(${fallbackUrl})`;
+      }
+      if (addSinopseEl) addSinopseEl.textContent = 'Erro ao carregar sinopse.';
+      if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'none';
+      if (modalTitleEl) modalTitleEl.style.display = '';
+    }
+  })();
+  openModal();
+}
+
 // ========== RENDER ==========
 function render() {
   // Pesquisa tab — show search view, hide everything else
   // Na página Pesquisar: esconder busca local e mostrar busca TMDB na mesma linha dos filtros
   const toolbarSearchLocal = document.getElementById('toolbarSearchLocal');
   const toolbarSearchTmdb = document.getElementById('toolbarSearchTmdb');
-  if (toolbarSearchLocal) toolbarSearchLocal.style.display = currentTab === 'pesquisa' ? 'none' : '';
+  const mainHeader = document.querySelector('.main-header');
+  if (toolbarSearchLocal) toolbarSearchLocal.style.display = currentTab === 'pesquisa' ? 'none' : (currentTab === 'home' ? 'none' : '');
   if (toolbarSearchTmdb) toolbarSearchTmdb.style.display = currentTab === 'pesquisa' ? '' : 'none';
+  if (mainHeader) mainHeader.style.display = currentTab === 'home' ? 'none' : '';
+
+  // Home tab
+  if (currentTab === 'home') {
+    if (homeSection) homeSection.style.display = '';
+    continueSection.style.display = 'none';
+    gridSection.style.display = 'none';
+    searchView.style.display = 'none';
+    if (headerListName) headerListName.textContent = 'Início';
+    if (homeSection) {
+      renderHome(homeSection, {
+        user: currentUser,
+        items,
+        onCardClick: handleCardClick,
+        onAddFromTrending: handleTrendingAdd,
+        onOpenAddModal: handleHomeContinueAdd
+      });
+    }
+    return;
+  }
+  if (homeSection) homeSection.style.display = 'none';
 
   if (currentTab === 'pesquisa') {
     continueSection.style.display = 'none';
@@ -1175,18 +1377,7 @@ async function addItem(e) {
       return;
     }
 
-    const duplicate = items.some((it, i) => {
-      if (i === editingIndex) return false;
-      if (it.tmdb_id && selectedTmdbId) {
-        return String(it.tmdb_id) === String(selectedTmdbId);
-      }
-      const sameName = it.nome.toLowerCase() === nomeVal.toLowerCase();
-      const sameType = it.tipo === tipoVal;
-      if (it.ano && ano) {
-        return sameName && sameType && it.ano === ano;
-      }
-      return sameName && sameType;
-    });
+    const duplicate = isDuplicateInCatalog({ tmdb_id: selectedTmdbId || null, nome: nomeVal, tipo: tipoVal, ano }, items, editingIndex);
     if (duplicate) {
       showToast('Este título já existe no seu catálogo.');
       setLoading(false);

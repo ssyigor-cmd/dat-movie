@@ -137,6 +137,58 @@ export function filterItems(items, { currentTab = 'all', search = '', statusFilt
 }
 
 /**
+ * Verifica se um candidato já existe no catálogo.
+ * Fonte da verdade é tmdb_id. Fallback nome+tipo+ano só para itens sem tmdb_id.
+ * @param {Object} candidate - { tmdb_id, nome, tipo, ano }
+ * @param {Array} catalogItems - lista do usuário
+ * @param {number|null} excludeIndex - índice a ignorar (edição)
+ * @returns {boolean}
+ */
+export function isDuplicateInCatalog(candidate, catalogItems, excludeIndex = null) {
+  if (!candidate || !Array.isArray(catalogItems) || catalogItems.length === 0) return false;
+  const candId = candidate.tmdb_id;
+  if (candId != null && candId !== '') {
+    const cid = String(candId);
+    return catalogItems.some((it, idx) => {
+      if (excludeIndex !== null && idx === excludeIndex) return false;
+      return it.tmdb_id != null && it.tmdb_id !== '' && String(it.tmdb_id) === cid;
+    });
+  }
+  const candNome = (candidate.nome || '').trim().toLowerCase();
+  const candTipo = candidate.tipo || '';
+  const candAno = candidate.ano != null ? String(candidate.ano) : '';
+  if (!candNome) return false;
+  return catalogItems.some((it, idx) => {
+    if (excludeIndex !== null && idx === excludeIndex) return false;
+    if (it.tmdb_id != null && it.tmdb_id !== '') return false;
+    const itNome = (it.nome || '').trim().toLowerCase();
+    const itTipo = it.tipo || '';
+    if (itNome !== candNome || itTipo !== candTipo) return false;
+    const itAno = it.ano != null ? String(it.ano) : '';
+    if (candAno && itAno) return candAno === itAno;
+    return true;
+  });
+}
+
+/**
+ * Filtra resultados TMDb removendo os que já estão no catálogo (por tmdb_id).
+ * Reutiliza a lógica de dedupe por tmdb_id.
+ * @param {Array} tmdbResults - array com id
+ * @param {Array} catalogItems
+ * @returns {Array}
+ */
+export function filterNotInCatalog(tmdbResults, catalogItems) {
+  if (!Array.isArray(tmdbResults)) return [];
+  if (!Array.isArray(catalogItems) || catalogItems.length === 0) return tmdbResults.slice();
+  const catalogIds = new Set(
+    catalogItems
+      .filter((i) => i.tmdb_id != null && i.tmdb_id !== '')
+      .map((i) => String(i.tmdb_id))
+  );
+  return tmdbResults.filter((r) => !catalogIds.has(String(r.id)));
+}
+
+/**
  * Ordena uma lista de itens de acordo com a chave especificada.
  * @param {Array} items - Lista de itens a serem ordenados.
  * @param {string} sortKey - Chave de ordenação (ex: 'nome-asc', 'progresso-desc', 'tier-asc').
