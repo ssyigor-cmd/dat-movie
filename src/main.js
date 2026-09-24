@@ -1175,11 +1175,10 @@ function render() {
     return;
   }
 
-  // Normal tabs — hide search view, show grid
+  // Normal tabs — hide search view, show grid (Continuar removido do catálogo - só na Home)
   searchView.style.display = 'none';
   gridSection.style.display = '';
-
-  renderContinueWatching(state.items, state.currentTab, state.currentListId, continueSection, continueGrid, (item, variant) => createCardElement(item, variant, state.items, handleCardClick));
+  continueSection.style.display = 'none';
 
   const search = searchInput?.value || '';
   const statusFilter = filterStatus.value;
