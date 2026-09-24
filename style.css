@@ -530,7 +530,7 @@ img { max-width: 100%; height: auto; display: block; }
 .modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 6px; }
 .modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 6px; }
 .modal.modal-detail .epp-season-label, .modal.modal-detail .epp-episode-label { font-size: 0.48rem; letter-spacing: 0.06em; }
-.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 2.4rem; font-weight: 900; line-height: 1; }
 .modal.modal-detail .dm-status-btn, .modal.modal-detail .dm-action-btn { padding: 1px 5px; font-size: 0.55rem; }
 
 /* Híbrido: fullscreen em telas baixas ou estreitas */
@@ -987,7 +987,7 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: center;
 }
 .epp-season .epp-season-val {
-  font-size: 2rem;
+  font-size: 2.4rem;
   color: var(--accent);
 }
 .epp-season .epp-season-max {
@@ -1044,7 +1044,7 @@ img { max-width: 100%; height: auto; display: block; }
   gap: 6px;
 }
 .epp-season-val {
-  font-size: 1.4rem;
+  font-size: 2.4rem;
   font-weight: 800;
   color: #fff;
   line-height: 1;
@@ -1102,7 +1102,7 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: center;
 }
 .epp-episode .epp-ep-badge {
-  font-size: 2rem;
+  font-size: 2.4rem;
   color: var(--accent);
 }
 .epp-episode .epp-max {
@@ -1140,7 +1140,7 @@ img { max-width: 100%; height: auto; display: block; }
   min-width: 0;
 }
 .epp-ep-badge {
-  font-size: 1.3rem;
+  font-size: 2.4rem;
   font-weight: 800;
   color: #fff;
   font-family: var(--font-body);
