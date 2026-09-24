@@ -562,28 +562,25 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
     for (let k = 0; k < 4; k++) {
       await new Promise(r => setTimeout(r, 120 + k*40));
       const tmp = pool[Math.floor(Math.random()*pool.length)];
-      res.innerHTML = `<div class="home-roulette-shuffle" style="opacity:${0.6 + k*0.1}">${escapeHTML(tmp.nome)}</div>`;
+      res.innerHTML = `<div class="home-roulette-shuffle" style="opacity:${0.6 + k*0.1}">${escapeHTML(tmp.title)}</div>`;
     }
     await new Promise(r => setTimeout(r, 180));
     const picked = pool[Math.floor(Math.random()*pool.length)];
-    const remaining = Math.max(0, (Number(picked.totalEpisodios||1) - (Number(picked.episodio)||0)) * 24);
-    const horas = Math.floor(remaining/60), mins = remaining%60;
-    const tempoTxt = remaining > 0 ? `${horas > 0 ? horas+'h ' : ''}${mins}min restantes` : 'Pronto para começar';
     res.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.className = 'home-roulette-card';
     wrap.innerHTML = `
-      <div class="home-roulette-poster"><img src="${picked.imagem || ''}" alt="" onerror="this.style.display='none'" /></div>
+      <div class="home-roulette-poster"><img src="${picked.posterUrl || ''}" alt="" onerror="this.style.display='none'" /></div>
       <div class="home-roulette-info">
-        <strong>${escapeHTML(picked.nome)}</strong>
-        <small>T${picked.temporada} E${String(picked.episodio).padStart(2,'0')} • ${picked.status} ${picked.tier ? '• Tier '+escapeHTML(picked.tier) : ''}</small>
-        <small style="color:var(--text-muted)">${tempoTxt} • ${picked.tipo || 'serie'}</small>
+        <strong>${escapeHTML(picked.title)}</strong>
+        <small>${picked.date ? formatAirDate(picked.date) : 'Série'}${picked.voteAverage ? ` • ★ ${picked.voteAverage.toFixed(1)}` : ''}</small>
+        <small style="color:var(--text-muted)">Título novo para descobrir</small>
         <div style="margin-top:8px; display:flex; gap:8px;">
-          <button class="home-empty-btn" data-action="details"><i class="fas fa-eye"></i> Ver detalhes</button>
+          <button class="home-empty-btn" data-action="details"><i class="fas fa-plus"></i> Adicionar</button>
           <button class="tool-btn" data-action="again"><i class="fas fa-redo"></i> Sortear outro</button>
         </div>
       </div>`;
-    wrap.querySelector('[data-action="details"]').addEventListener('click', () => onCardClick && onCardClick(items.indexOf(picked)));
+    wrap.querySelector('[data-action="details"]').addEventListener('click', () => onAddFromTrending && onAddFromTrending(picked));
     wrap.querySelector('[data-action="again"]').addEventListener('click', () => btn.click());
     res.appendChild(wrap);
     // Histórico
