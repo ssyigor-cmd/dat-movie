@@ -83,19 +83,15 @@ export function formatAirDate(dateStr) {
 }
 
 /**
- * Busca títulos em alta na semana (tv + movie), filtra os que não estão no catálogo
+ * Busca séries em alta na semana (apenas tv - sistema é só para mídias seriadas), filtra os que não estão no catálogo
  * @param {Array} catalogItems
  * @param {number} limit - máximo de itens
  * @returns {Promise<Array>} lista de até limit itens com poster, título, etc
  */
 export async function getTrendingToSuggest(catalogItems, limit = 6) {
   try {
-    const [tvData, movieData] = await Promise.all([
-      cachedCallTMDB('trending/tv/week', {}, 'pt-BR'),
-      cachedCallTMDB('trending/movie/week', {}, 'pt-BR')
-    ]);
-    const combined = [...(tvData.results || []), ...(movieData.results || [])];
-    // Ordena por popularity decrescente (se existir) ou mantém ordem
+    const tvData = await cachedCallTMDB('trending/tv/week', {}, 'pt-BR');
+    const combined = [...(tvData.results || [])];
     combined.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     const filtered = filterNotInCatalog(combined, catalogItems);
     return filtered.slice(0, limit).map(normalizeTrendingItem);
@@ -106,10 +102,9 @@ export async function getTrendingToSuggest(catalogItems, limit = 6) {
 }
 
 /**
- * Normaliza um item de trending para uso no card da Home
+ * Normaliza um item de trending para uso no card da Home (apenas tv)
  */
 export function normalizeTrendingItem(raw) {
-  const isMovie = raw.media_type === 'movie' || !!raw.title;
   const title = raw.name || raw.title || 'Sem título';
   const posterPath = raw.poster_path || null;
   const posterUrl = posterPath ? `https://image.tmdb.org/t/p/w342${posterPath}` : '';
@@ -117,7 +112,7 @@ export function normalizeTrendingItem(raw) {
   return {
     id: raw.id,
     title,
-    mediaType: isMovie ? 'movie' : 'tv',
+    mediaType: 'tv',
     posterUrl,
     posterPath,
     voteAverage: raw.vote_average || 0,

@@ -46,7 +46,7 @@ export function createCardElement(item, variant = null, items, onCardClick) {
   card.dataset.index = realIndex;
   card.dataset.itemId = item.id;
   card.dataset.tmdbId = item.tmdb_id || '';
-  card.dataset.mediaType = item.tipo === 'filme' ? 'movie' : 'tv';
+  card.dataset.mediaType = 'tv';
   card.setAttribute('role', 'listitem');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);

@@ -301,7 +301,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
     grid.style.display = '';
     grid.innerHTML = '';
     trending.forEach((t) => {
-      const subtitle = t.date ? formatAirDate(t.date) : (t.mediaType === 'movie' ? 'Filme' : 'Série');
+      const subtitle = t.date ? formatAirDate(t.date) : 'Série';
       const actionBtn = `<button class="home-card-add" aria-label="Adicionar ${escapeHTML(t.title)}"><i class="fas fa-plus"></i></button>`;
       const card = createHomeCard({
         posterUrl: t.posterUrl,

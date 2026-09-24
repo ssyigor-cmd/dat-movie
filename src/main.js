@@ -1041,14 +1041,19 @@ async function openAddModalWithTmdbResult(raw) {
         else if (isAnimation) detectedTipo = 'animacao';
         tipo.value = detectedTipo;
       } else {
-        details = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
-        state.addSeasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
+        // Sistema é apenas para mídias seriadas - fallback trata como tv
+        details = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+        const seasons = details.seasons || [];
+        const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
+        const maxEpByTemp = {};
+        seasons.forEach(s => { if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0; });
+        state.addSeasonLimits = { maxTemp, maxEpByTemp };
         if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
         if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
         if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
         if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
-        tipo.value = 'filme';
-        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'none';
+        tipo.value = 'serie';
+        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'flex';
         syncAddProgressPanel();
       }
       let backdropUrl = '';
@@ -1324,8 +1329,8 @@ async function addItem(e) {
           state.cachedShowDetails = { totalEpisodes: 1, seasons: [{ season_number: 1, episode_count: 1 }] };
         }
       } else {
-        const data = await callTMDB('search/multi', { query: nomeVal }, 'pt-BR');
-        const result = data.results?.find(r => r.media_type === 'tv' || r.media_type === 'movie') || data.results?.[0];
+        const data = await callTMDB('search/tv', { query: nomeVal }, 'pt-BR');
+        const result = data.results?.find(r => r.media_type === 'tv') || data.results?.[0];
         if (result) {
           const tvData = await callTMDB(`tv/${result.id}`, {}, 'pt-BR');
           state.cachedShowDetails = { totalEpisodes: tvData.number_of_episodes || 0, seasons: tvData.seasons || [] };
@@ -1950,10 +1955,10 @@ if (pesquisaInput) {
 
     pesquisaTimeout = setTimeout(async () => {
       try {
-        const data = await callTMDB('search/multi', { query: q }, 'pt-BR');
+        const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
         pesquisaLoading.style.display = 'none';
 
-        const filteredResults = (data.results || []).filter(r => r.media_type === 'tv' || r.media_type === 'movie');
+        const filteredResults = (data.results || []).filter(r => r.media_type === 'tv');
         if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
@@ -1965,7 +1970,7 @@ if (pesquisaInput) {
           const name = res.name || res.title;
           if (!name) return;
           const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
-          const mediaType = res.media_type === 'movie' ? 'Filme' : 'Série';
+          const mediaType = 'Serie';
           const poster = res.poster_path || '';
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);

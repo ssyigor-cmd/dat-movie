@@ -38,7 +38,7 @@ END $$;
 -- Adicionar nova constraint mais flexível (aceita NULL e tipos adicionais)
 ALTER TABLE items 
 ADD CONSTRAINT items_tipo_check 
-CHECK (tipo IS NULL OR tipo IN ('anime', 'animacao', 'serie', 'filme'));
+CHECK (tipo IS NULL OR tipo IN ('anime', 'animacao', 'serie'));
 
 -- 4. Criar índices para performance
 CREATE INDEX IF NOT EXISTS idx_user_lists_user_id ON user_lists(user_id);

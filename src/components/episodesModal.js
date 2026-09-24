@@ -65,9 +65,9 @@ export function setupEpisodesModal(elements, callbacks) {
     try {
       let tmdbId = item.tmdb_id;
       if (!tmdbId) {
-        const searchData = await callTMDB('search/multi', { query: item.nome }, 'pt-BR');
+        const searchData = await callTMDB('search/tv', { query: item.nome }, 'pt-BR');
         const result = searchData.results?.[0];
-        if (result && (result.media_type === 'tv' || result.media_type === 'movie')) {
+        if (result) {
           tmdbId = result.id;
           item.tmdb_id = tmdbId;
           await onUpdateItem(item.id, { tmdb_id: tmdbId });
@@ -77,36 +77,11 @@ export function setupEpisodesModal(elements, callbacks) {
       }
 
       let seriesDetails;
-      let mediaType = item.tipo === 'filme' ? 'movie' : 'tv';
-      
       try {
-        if (mediaType === 'tv' || !mediaType) {
-          try {
-            seriesDetails = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-          } catch (tvError) {
-            console.warn('Falha ao buscar como TV, tentando como filme:', tvError);
-            const movieDetails = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
-            if (movieDetails) {
-              episodesContent.innerHTML = `<div class="no-episodes"><i class="fas fa-film" style="font-size: 2rem; margin-bottom: 8px; opacity: 0.5; color: var(--text-muted);"></i><p>Este título é um filme único e não possui episódios ou temporadas.</p></div>`;
-              episodesLoading.style.display = 'none';
-              episodesContent.style.display = 'block';
-              return;
-            }
-            throw tvError;
-          }
-        } else if (mediaType === 'movie') {
-          const movieDetails = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
-          if (movieDetails) {
-            episodesContent.innerHTML = `<div class="no-episodes"><i class="fas fa-film" style="font-size: 2rem; margin-bottom: 8px; opacity: 0.5; color: var(--text-muted);"></i><p>Este título é um filme único e não possui episódios ou temporadas.</p></div>`;
-            episodesLoading.style.display = 'none';
-            episodesContent.style.display = 'block';
-            return;
-          }
-          throw new Error('Não foi possível encontrar este filme no TMDB.');
-        }
+        seriesDetails = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
       } catch (err) {
         console.error('Erro ao buscar detalhes:', err);
-        episodesContent.innerHTML = `<div class="no-episodes"><p>Erro ao carregar episódios. Este título pode ser um filme único.</p></div>`;
+        episodesContent.innerHTML = `<div class="no-episodes"><p>Erro ao carregar episódios.</p></div>`;
         episodesLoading.style.display = 'none';
         episodesContent.style.display = 'block';
         return;

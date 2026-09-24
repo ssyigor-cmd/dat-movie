@@ -215,7 +215,7 @@ export function setupDetailModal(elements, callbacks) {
   async function fetchFullDetailsAndPopulate(item) {
     try {
       let tmdbId = item.tmdb_id;
-      let mediaType = item.tipo === 'filme' ? 'movie' : 'tv';
+      let mediaType = 'tv';
       let detailsData = null;
 
       if (!tmdbId) {
@@ -223,7 +223,7 @@ export function setupDetailModal(elements, callbacks) {
         const result = searchData.results?.[0];
         if (result) {
           tmdbId = result.id;
-          mediaType = result.media_type || (item.tipo === 'filme' ? 'movie' : 'tv');
+          mediaType = result.media_type || ('tv');
           if (!item.tmdb_id) {
             item.tmdb_id = tmdbId;
             await onUpdateItem(item.id, { tmdb_id: tmdbId });
@@ -232,22 +232,10 @@ export function setupDetailModal(elements, callbacks) {
       }
 
       if (tmdbId) {
-        if (mediaType === 'tv' || !mediaType) {
-          try {
-            detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-          } catch (tvError) {
-            console.warn('Falha ao buscar como TV, tentando como filme:', tvError);
-            detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
-            mediaType = 'movie';
-          }
-        } else if (mediaType === 'movie') {
-          try {
-            detailsData = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
-          } catch (movieError) {
-            console.warn('Falha ao buscar como filme, tentando como TV:', movieError);
-            detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-            mediaType = 'tv';
-          }
+        try {
+          detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
+        } catch (e) {
+          console.warn('Falha ao buscar TV:', e);
         }
       }
 
