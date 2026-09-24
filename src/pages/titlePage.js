@@ -20,8 +20,8 @@ function renderTitlePage(item, container) {
     <button id="titleBack" class="tool-btn" style="margin-bottom:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
     <div class="title-page-header">
       <div class="title-page-poster" style="position:relative;">
-        <img id="titlePosterImg" src="${item.imagem || ''}" alt="${item.nome}" style="width:100%; max-width:320px; aspect-ratio:2/3; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
-        <div id="titlePosterPlaceholder" style="width:100%; max-width:320px; aspect-ratio:2/3; background:var(--bg-secondary); border-radius:8px; display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; color:var(--text-muted);"><i class="fas fa-image" style="font-size:2rem;"></i></div>
+        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:100%; max-width:320px; aspect-ratio:2/3; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/320x480?text=Sem+poster'; this.onerror=null;" />
+        <div id="titlePosterPlaceholder" style="display:none;"></div>
         ${item.tier ? `<div class="tier-stamp ${tierClass}" style="position:absolute; top:8px; right:8px;">${item.tier}</div>` : ''}
       </div>
       <div class="title-page-info">
@@ -113,15 +113,12 @@ function renderTitlePage(item, container) {
       if (meta) meta.innerHTML = `<span>${details.first_air_date?.slice(0,4) || ''} - ${details.last_air_date?.slice(0,4) || ''}</span><span>${details.status || ''}</span><span>${(details.genres||[]).map(g=>g.name).join(', ')}</span>`;
       // Poster fallback se item.imagem vazio
       const posterImg = container.querySelector('#titlePosterImg');
-      const placeholder = container.querySelector('#titlePosterPlaceholder');
-      if (posterImg && !item.imagem && details.poster_path) {
+      if (posterImg && details.poster_path) {
         posterImg.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
         posterImg.style.display = 'block';
-        if (placeholder) placeholder.style.display = 'none';
-      } else if (posterImg && details.backdrop_path && !posterImg.src) {
+      } else if (posterImg && details.backdrop_path) {
         posterImg.src = `https://image.tmdb.org/t/p/w500${details.backdrop_path}`;
         posterImg.style.display = 'block';
-        if (placeholder) placeholder.style.display = 'none';
       }
       const logoWrap = container.querySelector('#titleLogoWrap');
       const logoImg = container.querySelector('#titleLogoImg');
