@@ -19,8 +19,9 @@ function renderTitlePage(item, container) {
   container.innerHTML = `
     <button id="titleBack" class="tool-btn" style="margin-bottom:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
     <div class="title-page-header">
-      <div class="title-page-poster" style="position:relative;">
-        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:100%; max-width:320px; aspect-ratio:2/3; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/320x480?text=Sem+poster'; this.onerror=null;" />
+      <div class="title-page-poster" style="position:relative; display:flex; gap:8px; max-width:640px;">
+        <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:30%; aspect-ratio:2/3; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
+        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:70%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/640x360?text=Sem+poster'; this.onerror=null;" />
         <div id="titlePosterPlaceholder" style="display:none;"></div>
         ${item.tier ? `<div class="tier-stamp ${tierClass}" style="position:absolute; top:8px; right:8px;">${item.tier}</div>` : ''}
       </div>
@@ -113,10 +114,17 @@ function renderTitlePage(item, container) {
       if (meta) meta.innerHTML = `<span>${details.first_air_date?.slice(0,4) || ''} - ${details.last_air_date?.slice(0,4) || ''}</span><span>${details.status || ''}</span><span>${(details.genres||[]).map(g=>g.name).join(', ')}</span>`;
       // Poster fallback se item.imagem vazio
       const posterImg = container.querySelector('#titlePosterImg');
-      if (posterImg && details.poster_path) {
-        posterImg.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
-        posterImg.style.display = 'block';
-      } else if (posterImg && details.backdrop_path) {
+      const posterCard = container.querySelector('#titlePosterImgCard');
+      if (details.poster_path) {
+        if (posterCard) { posterCard.src = `https://image.tmdb.org/t/p/w342${details.poster_path}`; posterCard.style.display = 'block'; }
+        if (posterImg && details.backdrop_path) {
+          posterImg.src = `https://image.tmdb.org/t/p/w780${details.backdrop_path}`;
+          posterImg.style.display = 'block';
+        } else if (posterImg) {
+          posterImg.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
+          posterImg.style.display = 'block';
+        }
+      } else if (details.backdrop_path && posterImg) {
         posterImg.src = `https://image.tmdb.org/t/p/w500${details.backdrop_path}`;
         posterImg.style.display = 'block';
       }
