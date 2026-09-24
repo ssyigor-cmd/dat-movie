@@ -3036,7 +3036,10 @@ a:focus-visible,
   scrollbar-color: rgba(255,255,255,0.15) transparent;
   -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
   mask-image: linear-gradient(to right, black 90%, transparent 100%);
+  width: 100%;
+  scroll-snap-type: x proximity;
 }
+.home-card { scroll-snap-align: start; }
 .home-h-scroll::-webkit-scrollbar { height: 6px; }
 .home-h-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 .home-continue-grid {
@@ -3176,6 +3179,9 @@ a:focus-visible,
 .skeleton-line.short { width: 60%; }
 @keyframes skeletonShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .home-error { color: var(--text-muted); font-size: 0.8rem; padding: 8px; text-align: center; }
+
+.home-categories { display: flex; flex-direction: column; gap: 28px; }
+.home-categories .home-section { gap: 12px; }
 
 @media (max-width: 768px) {
   .home-stats-grid { grid-template-columns: repeat(2, 1fr); }

@@ -3,7 +3,7 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount } from '../lib/trendingApi.js';
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -30,8 +30,9 @@ export function buildGreeting(user) {
  * @param {number} count
  * @returns {string} HTML
  */
-export function skeletonHTML(count = 6) {
-  return Array.from({ length: count }).map(() => `
+export function skeletonHTML(count = null) {
+  const c = count ?? getFullWidthCount();
+  return Array.from({ length: c }).map(() => `
     <div class="home-skeleton-card" aria-hidden="true">
       <div class="skeleton-img"></div>
       <div class="skeleton-line short"></div>
@@ -107,17 +108,23 @@ export function renderHomeBase(container, context) {
       </div>
     </section>
 
+    <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
+      <h2 class="home-section-title" id="homeRecommendTitle"><i class="fas fa-heart"></i> Recomendações</h2>
+      <div class="home-h-scroll" id="homeRecommendGrid"></div>
+      <div class="home-skeleton" id="homeRecommendSkeleton">${skeletonHTML()}</div>
+    </section>
+
     <section class="home-section" id="homeNewEpisodesSection" aria-label="Novidades da semana" style="display:none;">
       <h2 class="home-section-title"><i class="fas fa-sparkles"></i> Novos Episódios</h2>
       <div class="home-h-scroll" id="homeNewEpisodesGrid"></div>
-      <div class="home-skeleton" id="homeNewEpisodesSkeleton">${skeletonHTML(6)}</div>
+      <div class="home-skeleton" id="homeNewEpisodesSkeleton">${skeletonHTML()}</div>
       <div class="home-error" id="homeNewEpisodesError" style="display:none;"></div>
     </section>
 
     <section class="home-section" id="homeTrendingSection" aria-label="Em alta" style="display:none;">
       <h2 class="home-section-title"><i class="fas fa-fire"></i> Em Alta</h2>
       <div class="home-h-scroll" id="homeTrendingGrid"></div>
-      <div class="home-skeleton" id="homeTrendingSkeleton">${skeletonHTML(6)}</div>
+      <div class="home-skeleton" id="homeTrendingSkeleton">${skeletonHTML()}</div>
       <div class="home-error" id="homeTrendingError" style="display:none;"></div>
     </section>
 
@@ -125,6 +132,8 @@ export function renderHomeBase(container, context) {
       <h2 class="home-section-title"><i class="fas fa-star"></i> Seus Favoritos</h2>
       <div class="home-h-scroll" id="homeFavoritesGrid"></div>
     </section>
+
+    <section class="home-categories" id="homeCategories" aria-label="Categorias"></section>
   `;
 
   // Bind add button
@@ -200,7 +209,7 @@ export function renderHomeFavorites(container, items, onCardClick) {
   const section = container.querySelector('#homeFavoritesSection');
   const grid = container.querySelector('#homeFavoritesGrid');
   if (!section || !grid) return;
-  const favs = getFavorites(items, 6);
+  const favs = getFavorites(items);
   if (favs.length === 0) {
     section.style.display = 'none';
     return;
@@ -245,7 +254,7 @@ export async function loadAndRenderNewEpisodes(container, items, onCardClick) {
   if (errEl) errEl.style.display = 'none';
 
   try {
-    const novidades = await getNewEpisodes(items, 7, new Date(), 6);
+    const novidades = await getNewEpisodes(items, 7, new Date());
     skel.style.display = 'none';
     if (!novidades || novidades.length === 0) {
       section.style.display = 'none';
@@ -292,7 +301,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
   if (errEl) errEl.style.display = 'none';
 
   try {
-    const trending = await getTrendingToSuggest(items, 6);
+    const trending = await getTrendingToSuggest(items);
     skel.style.display = 'none';
     if (!trending || trending.length === 0) {
       section.style.display = 'none';
@@ -302,12 +311,10 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
     grid.innerHTML = '';
     trending.forEach((t) => {
       const subtitle = t.date ? formatAirDate(t.date) : 'Série';
-      const actionBtn = `<button class="home-card-add" aria-label="Adicionar ${escapeHTML(t.title)}"><i class="fas fa-plus"></i></button>`;
       const card = createHomeCard({
         posterUrl: t.posterUrl,
         title: t.title,
         subtitle,
-        actionBtnHtml: actionBtn,
         onClick: () => onAddFromTrending && onAddFromTrending(t)
       });
       grid.appendChild(card);
@@ -318,6 +325,82 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
     // Spec: se busca falhar ocultar a seção
     section.style.display = 'none';
     console.warn('Erro trending:', e);
+  }
+}
+
+export async function loadAndRenderRecommendations(container, items, onCardClick, onAddFromTrending) {
+  const section = container.querySelector('#homeRecommendSection');
+  const grid = container.querySelector('#homeRecommendGrid');
+  const skel = container.querySelector('#homeRecommendSkeleton');
+  const titleEl = container.querySelector('#homeRecommendTitle');
+  if (!section || !grid || !skel) return;
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+  try {
+    const data = await getRecommendationsForUser(items);
+    skel.style.display = 'none';
+    if (!data || !data.recommendations || data.recommendations.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    if (titleEl) titleEl.innerHTML = `<i class="fas fa-heart"></i> Se você gostou de "${escapeHTML(data.base.nome)}" vai gostar disso`;
+    grid.style.display = '';
+    grid.innerHTML = '';
+    data.recommendations.forEach((t) => {
+      const subtitle = t.date ? formatAirDate(t.date) : 'Série';
+      const card = createHomeCard({
+        posterUrl: t.posterUrl,
+        title: t.title,
+        subtitle,
+        onClick: () => onAddFromTrending && onAddFromTrending(t)
+      });
+      grid.appendChild(card);
+    });
+    animateCards(grid);
+  } catch (e) {
+    skel.style.display = 'none';
+    section.style.display = 'none';
+  }
+}
+
+export async function loadAndRenderCategories(container, items, onAddFromTrending) {
+  const wrap = container.querySelector('#homeCategories');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (const cat of CATEGORIES) {
+    const section = document.createElement('section');
+    section.className = 'home-section';
+    section.innerHTML = `
+      <h2 class="home-section-title"><i class="fas ${cat.icon}"></i> ${escapeHTML(cat.name)}</h2>
+      <div class="home-h-scroll" id="cat-${cat.id}"></div>
+      <div class="home-skeleton" id="cat-skel-${cat.id}">${skeletonHTML()}</div>
+    `;
+    wrap.appendChild(section);
+    const grid = section.querySelector(`#cat-${cat.id}`);
+    const skel = section.querySelector(`#cat-skel-${cat.id}`);
+    try {
+      const titles = await getTitlesByGenre(cat.id, items);
+      skel.style.display = 'none';
+      if (!titles || titles.length === 0) {
+        section.style.display = 'none';
+        continue;
+      }
+      grid.innerHTML = '';
+      titles.forEach((t) => {
+        const card = createHomeCard({
+          posterUrl: t.posterUrl,
+          title: t.title,
+          subtitle: t.date ? formatAirDate(t.date) : 'Série',
+          onClick: () => onAddFromTrending && onAddFromTrending(t)
+        });
+        grid.appendChild(card);
+      });
+      animateCards(grid);
+    } catch {
+      skel.style.display = 'none';
+      section.style.display = 'none';
+    }
   }
 }
 
@@ -349,4 +432,6 @@ export async function renderHome(container, context) {
   // Async sections - don't block
   loadAndRenderNewEpisodes(container, items, context.onCardClick);
   loadAndRenderTrending(container, items, context.onAddFromTrending);
+  loadAndRenderRecommendations(container, items, context.onCardClick, context.onAddFromTrending);
+  loadAndRenderCategories(container, items, context.onAddFromTrending);
 }

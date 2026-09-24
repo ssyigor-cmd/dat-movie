@@ -88,16 +88,72 @@ export function formatAirDate(dateStr) {
  * @param {number} limit - máximo de itens
  * @returns {Promise<Array>} lista de até limit itens com poster, título, etc
  */
-export async function getTrendingToSuggest(catalogItems, limit = 6) {
+export function getFullWidthCount() {
+  const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  if (w < 640) return 6;
+  if (w < 1024) return 8;
+  if (w < 1440) return 10;
+  if (w < 1920) return 12;
+  return 14;
+}
+
+export async function getTrendingToSuggest(catalogItems, limit = null) {
+  const lim = limit ?? getFullWidthCount();
   try {
     const tvData = await cachedCallTMDB('trending/tv/week', {}, 'pt-BR');
     const combined = [...(tvData.results || [])];
     combined.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     const filtered = filterNotInCatalog(combined, catalogItems);
-    return filtered.slice(0, limit).map(normalizeTrendingItem);
+    return filtered.slice(0, lim).map(normalizeTrendingItem);
   } catch (e) {
     console.warn('Erro ao buscar trending:', e);
     throw e;
+  }
+}
+
+export const CATEGORIES = [
+  { id: 10759, name: 'Ação', icon: 'fa-bolt' },
+  { id: 16, name: 'Animação', icon: 'fa-palette' },
+  { id: 35, name: 'Comédia', icon: 'fa-laugh' },
+  { id: 18, name: 'Drama', icon: 'fa-theater-masks' },
+  { id: 27, name: 'Terror', icon: 'fa-ghost' },
+  { id: 10765, name: 'Ficção Científica', icon: 'fa-rocket' },
+];
+
+export async function getTitlesByGenre(genreId, catalogItems = [], limit = null) {
+  const lim = limit ?? getFullWidthCount();
+  try {
+    const data = await cachedCallTMDB('discover/tv', { with_genres: String(genreId), sort_by: 'popularity.desc', page: 1 }, 'pt-BR');
+    const results = data.results || [];
+    const filtered = filterNotInCatalog(results, catalogItems);
+    const slice = filtered.slice(0, lim);
+    return slice.map(normalizeTrendingItem);
+  } catch (e) {
+    console.warn('Erro ao buscar categoria', genreId, e);
+    throw e;
+  }
+}
+
+export async function getRecommendationsForUser(catalogItems, limit = null) {
+  const lim = limit ?? getFullWidthCount();
+  if (!Array.isArray(catalogItems) || catalogItems.length === 0) return null;
+  const base = [...catalogItems].filter(i => i.tier === 'S+' || i.tier === 'S').sort((a,b) => (a.tier === 'S+' && b.tier !== 'S+' ? -1 : 1))[0] || [...catalogItems].filter(i => i.status === 'assistindo').sort((a,b) => new Date(b.dataAtualizacao||0)-new Date(a.dataAtualizacao||0))[0] || catalogItems[0];
+  if (!base || !base.tmdb_id) return null;
+  try {
+    let data;
+    try {
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR');
+    } catch {
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR');
+    }
+    const results = data.results || [];
+    const filtered = filterNotInCatalog(results, catalogItems);
+    const recs = filtered.slice(0, lim).map(normalizeTrendingItem);
+    if (recs.length === 0) return null;
+    return { base, recommendations: recs };
+  } catch (e) {
+    console.warn('Erro recomendações', e);
+    return null;
   }
 }
 
@@ -148,7 +204,8 @@ export function isWithin7DaysWindow(dateStr, days = 7, nowRef = new Date()) {
   return diffDays >= -days && diffDays <= days;
 }
 
-export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = 6) {
+export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = null) {
+  const lim = limit ?? getFullWidthCount();
   const candidates = (catalogItems || []).filter((i) => i.tmdb_id && i.status === 'assistindo' && (i.tipo === 'serie' || i.tipo === 'anime' || i.tipo === 'animacao' || !i.tipo));
   if (candidates.length === 0) return [];
 
@@ -186,13 +243,13 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
     );
     for (const r of batchResults) {
       if (r.status === 'fulfilled' && r.value) results.push(r.value);
-      if (results.length >= limit) break;
+      if (results.length >= lim) break;
     }
-    if (results.length >= limit) break;
+    if (results.length >= lim) break;
   }
   // Ordena por air_date mais recente primeiro
   results.sort((a, b) => new Date(b.airDate) - new Date(a.airDate));
-  return results.slice(0, limit);
+  return results.slice(0, lim);
 }
 
 /**
@@ -201,7 +258,8 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
  * @param {number} limit
  * @returns {Array}
  */
-export function getFavorites(catalogItems, limit = 6) {
+export function getFavorites(catalogItems, limit = null) {
+  const lim = limit ?? getFullWidthCount();
   if (!Array.isArray(catalogItems)) return [];
   const favs = catalogItems.filter((i) => i.tier === 'S+' || i.tier === 'S');
   favs.sort((a, b) => {
@@ -213,7 +271,7 @@ export function getFavorites(catalogItems, limit = 6) {
     const db = new Date(b.dataAtualizacao || b.dataCriacao || 0).getTime();
     return db - da;
   });
-  return favs.slice(0, limit);
+  return favs.slice(0, lim);
 }
 
 /**
