@@ -16,7 +16,7 @@ function renderTitlePage(item, container) {
   container.innerHTML = `
     <button id="titleBack" class="tool-btn" style="margin:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
     <div style="max-width:1100px; margin:0 auto; border:1px solid var(--border); display:grid; grid-template-columns: 340px 1fr; min-height:520px; background:var(--bg-primary); position:relative;">
-      <div id="titleLogoWrap" style="display:none; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; pointer-events:none; background:rgba(0,0,0,0.15);"><img id="titleLogoImg" src="" alt="Logo" style="max-width:55%; max-height:140px; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.9));" /></div>
+      <div id="titleLogoWrap" style="display:none; position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:5; pointer-events:none;"><img id="titleLogoImg" src="" alt="Logo" style="max-width:520px; max-height:110px; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.9));" /></div>
       <!-- ESQUERDA: Imagem Vertical -->
       <div style="border-right:1px solid var(--border); display:flex; flex-direction:column; position:relative;">
         <div style="display:flex; justify-content:space-between; padding:8px 10px; font-size:0.7rem; font-weight:600; border-bottom:1px solid var(--border);">
