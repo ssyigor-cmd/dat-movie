@@ -19,9 +19,9 @@ function renderTitlePage(item, container) {
   container.innerHTML = `
     <button id="titleBack" class="tool-btn" style="margin-bottom:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
     <div class="title-page-header">
-      <div class="title-page-poster" style="position:relative; display:flex; gap:8px; max-width:640px;">
-        <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:30%; aspect-ratio:2/3; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
-        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:70%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/640x360?text=Sem+poster'; this.onerror=null;" />
+      <div class="title-page-poster" style="position:relative; display:flex; gap:8px; max-width:640px; background:var(--bg-primary);">
+        <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:30%; aspect-ratio:2/3; object-fit:contain; border-radius:8px; background:var(--bg-secondary); display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
+        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:70%; aspect-ratio:16/9; object-fit:contain; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/640x360?text=Sem+poster'; this.onerror=null;" />
         <div id="titlePosterPlaceholder" style="display:none;"></div>
         ${item.tier ? `<div class="tier-stamp ${tierClass}" style="position:absolute; top:8px; right:8px;">${item.tier}</div>` : ''}
       </div>
