@@ -17,27 +17,56 @@ function renderTitlePage(item, container) {
   const tierClass = item.tier ? getTierClass(item.tier) : '';
   const progress = calcularProgresso(item);
   container.innerHTML = `
-    <button id="titleBack" class="tool-btn" style="margin-bottom:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
-    <div class="title-page-header">
-      <div class="title-page-poster" style="position:relative; display:flex; gap:8px; max-width:640px; background:var(--bg-primary);">
-        <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:30%; aspect-ratio:2/3; object-fit:contain; border-radius:8px; background:var(--bg-secondary); display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
-        <img id="titlePosterImg" src="${item.imagem || 'https://placehold.co/320x480?text=Sem+poster'}" alt="${item.nome}" style="width:70%; aspect-ratio:16/9; object-fit:contain; border-radius:8px; background:var(--bg-secondary); display:block;" onerror="this.src='https://placehold.co/640x360?text=Sem+poster'; this.onerror=null;" />
-        <div id="titlePosterPlaceholder" style="display:none;"></div>
-        ${item.tier ? `<div class="tier-stamp ${tierClass}" style="position:absolute; top:8px; right:8px;">${item.tier}</div>` : ''}
-      </div>
-      <div class="title-page-info">
-        <div id="titleLogoWrap" style="display:none; margin-bottom:12px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:60px; max-width:100%; object-fit:contain;" /></div>
-        <h1 id="titleName" style="font-family:var(--font-display); font-size:1.8rem;">${item.nome} ${item.ano ? `(${item.ano})` : ''}</h1>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin:8px 0;">${item.tipo || 'serie'} • T${item.temporada} E${String(item.episodio).padStart(2,'0')} • ${progress}%</p>
-        <div class="progress-wrap" style="max-width:320px;"><div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div><span class="progress-pct">${progress}%</span></div>
-        <div id="titlePageStatusBar" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="dm-status-btn ${item.status==='assistindo'?'active':''}" data-status="assistindo">Assistindo</button>
-          <button class="dm-status-btn ${item.status==='concluido'?'active':''}" data-status="concluido">Concluído</button>
-          <button class="dm-status-btn ${item.status==='pausado'?'active':''}" data-status="pausado">Pausado</button>
-          <button class="dm-status-btn ${item.status==='planejado'?'active':''}" data-status="planejado">Planejado</button>
+    <button id="titleBack" class="tool-btn" style="margin:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
+    <div class="title-hero" id="titleHero" style="position:relative; height:58vh; min-height:380px; max-height:520px; background:var(--bg-secondary); overflow:hidden; display:flex; align-items:flex-end;">
+      <img id="titleBackdrop" src="" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;" />
+      <div style="position:absolute; inset:0; background:linear-gradient(to top, var(--bg-primary) 0%, rgba(10,10,10,0.6) 50%, transparent 100%);"></div>
+      <div style="position:absolute; inset:0; background:linear-gradient(to top, var(--bg-primary) 20%, transparent 70%);"></div>
+      <div style="position:relative; z-index:1; display:flex; gap:24px; align-items:flex-end; width:100%; max-width:1100px; margin:0 auto; padding:24px;">
+        <div style="position:relative; flex-shrink:0; box-shadow:0 8px 32px rgba(0,0,0,0.6); border-radius:8px; overflow:hidden;">
+          <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:180px; aspect-ratio:2/3; object-fit:cover; display:${item.imagem ? 'block' : 'none'}; background:var(--bg-secondary);" onerror="this.style.display='none'" />
+          ${item.tier ? `<div class="tier-stamp ${tierClass}" style="position:absolute; top:0; right:6px; width:22px; height:28px; font-size:0.52rem;">${item.tier}</div>` : ''}
         </div>
-        <div style="margin-top:12px; display:flex; gap:8px;">
-          <select id="titlePageTier" style="padding:6px 10px; border-radius:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border);">
+        <div style="flex:1; min-width:0; padding-bottom:8px;">
+          <div id="titleLogoWrap" style="display:none; margin-bottom:12px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:72px; max-width:420px; object-fit:contain; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.8));" /></div>
+          <h1 id="titleName" style="font-family:var(--font-display); font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; line-height:1.1; text-shadow:0 2px 12px rgba(0,0,0,0.8);">${item.nome} ${item.ano ? `<span style="font-weight:400; opacity:0.7;">(${item.ano})</span>` : ''}</h1>
+          <div id="titleMeta" style="margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; font-size:0.8rem; color:var(--text-secondary); text-shadow:0 1px 4px rgba(0,0,0,0.8);"></div>
+          <p id="titleSynopsis" style="margin-top:12px; color:var(--text-secondary); font-size:0.88rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; text-shadow:0 1px 4px rgba(0,0,0,0.6);"></p>
+        </div>
+      </div>
+    </div>
+    <div class="title-controls" style="background:var(--bg-elevated); border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:0; position:sticky; top:0; z-index:5;">
+      <div class="episode-progress-panel" style="border:none; border-radius:0; box-shadow:none; max-width:1100px; margin:0 auto; width:100%;">
+        <div class="epp-status" style="flex:0 0 10%; max-width:10%;">
+          <span class="epp-season-label">Status</span>
+          <div id="titlePageStatusBar" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+            <button class="dm-status-btn ${item.status==='assistindo'?'active':''}" data-status="assistindo" style="width:100%; justify-content:center;">Assistindo</button>
+            <button class="dm-status-btn ${item.status==='concluido'?'active':''}" data-status="concluido" style="width:100%; justify-content:center;">Concluído</button>
+            <button class="dm-status-btn ${item.status==='pausado'?'active':''}" data-status="pausado" style="width:100%; justify-content:center;">Pausado</button>
+            <button class="dm-status-btn ${item.status==='planejado'?'active':''}" data-status="planejado" style="width:100%; justify-content:center;">Planejado</button>
+          </div>
+        </div>
+        <div class="epp-divider-h"></div>
+        <div class="epp-season" style="flex:0 0 10%; max-width:10%;">
+          <span class="epp-season-label">Temporada</span>
+          <div class="epp-season-info"><span class="epp-season-val"><span id="titleTemporadaDisplay">${String(item.temporada||1).padStart(2,'0')}</span></span><span class="epp-season-text">/</span><span class="epp-season-max">${String(item.totalEpisodios ? Math.max(...Object.keys(item.seasonEpisodesMap||{}).map(Number).filter(n=>n>0)) || 1 : 1).padStart(2,'0')}</span></div>
+          <div class="epp-season-controls"><button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1">-</button><button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="1">+</button></div>
+        </div>
+        <div class="epp-divider-h"></div>
+        <div class="epp-episode" style="flex:0 0 10%; max-width:10%;">
+          <span class="epp-episode-label">Episódio</span>
+          <div class="epp-episode-info"><span class="epp-ep-badge"><span id="titleEpisodioDisplay">${String(item.episodio||0).padStart(2,'0')}</span></span><span class="epp-season-text">/</span><span class="epp-max">${String(item.totalEpisodios||1).padStart(2,'0')}</span></div>
+          <div class="epp-episode-controls"><button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1">-</button><button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="1">+</button></div>
+        </div>
+        <div class="epp-divider-h"></div>
+        <div class="epp-episode-meta" style="flex:0 0 55%; max-width:55%;">
+          <div class="progress-wrap" style="width:100%;"><div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div><span class="progress-pct">${progress}%</span></div>
+          <p style="font-size:0.72rem; color:var(--text-muted); margin:0;">${item.tipo || 'serie'} • ${progress}% concluído</p>
+        </div>
+        <div class="epp-divider-h"></div>
+        <div class="epp-actions" style="flex:0 0 15%; max-width:15%;">
+          <span class="epp-episode-label">Ações</span>
+          <select id="titlePageTier" style="width:100%; padding:6px; border-radius:8px; background:var(--bg-elevated); color:var(--text-primary); border:1px solid var(--border); font-size:0.8rem;">
             <option value="" ${!item.tier?'selected':''}>Sem tier</option>
             <option value="S+" ${item.tier==='S+'?'selected':''}>S+</option>
             <option value="S" ${item.tier==='S'?'selected':''}>S</option>
@@ -46,34 +75,22 @@ function renderTitlePage(item, container) {
             <option value="C" ${item.tier==='C'?'selected':''}>C</option>
             <option value="D" ${item.tier==='D'?'selected':''}>D</option>
           </select>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1">-</button>
-            <span>T<span id="titleTemporadaDisplay">${String(item.temporada||1).padStart(2,'0')}</span></span>
-            <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="1">+</button>
-            <span style="margin-left:12px;">E<span id="titleEpisodioDisplay">${String(item.episodio||0).padStart(2,'0')}</span></span>
-            <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1">-</button>
-            <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="1">+</button>
-          </div>
+          <button id="titleSave" class="dm-btn dm-btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-save"></i> Salvar</button>
+          <button id="titleDelete" class="dm-btn dm-btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Remover</button>
         </div>
-        <div style="margin-top:16px; display:flex; gap:8px;">
-          <button id="titleSave" class="dm-btn dm-btn-primary"><i class="fas fa-save"></i> Salvar</button>
-          <button id="titleDelete" class="dm-btn dm-btn-danger"><i class="fas fa-trash"></i> Remover</button>
-        </div>
-        <div id="titleSynopsis" style="margin-top:16px; color:var(--text-secondary); font-size:0.85rem; line-height:1.6;"></div>
-        <div id="titleMeta" style="margin-top:12px; font-size:0.8rem; color:var(--text-muted); display:flex; gap:12px; flex-wrap:wrap;"></div>
       </div>
     </div>
-    <div id="titleEpisodes" style="margin-top:24px;"></div>
+    <div style="max-width:1100px; margin:24px auto; padding:0 24px;">
+      <div id="titleEpisodesList" style="display:grid; gap:12px;"></div>
+    </div>
   `;
   container.querySelector('#titleBack').addEventListener('click', () => onBack && onBack());
-  // Status
   container.querySelectorAll('#titlePageStatusBar .dm-status-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       container.querySelectorAll('#titlePageStatusBar .dm-status-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
     });
   });
-  // Steppers
   let curTemp = Number(item.temporada) || 1;
   let curEp = Number(item.episodio) || 0;
   container.querySelectorAll('.poster-stepper-btn').forEach(b => {
@@ -89,7 +106,6 @@ function renderTitlePage(item, container) {
       }
     });
   });
-  // Save
   container.querySelector('#titleSave').addEventListener('click', async () => {
     const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || item.status;
     const newTier = container.querySelector('#titlePageTier').value || null;
@@ -103,30 +119,23 @@ function renderTitlePage(item, container) {
     if (!confirm('Tem certeza que deseja remover este título?')) return;
     try { await onDelete(item.id); onBack(); } catch(e){ console.error(e); }
   });
-  // Load synopsis, meta, poster fallback e logo em paralelo
   (async () => {
     if (!item.tmdb_id) return;
     try {
       const details = await callTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR');
       const syn = container.querySelector('#titleSynopsis');
-      if (syn) syn.textContent = details.overview || 'Sinopse não disponível.';
+      // Synopsis já está no hero, não precisa repetir
       const meta = container.querySelector('#titleMeta');
-      if (meta) meta.innerHTML = `<span>${details.first_air_date?.slice(0,4) || ''} - ${details.last_air_date?.slice(0,4) || ''}</span><span>${details.status || ''}</span><span>${(details.genres||[]).map(g=>g.name).join(', ')}</span>`;
-      // Poster fallback se item.imagem vazio
-      const posterImg = container.querySelector('#titlePosterImg');
+      if (meta) meta.innerHTML = `<span>${details.first_air_date?.slice(0,4) || ''} • ${details.number_of_seasons} temp • ${details.number_of_episodes} eps</span><span>${(details.genres||[]).map(g=>g.name).join(' • ')}</span>`;
+      const backdrop = container.querySelector('#titleBackdrop');
+      if (backdrop && details.backdrop_path) {
+        backdrop.src = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
+        backdrop.style.display = 'block';
+      }
       const posterCard = container.querySelector('#titlePosterImgCard');
-      if (details.poster_path) {
-        if (posterCard) { posterCard.src = `https://image.tmdb.org/t/p/w342${details.poster_path}`; posterCard.style.display = 'block'; }
-        if (posterImg && details.backdrop_path) {
-          posterImg.src = `https://image.tmdb.org/t/p/w780${details.backdrop_path}`;
-          posterImg.style.display = 'block';
-        } else if (posterImg) {
-          posterImg.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
-          posterImg.style.display = 'block';
-        }
-      } else if (details.backdrop_path && posterImg) {
-        posterImg.src = `https://image.tmdb.org/t/p/w500${details.backdrop_path}`;
-        posterImg.style.display = 'block';
+      if (posterCard && details.poster_path) {
+        posterCard.src = `https://image.tmdb.org/t/p/w342${details.poster_path}`;
+        posterCard.style.display = 'block';
       }
       const logoWrap = container.querySelector('#titleLogoWrap');
       const logoImg = container.querySelector('#titleLogoImg');
