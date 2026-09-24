@@ -15,6 +15,7 @@ import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
+import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
 import { state } from './lib/state.js';
@@ -57,6 +58,7 @@ const authMessage = $('authMessage');
 const grid = $('grid');
 const gridSection = document.getElementById('gridSection');
 const searchView = document.getElementById('searchView');
+const titlePageEl = document.getElementById('titlePage');
 const pesquisaInput = document.getElementById('pesquisaInput');
 const pesquisaGrid = document.getElementById('pesquisaGrid');
 const pesquisaEmpty = document.getElementById('pesquisaEmpty');
@@ -308,6 +310,19 @@ async function loadItems() {
     state.items = data;
     await loadUserLists();
     render();
+    if (location.hash.startsWith('#/titulo/')) {
+      const id = location.hash.replace('#/titulo/', '');
+      const item = state.items.find(i => String(i.id) === String(id));
+      if (item) {
+        document.getElementById('homeSection').style.display = 'none';
+        document.getElementById('gridSection').style.display = 'none';
+        document.getElementById('searchView').style.display = 'none';
+        document.getElementById('continueSection').style.display = 'none';
+        const mh = document.querySelector('.main-header');
+        if (mh) mh.style.display = 'none';
+        showTitlePage(item, titlePageEl);
+      }
+    }
   } catch (error) {
     console.error('Erro ao carregar itens:', error);
     throw error;
@@ -833,9 +848,21 @@ function handleStepperUpdate(btn, modalType) {
 }
 
 // ========== CONFIGURAÇÃO DE COMPONENTES ==========
-// Cards
+// Cards - agora abre página em vez de modal
 const handleCardClick = (index) => {
-  detailModalAPI.open(index, state.items);
+  const item = state.items[index];
+  if (!item) return;
+  // Navega para página do título
+  history.pushState({ titleId: item.id }, '', `#/titulo/${item.id}`);
+  showTitlePage(item, titlePageEl);
+  // Esconde seções principais
+  if (typeof render === 'function') {
+    document.getElementById('homeSection').style.display = 'none';
+    document.getElementById('gridSection').style.display = 'none';
+    document.getElementById('searchView').style.display = 'none';
+    document.getElementById('continueSection').style.display = 'none';
+    document.querySelector('.main-header').style.display = 'none';
+  }
 };
 
 // Detail Modal
@@ -917,6 +944,36 @@ const episodesModalAPI = setupEpisodesModal({
   onUpdateItem: updateItemInSupabase,
   onToast: showToast
 });
+
+setupTitlePage({
+  onUpdateItem: updateItemInSupabase,
+  onDeleteItem: deleteItemFromSupabase,
+  onBack: () => {
+    history.pushState(null, '', location.pathname + location.search);
+    hideTitlePage(titlePageEl);
+    render();
+  }
+});
+
+// Roteamento: voltar do título
+window.addEventListener('popstate', () => {
+  if (location.hash.startsWith('#/titulo/')) {
+    const id = location.hash.replace('#/titulo/', '');
+    const item = state.items.find(i => String(i.id) === String(id));
+    if (item) showTitlePage(item, titlePageEl);
+  } else {
+    hideTitlePage(titlePageEl);
+    render();
+  }
+});
+// Abrir direto se URL já tem hash
+if (location.hash.startsWith('#/titulo/')) {
+  setTimeout(() => {
+    const id = location.hash.replace('#/titulo/', '');
+    const item = state.items.find(i => String(i.id) === String(id));
+    if (item) handleCardClick(state.items.indexOf(item));
+  }, 500);
+}
 
 // ========== HOME HELPERS ==========
 function handleHomeContinueAdd() {
