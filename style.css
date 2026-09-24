@@ -508,8 +508,8 @@ img { max-width: 100%; height: auto; display: block; }
   opacity: 0;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
   position: relative;
 }
 .modal-overlay.active .modal.modal-detail {

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -240,35 +240,6 @@
         <button class="modal-close" id="modalClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
       </header>
 
-      <!-- POSTER / IMAGE PREVIEW (dual: card left + backdrop right) -->
-      <div class="dm-poster-wrap" id="addPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
-        <div class="dm-poster-dual">
-          <img id="previewImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
-          <img id="previewImg" src="" alt="Pôster" role="img" aria-label="Pôster" style="display:none;" />
-        </div>
-        <span id="previewPlaceholder" class="add-placeholder" style="display:none;"><i class="fas fa-image"></i> Nenhuma imagem</span>
-        <div class="dm-poster-sinopse">
-          <div id="addSinopseLoading" class="form-loading" style="display:none;">
-            <i class="fas fa-spinner fa-spin"></i> Carregando...
-          </div>
-          <p id="addSinopse" class="dm-sinopse-text" aria-live="polite"></p>
-        </div>
-        <div id="addBlurBg" class="dm-poster-blur"></div>
-        <div class="poster-top-links">
-          <a href="#" target="_blank" id="addYoutubeLink" class="poster-icon-btn" title="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
-          <a href="#" target="_blank" id="addWikiLink" class="poster-icon-btn" title="Wikipedia" style="display:none;"><i class="fab fa-wikipedia-w"></i></a>
-          <a href="#" target="_blank" id="addImdbLink" class="poster-icon-btn" title="IMDb" style="display:none;"><i class="fas fa-star"></i></a>
-        </div>
-        <div class="poster-bottom-bar" id="addPosterBottomBar" style="display: none !important;">
-          <select id="status" style="display:none;" required>
-            <option value="assistindo">Assistindo</option>
-            <option value="concluido">Concluido</option>
-            <option value="pausado">Pausado</option>
-            <option value="planejado">Planejado</option>
-          </select>
-        </div>
-      </div>
-
       <!-- STEPPERS (below poster) -->
       <div class="poster-steppers-row" id="addPosterSteppersRow" style="display: none;">
         <div class="episode-progress-panel">
@@ -326,6 +297,37 @@
             </div>
           </div>
         </div>
+
+      <!-- POSTER / IMAGE PREVIEW (dual: card left + backdrop right) -->
+      <div class="dm-poster-wrap" id="addPosterWrap">
+        <div class="dm-poster-dual">
+          <img id="previewImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
+          <img id="previewImg" src="" alt="Pôster" role="img" aria-label="Pôster" style="display:none;" />
+        </div>
+        <span id="previewPlaceholder" class="add-placeholder" style="display:none;"><i class="fas fa-image"></i> Nenhuma imagem</span>
+        <div class="dm-poster-sinopse">
+          <div id="addSinopseLoading" class="form-loading" style="display:none;">
+            <i class="fas fa-spinner fa-spin"></i> Carregando...
+          </div>
+          <p id="addSinopse" class="dm-sinopse-text" aria-live="polite"></p>
+        </div>
+        <div id="addBlurBg" class="dm-poster-blur"></div>
+        <div class="poster-top-links">
+          <a href="#" target="_blank" id="addYoutubeLink" class="poster-icon-btn" title="YouTube" style="display:none;"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" id="addWikiLink" class="poster-icon-btn" title="Wikipedia" style="display:none;"><i class="fab fa-wikipedia-w"></i></a>
+          <a href="#" target="_blank" id="addImdbLink" class="poster-icon-btn" title="IMDb" style="display:none;"><i class="fas fa-star"></i></a>
+        </div>
+        <div class="poster-bottom-bar" id="addPosterBottomBar" style="display: none !important;">
+          <select id="status" style="display:none;" required>
+            <option value="assistindo">Assistindo</option>
+            <option value="concluido">Concluido</option>
+            <option value="pausado">Pausado</option>
+            <option value="planejado">Planejado</option>
+          </select>
+        </div>
+      </div>
+
+      
       </div>
 
       <!-- FOOTER (oculto — botões movidos para o bloco) -->
@@ -394,24 +396,6 @@
         </div>
         <button class="modal-close" id="detailClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
       </header>
-
-      <div class="dm-poster-wrap" id="detailPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
-        <div class="dm-poster-dual">
-          <img id="detailPosterImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
-          <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
-        </div>
-        <div class="dm-poster-sinopse">
-          <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
-          <p id="detailSinopse" class="dm-sinopse-text" aria-live="polite">Carregando sinopse...</p>
-        </div>
-        <div id="detailBlurBg" class="dm-poster-blur"></div>
-        <div class="poster-top-links">
-          <a href="#" target="_blank" id="detailYoutubeLink" class="poster-icon-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
-          <a href="#" target="_blank" id="detailWikiLink" class="poster-icon-btn" title="Wikipedia"><i class="fab fa-wikipedia-w"></i></a>
-          <a href="#" target="_blank" id="detailImdbLink" class="poster-icon-btn" title="IMDb"><i class="fas fa-star"></i></a>
-        </div>
-        <div class="poster-bottom-bar" id="posterBottomBar" style="display: none !important;"></div>
-      </div>
 
       <div class="poster-steppers-row" id="posterSteppersRow">
         <div class="episode-progress-panel">
@@ -493,7 +477,25 @@
     </div>
   </div>
 
-  <!-- MODAL DE EPISÓDIOS -->
+  <div class="dm-poster-wrap" id="detailPosterWrap" role="button" tabindex="0" aria-label="Ver sinopse">
+        <div class="dm-poster-dual">
+          <img id="detailPosterImgCard" src="" alt="Poster card" class="dm-poster-card-img" style="display:none;" />
+          <img id="detailPosterImg" src="" alt="Pôster" role="img" aria-label="Pôster" />
+        </div>
+        <div class="dm-poster-sinopse">
+          <div id="detailLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>
+          <p id="detailSinopse" class="dm-sinopse-text" aria-live="polite">Carregando sinopse...</p>
+        </div>
+        <div id="detailBlurBg" class="dm-poster-blur"></div>
+        <div class="poster-top-links">
+          <a href="#" target="_blank" id="detailYoutubeLink" class="poster-icon-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="#" target="_blank" id="detailWikiLink" class="poster-icon-btn" title="Wikipedia"><i class="fab fa-wikipedia-w"></i></a>
+          <a href="#" target="_blank" id="detailImdbLink" class="poster-icon-btn" title="IMDb"><i class="fas fa-star"></i></a>
+        </div>
+        <div class="poster-bottom-bar" id="posterBottomBar" style="display: none !important;"></div>
+      </div>
+
+      <!-- MODAL DE EPISÓDIOS -->
   <div class="modal-overlay" id="episodesModal" role="dialog" aria-modal="true" aria-labelledby="episodesTitle">
     <div class="modal modal-episodes">
       <div class="modal-header">
