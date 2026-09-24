@@ -61,8 +61,7 @@ export function createCardElement(item, variant = null, items, onCardClick) {
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);
   const tierClass = item.tier ? getTierClass(item.tier) : '';
-  const tierText = item.tier ? escapeHTML(item.tier) : '?';
-  const tierStampHtml = `<div class="tier-stamp ${tierClass}">${tierText}</div>`;
+  const tierStampHtml = item.tier ? `<div class="tier-stamp ${tierClass}">${escapeHTML(item.tier)}</div>` : '';
   const anoDisplay = item.ano ? ` (${item.ano})` : '';
   const safeNome = escapeHTML(item.nome);
   const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';

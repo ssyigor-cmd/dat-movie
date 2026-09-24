@@ -518,6 +518,23 @@
     </div>
   </div>
 
+  <!-- CONFIRM MODAL -->
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h2 id="confirmTitle"><i class="fas fa-exclamation-triangle"></i> Confirmar</h2>
+        <button class="modal-close" id="confirmClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">Tem certeza?</p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirmCancel" class="dm-btn dm-btn-secondary">Cancelar</button>
+        <button id="confirmOk" class="dm-btn dm-btn-danger">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 

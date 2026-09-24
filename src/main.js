@@ -14,6 +14,7 @@ import { renderContinueWatching, createCardElement } from './components/cards.js
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { renderHome } from './components/homePage.js';
+import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
@@ -454,7 +455,7 @@ function renderNavbar() {
   const todosBtn = document.createElement('button');
   todosBtn.className = `nav-item ${currentTab === 'all' && !currentListId ? 'active' : ''}`;
   todosBtn.dataset.tab = 'all';
-  todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Todos</span>';
+  todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Catálogo</span>';
   todosBtn.addEventListener('click', () => setActiveTab('all', null));
   fragment.appendChild(todosBtn);
 
@@ -683,12 +684,14 @@ function startInlineEdit(listBtn, list, contentSpan, actionsWrap) {
   };
   
   const remove = async () => {
-    if (!confirm(`Tem certeza que deseja excluir a lista "${list.nome}"?`)) return;
+    const ok = await showConfirm(`Tem certeza que deseja excluir a lista "${list.nome}"?`, 'Excluir lista');
+    if (!ok) return;
     try {
       await deleteList(list.id);
       if (currentListId === list.id) {
         currentTab = 'all';
         currentListId = null;
+        persistNavState();
       }
       await loadItems();
       showToast('Lista excluída!');
@@ -1231,14 +1234,14 @@ function render() {
   
   // Determinar label baseado na aba ou lista atual
   if (currentTab === 'all') {
-    label = 'Total';
+    label = 'Catálogo';
   } else if (currentTab === 'planejado') {
     label = 'Próximos';
   } else if (currentListId) {
     const currentList = userLists.find(l => l.id === currentListId);
     label = currentList ? currentList.nome : 'Lista';
   } else {
-    label = 'Total';
+    label = 'Catálogo';
   }
   
   headerListName.textContent = label;
@@ -1607,6 +1610,7 @@ logoutBtn.addEventListener('click', async () => {
   await checkSession();
 });
 
+setupConfirmModal();
 checkSession();
 
 // Tier badge e dropdown do modal de adição

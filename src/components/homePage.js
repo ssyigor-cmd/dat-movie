@@ -13,7 +13,7 @@ import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, fo
 export function buildGreeting(user) {
   let name = '';
   if (user) {
-    name = user.user_metadata?.name || user.user_metadata?.full_name || user.user_metadata?.display_name || '';
+    name = user.user_metadata?.name || '';
     if (!name && user.email) {
       name = user.email.split('@')[0];
     }
@@ -146,11 +146,12 @@ export function renderHomeStats(container, items) {
     <div class="stat-card"><span class="stat-number">${stats.assistindo}</span><span class="stat-label">Assistindo</span></div>
     <div class="stat-card"><span class="stat-number">${stats.concluidos}</span><span class="stat-label">Concluídos</span></div>
     <div class="stat-card"><span class="stat-number">${stats.planejados}</span><span class="stat-label">Lista de Desejos</span></div>
+    <div class="stat-card"><span class="stat-number">${stats.totalEpisodiosAssistidos || 0}</span><span class="stat-label">Eps. Assistidos</span></div>
   `;
 }
 
 /**
- * Renderiza Continuar Assistindo (bento até 3)
+ * Renderiza Continuar Assistindo (carrossel horizontal máx. 12)
  */
 export function renderHomeContinue(container, items, onCardClick, onOpenAddModal) {
   const grid = container.querySelector('#homeContinueGrid');
@@ -160,7 +161,7 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
 
   const pool = items.filter((i) => i.status === 'assistindo');
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
-  const limited = pool.slice(0, 3);
+  const limited = pool.slice(0, 12);
 
   if (limited.length === 0) {
     grid.innerHTML = '';
@@ -286,13 +287,7 @@ export async function loadAndRenderNewEpisodes(container, items, onCardClick) {
     animateCards(grid);
   } catch (e) {
     skel.style.display = 'none';
-    if (errEl) {
-      errEl.textContent = 'Não foi possível carregar novidades no momento.';
-      errEl.style.display = '';
-    }
-    // Keep section hidden if error? Spec: ocultar se falhar - but also show discrete error. We'll show error but keep section visible with error.
-    // To satisfy "ocultar a seção se falhar", we could hide grid; error remains. Alternatively hide whole section.
-    // We'll keep section visible with error, grid empty.
+    section.style.display = 'none';
     console.warn('Erro novidades:', e);
   }
 }

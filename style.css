@@ -3202,3 +3202,7 @@ a:focus-visible,
 @media (max-width: 480px) {
   .home-stats-grid { grid-template-columns: 1fr; }
 }
+.modal-confirm { max-width: 420px; }
+.modal-confirm .modal-footer { display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid var(--border); }
+.dm-btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
+.dm-btn-secondary:hover { background: var(--bg-hover); }

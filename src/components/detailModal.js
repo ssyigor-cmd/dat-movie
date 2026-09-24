@@ -5,6 +5,7 @@
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { getTierClass, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
+import { showConfirm } from './confirmModal.js';
 
 const seasonDataCache = new Map();
 
@@ -518,7 +519,8 @@ export function setupDetailModal(elements, callbacks) {
   async function deleteFromDetail(items) {
     const index = detailCurrentIndex;
     if (index === null) return false;
-    if (!confirm('Tem certeza que deseja remover este título?')) return false;
+    const ok = await showConfirm('Tem certeza que deseja remover este título?', 'Remover título');
+    if (!ok) return false;
     const item = items[index];
     try {
       await onDeleteItem(item.id);

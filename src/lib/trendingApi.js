@@ -142,8 +142,26 @@ export function normalizeTrendingItem(raw) {
  * @param {number} limit
  * @returns {Promise<Array>} itens com novidade { item, episode, season, airDate }
  */
+/**
+ * Verifica se air_date está dentro da janela de 7 dias no fuso do usuário (passado 7 ou futuro 7)
+ * @param {string} dateStr
+ * @param {number} days
+ * @param {Date} nowRef
+ * @returns {boolean}
+ */
+export function isWithin7DaysWindow(dateStr, days = 7, nowRef = new Date()) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const d = new Date(dateStr + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) return false;
+  const now = nowRef instanceof Date ? nowRef : new Date(nowRef);
+  const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  const diffMs = d.getTime() - nowMid.getTime();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  return diffDays >= -days && diffDays <= days;
+}
+
 export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = 6) {
-  const candidates = (catalogItems || []).filter((i) => i.tmdb_id && (i.tipo === 'serie' || i.tipo === 'anime' || i.tipo === 'animacao' || !i.tipo));
+  const candidates = (catalogItems || []).filter((i) => i.tmdb_id && i.status === 'assistindo' && (i.tipo === 'serie' || i.tipo === 'anime' || i.tipo === 'animacao' || !i.tipo));
   if (candidates.length === 0) return [];
 
   const concurrency = 5;
@@ -158,9 +176,9 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
           const episodesToCheck = [];
           if (details.last_episode_to_air) episodesToCheck.push(details.last_episode_to_air);
           if (details.next_episode_to_air) episodesToCheck.push(details.next_episode_to_air);
-          // Verifica se algum episódio é recente
+          // Verifica se algum episódio está na janela de 7 dias (passado ou futuro)
           for (const ep of episodesToCheck) {
-            if (ep && ep.air_date && isRecentDate(ep.air_date, days, nowRef)) {
+            if (ep && ep.air_date && isWithin7DaysWindow(ep.air_date, days, nowRef)) {
               return {
                 item,
                 episode: ep,
@@ -197,20 +215,32 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
  */
 export function getFavorites(catalogItems, limit = 6) {
   if (!Array.isArray(catalogItems)) return [];
-  return catalogItems.filter((i) => i.tier === 'S+' || i.tier === 'S').slice(0, limit);
+  const favs = catalogItems.filter((i) => i.tier === 'S+' || i.tier === 'S');
+  favs.sort((a, b) => {
+    const tierRank = { 'S+': 0, 'S': 1 };
+    const ra = tierRank[a.tier] ?? 2;
+    const rb = tierRank[b.tier] ?? 2;
+    if (ra !== rb) return ra - rb;
+    const da = new Date(a.dataAtualizacao || a.dataCriacao || 0).getTime();
+    const db = new Date(b.dataAtualizacao || b.dataCriacao || 0).getTime();
+    return db - da;
+  });
+  return favs.slice(0, limit);
 }
 
 /**
- * Calcula estatísticas rápidas do catálogo
+ * Calcula estatísticas rápidas do catálogo em único passe
  * @param {Array} catalogItems
- * @returns {{total:number, assistindo:number, concluidos:number, planejados:number}}
+ * @returns {{total:number, assistindo:number, concluidos:number, planejados:number, totalEpisodiosAssistidos:number}}
  */
 export function getCatalogStats(catalogItems) {
-  if (!Array.isArray(catalogItems)) return { total: 0, assistindo: 0, concluidos: 0, planejados: 0 };
-  return {
-    total: catalogItems.length,
-    assistindo: catalogItems.filter((i) => i.status === 'assistindo').length,
-    concluidos: catalogItems.filter((i) => i.status === 'concluido').length,
-    planejados: catalogItems.filter((i) => i.status === 'planejado').length
-  };
+  if (!Array.isArray(catalogItems)) return { total: 0, assistindo: 0, concluidos: 0, planejados: 0, totalEpisodiosAssistidos: 0 };
+  let assistindo = 0, concluidos = 0, planejados = 0, totalEpisodiosAssistidos = 0;
+  for (const it of catalogItems) {
+    if (it.status === 'assistindo') assistindo++;
+    else if (it.status === 'concluido') concluidos++;
+    else if (it.status === 'planejado') planejados++;
+    totalEpisodiosAssistidos += Number(it.episodio) || 0;
+  }
+  return { total: catalogItems.length, assistindo, concluidos, planejados, totalEpisodiosAssistidos };
 }
