@@ -539,7 +539,7 @@ export function loadAndRenderTimeline(container, items, onCardClick) {
   });
 }
 
-export function setupRoulette(container, items, onCardClick) {
+export function setupRoulette(container, items, onCardClick, onAddFromTrending) {
   const btn = container.querySelector('#homeRouletteBtn');
   const selTime = container.querySelector('#homeRouletteTime');
   const label = container.querySelector('#homeRouletteTimeLabel');
@@ -560,24 +560,26 @@ export function setupRoulette(container, items, onCardClick) {
     res.style.display = 'none';
   });
   const history = [];
-  function getFiltered() {
-    const mins = parseInt(selTime.value, 10) || 60;
-    let pool = items.filter(i => i.status === 'planejado' || i.status === 'pausado');
-    if (pool.length === 0) return [];
-    const byTime = pool.filter(i => {
-      const total = Number(i.totalEpisodios || 1);
-      const remaining = Math.max(0, total - (Number(i.episodio) || 0));
-      const est = remaining * 24;
-      return est <= mins || mins >= 480;
-    });
-    return (byTime.length > 0 ? byTime : pool);
+  async function getNewPool(mins) {
+    // Sorteio de título novo - busca no TMDb o que não está no catálogo
+    try {
+      const trending = await getTrendingToSuggest(items, 20);
+      if (trending.length > 0) {
+        // Filtra por tempo estimado se possível (precisa buscar detalhes para totalEpisodios)
+        // Para novos, filtra por popularidade já é aleatório; mantém tempo como soft filter via voto
+        return trending;
+      }
+      // Fallback: discover por gênero aleatório
+      const randomCat = CATEGORIES[Math.floor(Math.random()*CATEGORIES.length)];
+      return await getTitlesByGenre(randomCat.id, items, 20);
+    } catch { return []; }
   }
   btn.addEventListener('click', async () => {
-    const pool = getFiltered();
-    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear - adicione títulos em planejados ou pausados.</p>'; return; }
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sorteando...';
     res.style.display = '';
-    res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Embaralhando...</div>';
+    res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Buscando título novo...</div>';
+    const pool = await getNewPool(parseInt(selTime.value, 10) || 60);
+    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nenhum título novo encontrado. Tente novamente.</p>'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório'; return; }
     // Animação de embaralhamento - mostra 4 picks rápidos
     for (let k = 0; k < 4; k++) {
       await new Promise(r => setTimeout(r, 120 + k*40));
@@ -607,7 +609,7 @@ export function setupRoulette(container, items, onCardClick) {
     wrap.querySelector('[data-action="again"]').addEventListener('click', () => btn.click());
     res.appendChild(wrap);
     // Histórico
-    history.unshift(picked.nome);
+    history.unshift(picked.title);
     if (history.length > 3) history.pop();
     if (histWrap && histList) {
       histWrap.style.display = '';
@@ -738,7 +740,7 @@ export async function renderHome(container, context) {
   renderHomeFavorites(container, items, context.onCardClick);
   // Novas seções
   loadAndRenderCalendar(container, items);
-  setupRoulette(container, items, context.onCardClick);
+  setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
