@@ -123,19 +123,9 @@ export function renderHomeBase(container, context) {
       <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
     </section>
 
-    <section class="home-section" id="homeChallengeSection" aria-label="Desafio do mês" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-trophy"></i> Desafio do Mês</h2>
-      <div id="homeChallengeGrid"></div>
-    </section>
-
     <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
       <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
       <div class="home-h-scroll" id="homeAbandonedGrid"></div>
-    </section>
-
-    <section class="home-section" id="homeTimelineSection" aria-label="Linha do tempo" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-history"></i> Linha do Tempo</h2>
-      <div id="homeTimelineGrid" class="home-timeline-grid"></div>
     </section>
 
     <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
@@ -577,9 +567,7 @@ export async function renderHome(container, context) {
   // Novas seções
   loadAndRenderCalendar(container, items);
   setupRoulette(container, items, context.onCardClick);
-  loadAndRenderChallenge(container, items);
   loadAndRenderAbandoned(container, items, context.onCardClick);
-  loadAndRenderTimeline(container, items, context.onCardClick);
   // Async seções existentes - don't block
   loadAndRenderNewEpisodes(container, items, context.onCardClick);
   loadAndRenderTrending(container, items, context.onAddFromTrending);
