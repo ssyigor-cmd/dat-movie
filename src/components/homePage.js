@@ -587,7 +587,7 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
       <div class="home-roulette-poster"><img src="${picked.posterUrl || ''}" alt="" onerror="this.style.display='none'" /></div>
       <div class="home-roulette-info">
         <strong>${escapeHTML(picked.title)}</strong>
-        <small>${picked.date ? formatAirDate(picked.date) : 'Série'}${picked.voteAverage ? ` • ★ ${picked.voteAverage.toFixed(1)}` : ''}</small>
+        <small>${picked.date ? formatAirDate(picked.date) : 'Série'}</small>
         <small style="color:var(--text-muted)">Título novo para descobrir</small>
         <div style="margin-top:8px; display:flex; gap:8px;">
           <button class="home-empty-btn" data-action="details"><i class="fas fa-eye"></i> Mais Detalhes</button>
