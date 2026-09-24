@@ -3,7 +3,7 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime } from '../lib/trendingApi.js';
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -106,6 +106,36 @@ export function renderHomeBase(container, context) {
         <p>Você ainda não começou nenhum título. Que tal adicionar um?</p>
         <button class="home-empty-btn" id="homeContinueAddBtn"><i class="fas fa-plus"></i> Adicionar título</button>
       </div>
+    </section>
+
+    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Calendário da Semana</h2>
+      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
+      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+    </section>
+
+    <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
+      <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
+      <div class="home-roulette-controls">
+        <select id="homeRouletteTime" class="tool-btn" aria-label="Tempo disponível"><option value="30">30 min</option><option value="60" selected>1h</option><option value="120">2h</option><option value="9999">Qualquer</option></select>
+        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear</button>
+      </div>
+      <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
+    </section>
+
+    <section class="home-section" id="homeChallengeSection" aria-label="Desafio do mês" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-trophy"></i> Desafio do Mês</h2>
+      <div id="homeChallengeGrid"></div>
+    </section>
+
+    <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
+      <div class="home-h-scroll" id="homeAbandonedGrid"></div>
+    </section>
+
+    <section class="home-section" id="homeTimelineSection" aria-label="Linha do tempo" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-history"></i> Linha do Tempo</h2>
+      <div id="homeTimelineGrid" class="home-timeline-grid"></div>
     </section>
 
     <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
@@ -416,6 +446,109 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
   }
 }
 
+export async function loadAndRenderCalendar(container, items) {
+  const section = container.querySelector('#homeCalendarSection');
+  const grid = container.querySelector('#homeCalendarGrid');
+  const skel = container.querySelector('#homeCalendarSkeleton');
+  if (!section || !grid || !skel) return;
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+  try {
+    const week = await getCalendarWeek(items);
+    skel.style.display = 'none';
+    if (!week || week.length === 0) { section.style.display = 'none'; return; }
+    grid.style.display = '';
+    grid.innerHTML = '';
+    week.forEach(([date, eps]) => {
+      const col = document.createElement('div');
+      col.className = 'home-calendar-day';
+      col.innerHTML = `<div class="home-calendar-date">${formatAirDate(date)}</div><div class="home-calendar_eps"></div>`;
+      const epsWrap = col.querySelector('.home-calendar_eps');
+      eps.forEach(({ item, episode }) => {
+        const c = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `T${episode.season_number} E${episode.episode_number} - ${episode.name || ''}`, onClick: null });
+        c.style.flex = '0 0 100px'; c.style.width = '100px';
+        epsWrap.appendChild(c);
+      });
+      grid.appendChild(col);
+    });
+    animateCards(grid);
+  } catch { skel.style.display = 'none'; section.style.display = 'none'; }
+}
+
+export function loadAndRenderChallenge(container, items) {
+  const section = container.querySelector('#homeChallengeSection');
+  const grid = container.querySelector('#homeChallengeGrid');
+  if (!section || !grid) return;
+  const ch = getChallenge(items, 5);
+  if (ch.goal === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  grid.innerHTML = `
+    <div class="home-challenge-card">
+      <div class="home-challenge-head"><span>${ch.concluidosMes} / ${ch.goal} concluídos no mês</span><span>${ch.pct}%</span></div>
+      <div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${ch.pct}%"></div></div>
+      <p class="home-challenge-hint">${ch.pct >= 100 ? 'Desafio completo!' : `Faltam ${ch.goal - ch.concluidosMes} para bater a meta`}</p>
+    </div>`;
+}
+
+export function loadAndRenderAbandoned(container, items, onCardClick) {
+  const section = container.querySelector('#homeAbandonedSection');
+  const grid = container.querySelector('#homeAbandonedGrid');
+  if (!section || !grid) return;
+  const list = getAbandoned(items);
+  if (list.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  grid.innerHTML = '';
+  list.forEach(item => {
+    const days = Math.floor((Date.now() - new Date(item.dataAtualizacao || item.dataCriacao || 0).getTime())/86400000);
+    const card = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `há ${days}d • T${item.temporada} E${item.episodio}`, onClick: () => onCardClick && onCardClick(items.indexOf(item)) });
+    grid.appendChild(card);
+  });
+  animateCards(grid);
+}
+
+export function loadAndRenderTimeline(container, items, onCardClick) {
+  const section = container.querySelector('#homeTimelineSection');
+  const grid = container.querySelector('#homeTimelineGrid');
+  if (!section || !grid) return;
+  const list = getTimeline(items, 10);
+  if (list.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  grid.innerHTML = '';
+  list.forEach(item => {
+    const d = new Date(item.dataAtualizacao || item.dataCriacao || 0);
+    const dateStr = isNaN(d.getTime()) ? '' : formatAirDate(d.toISOString().slice(0,10));
+    const card = document.createElement('div');
+    card.className = 'home-timeline-item';
+    card.innerHTML = `<div class="home-timeline-date">${dateStr}</div><div class="home-timeline-card"><img src="${item.imagem || ''}" alt="" style="width:40px;height:60px;object-fit:cover;border-radius:4px;" /><div><strong>${escapeHTML(item.nome)}</strong><br><small>T${item.temporada} E${item.episodio} • ${item.status}</small><div class="home-card-progress-track" style="margin-top:4px;"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div></div>`;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => onCardClick && onCardClick(items.indexOf(item)));
+    grid.appendChild(card);
+  });
+}
+
+export function setupRoulette(container, items, onCardClick) {
+  const btn = container.querySelector('#homeRouletteBtn');
+  const sel = container.querySelector('#homeRouletteTime');
+  const res = container.querySelector('#homeRouletteResult');
+  if (!btn || !sel || !res) return;
+  btn.addEventListener('click', () => {
+    const mins = parseInt(sel.value, 10) || 60;
+    const picked = pickRandomByTime(items, mins);
+    if (!picked) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear - adicione títulos em planejados ou pausados.</p>'; return; }
+    res.style.display = '';
+    res.innerHTML = '';
+    const card = createHomeCard({ posterUrl: picked.imagem || '', title: picked.nome, subtitle: `T${picked.temporada} E${picked.episodio} • ${picked.status}`, onClick: () => onCardClick && onCardClick(items.indexOf(picked)) });
+    res.appendChild(card);
+    const again = document.createElement('button');
+    again.className = 'home-empty-btn';
+    again.style.marginTop = '8px';
+    again.textContent = 'Ver detalhes';
+    again.addEventListener('click', () => onCardClick && onCardClick(items.indexOf(picked)));
+    res.appendChild(again);
+  });
+}
+
 function animateCards(gridEl) {
   if (typeof window !== 'undefined' && window.anime) {
     const cards = gridEl.querySelectorAll('.home-card, .home-skeleton-card');
@@ -441,7 +574,13 @@ export async function renderHome(container, context) {
   renderHomeStats(container, items);
   renderHomeContinue(container, items, context.onCardClick, context.onOpenAddModal);
   renderHomeFavorites(container, items, context.onCardClick);
-  // Async sections - don't block
+  // Novas seções
+  loadAndRenderCalendar(container, items);
+  setupRoulette(container, items, context.onCardClick);
+  loadAndRenderChallenge(container, items);
+  loadAndRenderAbandoned(container, items, context.onCardClick);
+  loadAndRenderTimeline(container, items, context.onCardClick);
+  // Async seções existentes - don't block
   loadAndRenderNewEpisodes(container, items, context.onCardClick);
   loadAndRenderTrending(container, items, context.onAddFromTrending);
   loadAndRenderRecommendations(container, items, context.onCardClick, context.onAddFromTrending);

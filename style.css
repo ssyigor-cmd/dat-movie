@@ -3213,6 +3213,19 @@ a:focus-visible,
 
 .home-categories { display: flex; flex-direction: column; gap: 28px; }
 .home-categories .home-section { gap: 12px; }
+.home-calendar-grid { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+.home-calendar-day { flex: 0 0 160px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+.home-calendar-date { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 8px; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.home-calendar_eps { display: flex; flex-direction: column; gap: 8px; }
+.home-roulette-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.home-roulette-result { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.home-challenge-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
+.home-challenge-head { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
+.home-challenge-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+.home-timeline-grid { display: flex; flex-direction: column; gap: 12px; }
+.home-timeline-item { display: flex; gap: 12px; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+.home-timeline-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); min-width: 80px; text-align: center; }
+.home-timeline-card { display: flex; gap: 12px; align-items: center; flex: 1; }
 
 @media (max-width: 768px) {
   .home-stats-grid { grid-template-columns: repeat(2, 1fr); }

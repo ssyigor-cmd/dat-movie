@@ -352,3 +352,52 @@ export function getCatalogStats(catalogItems) {
   const taxaConclusao = total ? Math.round((concluidos / total) * 100) : 0;
   return { total, assistindo, concluidos, planejados, totalEpisodiosAssistidos, horasAssistidas, progressoMedio, taxaConclusao };
 }
+
+export async function getCalendarWeek(catalogItems) {
+  const all = await getNewEpisodes(catalogItems, 7, new Date(), 20);
+  // Filtra só próximos 7 dias futuros
+  const now = new Date();
+  const future = all.filter(x => new Date(x.airDate + 'T12:00:00') >= new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12,0,0));
+  // Agrupa por data
+  const map = new Map();
+  for (const item of future) {
+    const d = item.airDate;
+    if (!map.has(d)) map.set(d, []);
+    map.get(d).push(item);
+  }
+  return [...map.entries()].sort((a,b) => new Date(a[0]) - new Date(b[0])).slice(0,7);
+}
+
+export function getAbandoned(catalogItems, limit = null) {
+  const lim = limit ?? getFullWidthCount();
+  if (!Array.isArray(catalogItems)) return [];
+  const pausados = catalogItems.filter(i => i.status === 'pausado');
+  pausados.sort((a,b) => new Date(a.dataAtualizacao || a.dataCriacao || 0) - new Date(b.dataAtualizacao || b.dataCriacao || 0));
+  return pausados.slice(0, lim);
+}
+
+export function getTimeline(catalogItems, limit = 10) {
+  if (!Array.isArray(catalogItems)) return [];
+  return [...catalogItems].sort((a,b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0)).slice(0, limit);
+}
+
+export function getChallenge(catalogItems, goal = 5) {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const concluidosMes = catalogItems.filter(i => i.status === 'concluido' && new Date(i.dataAtualizacao || i.dataCriacao || 0) >= start).length;
+  const pct = goal ? Math.min(100, Math.round((concluidosMes / goal)*100)) : 0;
+  return { concluidosMes, goal, pct };
+}
+
+export function pickRandomByTime(catalogItems, minutes = 60) {
+  const pool = catalogItems.filter(i => i.status === 'planejado' || i.status === 'pausado');
+  if (pool.length === 0) return null;
+  const filtered = pool.filter(i => {
+    const total = Number(i.totalEpisodios || 1);
+    const remaining = Math.max(0, total - (Number(i.episodio)||0));
+    const est = remaining * 24;
+    return est <= minutes || est <= 60;
+  });
+  const list = filtered.length > 0 ? filtered : pool;
+  return list[Math.floor(Math.random()*list.length)];
+}
