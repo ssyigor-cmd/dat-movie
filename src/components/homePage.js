@@ -19,10 +19,10 @@ export function buildGreeting(user) {
     }
   }
   if (!name) {
-    return { greeting: 'Bem-vindo', subtitle: 'Seu catálogo pessoal de animes e séries' };
+    return { greeting: 'Bem-vindo', subtitle: 'Acompanhe o que assiste, o que já viu e o que quer ver' };
   }
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
-  return { greeting: `Olá, ${escapeHTML(cap)}`, subtitle: 'Bem-vindo de volta' };
+  return { greeting: `Olá, ${escapeHTML(cap)}`, subtitle: 'Acompanhe o que assiste, o que já viu e o que quer ver' };
 }
 
 /**

@@ -1213,7 +1213,7 @@ function render() {
   const headerSubtitle = document.getElementById('headerSubtitle');
   if (headerSubtitle) {
     const subtitles = {
-      'all': 'Tudo que já viu, vê e ainda vai ver',
+      'all': 'Seu acervo completo, do assistindo ao concluído',
       'planejado': 'Sua fila de espera',
       'pesquisa': 'Explore e garimpe novidades',
       'list': 'Curadoria sem ruído'
