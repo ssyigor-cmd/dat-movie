@@ -318,6 +318,19 @@ export function setupDetailModal(elements, callbacks) {
         detailTitleText.textContent = item.nome;
       }
 
+      // Galeria de stills para preencher espaço ocioso
+      const stillsEl = document.getElementById('detailStills');
+      if (stillsEl && tmdbId) {
+        try {
+          const imgData = await callTMDB(`tv/${tmdbId}/images`, { include_image_language: 'en,null' });
+          const backs = (imgData.backdrops || []).slice(0, 4);
+          if (backs.length > 0) {
+            stillsEl.innerHTML = backs.map(b => `<img src="https://image.tmdb.org/t/p/w300${b.file_path}" alt="" loading="lazy" />`).join('');
+            stillsEl.style.display = 'grid';
+          } else stillsEl.style.display = 'none';
+        } catch { if (stillsEl) stillsEl.style.display = 'none'; }
+      }
+
       detailSinopse.textContent = overview;
       detailLoading.style.display = 'none';
       await updateEpisodeInfoDisplay();
@@ -437,6 +450,8 @@ export function setupDetailModal(elements, callbacks) {
     detailModal.classList.remove('active');
     const listModal = document.getElementById('detailListModal');
     if (listModal) listModal.classList.remove('active');
+    const stillsEl = document.getElementById('detailStills');
+    if (stillsEl) { stillsEl.style.display = 'none'; stillsEl.innerHTML = ''; }
     hideTierDropdown();
     unlockScreen();
     detailCurrentIndex = null;
