@@ -1172,6 +1172,8 @@ function render() {
     gridSection.style.display = 'none';
     searchView.style.display = '';
     headerListName.textContent = 'Pesquisar';
+    const headerSubtitlePesquisa = document.getElementById('headerSubtitle');
+    if (headerSubtitlePesquisa) headerSubtitlePesquisa.textContent = 'Explore e garimpe novidades';
     return;
   }
 
