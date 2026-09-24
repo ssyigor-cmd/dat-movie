@@ -3,7 +3,8 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations } from '../lib/trendingApi.js';
+import { callTMDB } from '../lib/api.js';
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -156,6 +157,23 @@ export function renderHomeBase(container, context) {
     </section>
 
     <section class="home-categories" id="homeCategories" aria-label="Categorias"></section>
+
+    <section class="home-section" id="homeAffinitySection" aria-label="Descoberta por afinidade">
+      <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
+      <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
+      <div class="home-affinity-search">
+        <div class="toolbar-search" style="flex:1; max-width:420px;">
+          <i class="fas fa-search"></i>
+          <input type="text" id="homeAffinityInput" placeholder="Buscar título para comparar..." aria-label="Buscar título para afinidade" />
+        </div>
+        <div id="homeAffinityDropdown" class="home-affinity-dropdown" style="display:none;"></div>
+      </div>
+      <div id="homeAffinityChips" class="home-affinity-chips"></div>
+      <button id="homeAffinityAnalyze" class="home-empty-btn" disabled><i class="fas fa-microscope"></i> Analisar (0/4)</button>
+      <div class="home-h-scroll" id="homeAffinityGrid" style="display:none; margin-top:12px;"></div>
+      <div class="home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
+      <div class="home-error" id="homeAffinityError" style="display:none;"></div>
+    </section>
   `;
 
   // Bind add button
@@ -593,6 +611,97 @@ export function setupRoulette(container, items, onCardClick) {
   selTime.addEventListener('change', () => { res.style.display = 'none'; });
 }
 
+function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
+  const input = container.querySelector('#homeAffinityInput');
+  const dropdown = container.querySelector('#homeAffinityDropdown');
+  const chipsWrap = container.querySelector('#homeAffinityChips');
+  const analyzeBtn = container.querySelector('#homeAffinityAnalyze');
+  const grid = container.querySelector('#homeAffinityGrid');
+  const skel = container.querySelector('#homeAffinitySkeleton');
+  const errEl = container.querySelector('#homeAffinityError');
+  if (!input || !dropdown || !chipsWrap || !analyzeBtn || !grid) return;
+  let selected = [];
+  let searchTimeout = null;
+  function updateChips() {
+    chipsWrap.innerHTML = '';
+    selected.forEach((item, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'home-affinity-chip';
+      chip.innerHTML = `${escapeHTML(item.title)} <button aria-label="Remover ${escapeHTML(item.title)}" data-idx="${idx}"><i class="fas fa-times"></i></button>`;
+      chip.querySelector('button').addEventListener('click', () => {
+        selected.splice(idx, 1);
+        updateChips();
+      });
+      chipsWrap.appendChild(chip);
+    });
+    analyzeBtn.disabled = selected.length === 0;
+    analyzeBtn.innerHTML = `<i class="fas fa-microscope"></i> Analisar (${selected.length}/4)`;
+    if (selected.length === 0) { grid.style.display = 'none'; grid.innerHTML = ''; if (errEl) errEl.style.display = 'none'; }
+  }
+  function hideDropdown() { dropdown.style.display = 'none'; dropdown.innerHTML = ''; }
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const q = input.value.trim();
+    if (q.length < 2) { hideDropdown(); return; }
+    searchTimeout = setTimeout(async () => {
+      try {
+        const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
+        const results = (data.results || []).slice(0, 6);
+        if (results.length === 0) { hideDropdown(); return; }
+        dropdown.innerHTML = '';
+        dropdown.style.display = 'block';
+        results.forEach(raw => {
+          const title = raw.name || raw.title || '';
+          if (!title) return;
+          if (selected.some(s => String(s.id) === String(raw.id))) return;
+          const row = document.createElement('button');
+          row.className = 'home-affinity-option';
+          row.innerHTML = `<img src="${raw.poster_path ? `https://image.tmdb.org/t/p/w92${raw.poster_path}` : ''}" alt="" style="width:32px;height:48px;object-fit:cover;border-radius:4px;background:var(--bg-secondary);" onerror="this.style.display='none'" /><span>${escapeHTML(title)}</span><small>${(raw.first_air_date || '').slice(0,4) || ''}</small>`;
+          row.addEventListener('click', () => {
+            if (selected.length >= 4) return;
+            selected.push({ id: raw.id, title, poster_path: raw.poster_path });
+            updateChips();
+            input.value = '';
+            hideDropdown();
+          });
+          dropdown.appendChild(row);
+        });
+      } catch { hideDropdown(); }
+    }, 300);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideDropdown(); });
+  document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== input) hideDropdown(); });
+  analyzeBtn.addEventListener('click', async () => {
+    if (selected.length === 0) return;
+    grid.style.display = 'none'; if (errEl) errEl.style.display = 'none'; skel.style.display = 'flex';
+    analyzeBtn.disabled = true; analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analisando...';
+    try {
+      const ids = selected.map(s => s.id);
+      const recs = await getAffinityRecommendations(ids, catalogItems);
+      skel.style.display = 'none';
+      if (!recs || recs.length === 0) {
+        if (errEl) { errEl.textContent = 'Nenhuma recomendação encontrada para essa combinação. Tente outros títulos.'; errEl.style.display = 'block'; }
+        grid.style.display = 'none';
+        analyzeBtn.disabled = false; analyzeBtn.innerHTML = `<i class="fas fa-microscope"></i> Analisar (${selected.length}/4)`;
+        return;
+      }
+      grid.style.display = 'flex';
+      grid.innerHTML = '';
+      recs.forEach(t => {
+        const card = createHomeCard({ posterUrl: t.posterUrl, title: t.title, subtitle: t.date ? formatAirDate(t.date) : 'Série', onClick: () => onAddFromTrending && onAddFromTrending(t) });
+        grid.appendChild(card);
+      });
+      animateCards(grid);
+    } catch (e) {
+      skel.style.display = 'none';
+      if (errEl) { errEl.textContent = 'Erro ao buscar recomendações.'; errEl.style.display = 'block'; }
+    } finally {
+      analyzeBtn.disabled = false; analyzeBtn.innerHTML = `<i class="fas fa-microscope"></i> Analisar (${selected.length}/4)`;
+    }
+  });
+  updateChips();
+}
+
 function animateCards(gridEl) {
   if (typeof window !== 'undefined' && window.anime) {
     const cards = gridEl.querySelectorAll('.home-card, .home-skeleton-card');
@@ -622,6 +731,7 @@ export async function renderHome(container, context) {
   loadAndRenderCalendar(container, items);
   setupRoulette(container, items, context.onCardClick);
   loadAndRenderAbandoned(container, items, context.onCardClick);
+  setupAffinityDiscovery(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
   loadAndRenderNewEpisodes(container, items, context.onCardClick);
   loadAndRenderTrending(container, items, context.onAddFromTrending);

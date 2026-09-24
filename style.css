@@ -3226,6 +3226,17 @@ a:focus-visible,
 .home-roulette-info small { font-size: 0.72rem; color: var(--text-secondary); }
 .home-roulette-shuffle { padding: 16px; color: var(--text-muted); font-style: italic; text-align: center; width: 100%; max-width: 560px; background: var(--bg-elevated); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
 .home-roulette-history { margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); }
+.home-affinity-hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; }
+.home-affinity-search { position: relative; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.home-affinity-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-width: 420px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 10; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; }
+.home-affinity-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; border: none; text-align: left; cursor: pointer; color: var(--text-primary); }
+.home-affinity-option:hover { background: var(--bg-hover); }
+.home-affinity-option span { flex: 1; font-size: 0.85rem; font-weight: 500; }
+.home-affinity-option small { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
+.home-affinity-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.home-affinity-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: var(--radius-pill); font-size: 0.8rem; }
+.home-affinity-chip button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 0 2px; }
+.home-affinity-chip button:hover { color: var(--danger); }
 .home-challenge-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
 .home-challenge-head { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
 .home-challenge-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }

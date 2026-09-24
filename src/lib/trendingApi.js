@@ -176,6 +176,50 @@ export async function getTitlesByGenre(genreId, catalogItems = [], limit = null)
   }
 }
 
+export async function getAffinityRecommendations(selectedTmdbIds, catalogItems, limit = null) {
+  const lim = limit ?? getFullWidthCount();
+  if (!Array.isArray(selectedTmdbIds) || selectedTmdbIds.length === 0 || selectedTmdbIds.length > 4) return null;
+  // Busca gêneros dos bases para ponderação
+  const baseGenresList = await Promise.all(selectedTmdbIds.map(async (id) => {
+    try { const d = await cachedCallTMDB(`tv/${id}`, {}, 'pt-BR'); return (d.genres || []).map(g => g.id); } catch { return []; }
+  }));
+  const baseGenreSet = new Set(baseGenresList.flat());
+  // Busca recommendations/similar para cada base
+  const allRecs = [];
+  for (const tmdbId of selectedTmdbIds) {
+    try {
+      let data;
+      try { data = await cachedCallTMDB(`tv/${tmdbId}/recommendations`, { page: 1 }, 'pt-BR'); } catch { data = await cachedCallTMDB(`tv/${tmdbId}/similar`, { page: 1 }, 'pt-BR'); }
+      const res = (data.results || []).slice(0, 12);
+      for (const r of res) allRecs.push({ raw: r, sourceId: tmdbId });
+    } catch {}
+  }
+  if (allRecs.length === 0) return null;
+  // Pontua por frequência + gênero + popularidade
+  const freq = new Map();
+  const byId = new Map();
+  for (const { raw } of allRecs) {
+    const id = String(raw.id);
+    freq.set(id, (freq.get(id) || 0) + 1);
+    if (!byId.has(id)) byId.set(id, raw);
+  }
+  const scored = [];
+  for (const [id, raw] of byId.entries()) {
+    if (selectedTmdbIds.map(String).includes(id)) continue;
+    if (catalogItems.some(c => String(c.tmdb_id) === id)) continue;
+    const f = freq.get(id) || 1;
+    const genreOverlap = (raw.genre_ids || []).filter(g => baseGenreSet.has(g)).length;
+    const pop = Number(raw.popularity || 0) / 100;
+    const vote = Number(raw.vote_average || 0);
+    const score = f * 15 + genreOverlap * 8 + pop + vote;
+    scored.push({ raw, score });
+  }
+  scored.sort((a,b) => b.score - a.score);
+  const recs = scored.slice(0, lim).map(s => normalizeTrendingItem(s.raw));
+  if (recs.length === 0) return null;
+  return recs;
+}
+
 export async function getRecommendationsForUser(catalogItems, limit = null) {
   const lim = limit ?? getFullWidthCount();
   if (!Array.isArray(catalogItems) || catalogItems.length === 0) return null;
