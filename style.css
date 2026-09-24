@@ -498,7 +498,7 @@ img { max-width: 100%; height: auto; display: block; }
   width: 100%;
   max-width: min(1100px, 96%);
   height: auto;
-  max-height: min(90vh, 860px);
+  max-height: min(90dvh, 860px);
   padding: 0;
   background: var(--bg-primary);
   border-radius: var(--radius);
@@ -512,9 +512,6 @@ img { max-width: 100%; height: auto; display: block; }
   flex-direction: column;
   position: relative;
 }
-.modal.modal-detail::-webkit-scrollbar { width: 6px; }
-.modal.modal-detail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-.modal.modal-detail::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
 .modal-overlay.active .modal.modal-detail {
   transform: translateY(0) scale(1);
   opacity: 1;
@@ -523,27 +520,35 @@ img { max-width: 100%; height: auto; display: block; }
 #detailModal {
   background: rgba(0, 0, 0, 0.75);
 }
-/* Modal sem scroll - todo conteúdo visível independente da tela */
 .modal.modal-detail .detail-header { flex-shrink: 0; }
-.modal.modal-detail .dm-poster-wrap { flex: 0 1 auto; max-height: 42vh; min-height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); }
-.modal.modal-detail .dm-poster-wrap img,
-.modal.modal-detail .dm-poster-dual img { max-height: 42vh; width: auto; max-width: 100%; height: auto; object-fit: contain; object-position: center; }
-.modal.modal-detail .dm-poster-dual { max-height: 42vh; }
-.modal.modal-detail .poster-steppers-row { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; }
-.modal.modal-detail .episode-progress-panel { height: 100%; min-height: 0; overflow: hidden; }
-@media (max-height: 700px) {
-  .modal.modal-detail { max-height: 92vh; }
-  .modal.modal-detail .dm-poster-wrap { max-height: 36vh; }
-  .modal.modal-detail .dm-poster-wrap img,
-  .modal.modal-detail .dm-poster-dual img,
-  .modal.modal-detail .dm-poster-dual { max-height: 36vh; }
-  .detail-header { min-height: 56px; padding: 12px 0 4px; }
-}
-@media (max-height: 600px) {
-  .modal.modal-detail .dm-poster-wrap { max-height: 32vh; }
-  .modal.modal-detail .dm-poster-wrap img,
-  .modal.modal-detail .dm-poster-dual img,
-  .modal.modal-detail .dm-poster-dual { max-height: 32vh; }
+.modal.modal-detail .dm-poster-wrap { flex: 0 1 auto; max-height: 42vh; min-height: 0; }
+.modal.modal-detail .dm-poster-wrap img { max-height: 42vh; object-fit: cover; }
+.modal.modal-detail .poster-steppers-row { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.modal.modal-detail .episode-progress-panel { height: 100%; min-height: 0; }
+
+/* Híbrido: fullscreen em telas baixas ou estreitas */
+@media (max-height: 700px), (max-width: 768px) {
+  #detailModal, #modalOverlay {
+    padding: 0;
+    background: var(--bg-primary);
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  #detailModal .modal.modal-detail,
+  #modalOverlay .modal.modal-detail {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+  #detailModal .modal.modal-detail .dm-poster-wrap,
+  #modalOverlay .modal.modal-detail .dm-poster-wrap {
+    max-height: 38vh;
+  }
 }
 
 /* ── Header (Detail) ─────────────────────────────────────── */
