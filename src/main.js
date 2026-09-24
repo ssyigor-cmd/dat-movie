@@ -17,8 +17,23 @@ import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
-import { state, persistNavState, setActiveTab } from './lib/state.js';
+import { state } from './lib/state.js';
 if (typeof window !== 'undefined') window.anime = anime;
+
+function persistNavState() {
+  try {
+    localStorage.setItem('activeTab', state.currentTab);
+    if (state.currentListId) localStorage.setItem('activeListId', state.currentListId);
+    else localStorage.removeItem('activeListId');
+  } catch (_) {}
+}
+function setActiveTab(tab, listId = null) {
+  state.currentTab = tab;
+  state.currentListId = listId;
+  persistNavState();
+  if (typeof updateActiveNav === 'function') updateActiveNav();
+  if (typeof render === 'function') render();
+}
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
