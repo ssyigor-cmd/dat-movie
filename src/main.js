@@ -1212,8 +1212,8 @@ function render() {
   if (headerSubtitle) {
     const subtitles = {
       'all': 'Seu arquivo vivo, sem algoritmo',
-      'planejado': 'Títulos em espera',
-      'pesquisa': 'Descubra algo novo no TMDb',
+      'planejado': 'Sua fila de espera',
+      'pesquisa': 'Explore e garimpe novidades',
       'list': 'Curadoria sem ruído'
     };
     let sub = '';
