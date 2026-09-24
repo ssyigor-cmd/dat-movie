@@ -3014,6 +3014,10 @@ a:focus-visible,
   letter-spacing: 0.06em;
   font-weight: 500;
 }
+.stat-card--highlight { background: var(--accent-soft); border-color: var(--border-strong); }
+.stat-icon { font-size: 1rem; color: var(--accent); margin-bottom: 2px; }
+.stat-progress { height: 4px; background: var(--bg-secondary); border: 1px solid rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; width: 100%; margin: 6px 0 2px; }
+.stat-progress-bar { height: 100%; background: var(--accent); border-radius: 999px; }
 .home-section { display: flex; flex-direction: column; gap: 12px; }
 .home-section-title {
   font-family: var(--font-display);

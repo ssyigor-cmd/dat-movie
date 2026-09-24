@@ -48,9 +48,16 @@ describe('getCatalogStats único passe', () => {
       { status: 'pausado', episodio: 8 }
     ];
     const s = getCatalogStats(items);
-    expect(s).toEqual({ total: 5, assistindo: 2, concluidos: 1, planejados: 1, totalEpisodiosAssistidos: 28 });
+    expect(s.total).toBe(5);
+    expect(s.assistindo).toBe(2);
+    expect(s.concluidos).toBe(1);
+    expect(s.planejados).toBe(1);
+    expect(s.totalEpisodiosAssistidos).toBe(28);
+    expect(s.horasAssistidas).toBe(11);
+    expect(s.taxaConclusao).toBe(20);
+    expect(typeof s.progressoMedio).toBe('number');
   });
   it('retorna zeros para lista vazia', () => {
-    expect(getCatalogStats([])).toEqual({ total: 0, assistindo: 0, concluidos: 0, planejados: 0, totalEpisodiosAssistidos: 0 });
+    expect(getCatalogStats([])).toEqual({ total: 0, assistindo: 0, concluidos: 0, planejados: 0, totalEpisodiosAssistidos: 0, horasAssistidas: 0, progressoMedio: 0, taxaConclusao: 0 });
   });
 });

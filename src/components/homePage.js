@@ -150,12 +150,29 @@ export function renderHomeStats(container, items) {
   const stats = getCatalogStats(items);
   const grid = container.querySelector('.home-stats-grid');
   if (!grid) return;
+  // Substitui contagens simples por métricas úteis: tempo investido, progresso médio, taxa de conclusão
   grid.innerHTML = `
-    <div class="stat-card"><span class="stat-number">${stats.total}</span><span class="stat-label">Total</span></div>
-    <div class="stat-card"><span class="stat-number">${stats.assistindo}</span><span class="stat-label">Assistindo</span></div>
-    <div class="stat-card"><span class="stat-number">${stats.concluidos}</span><span class="stat-label">Concluídos</span></div>
-    <div class="stat-card"><span class="stat-number">${stats.planejados}</span><span class="stat-label">Lista de Desejos</span></div>
-    <div class="stat-card"><span class="stat-number">${stats.totalEpisodiosAssistidos || 0}</span><span class="stat-label">Eps. Assistidos</span></div>
+    <div class="stat-card stat-card--highlight">
+      <i class="fas fa-clock stat-icon"></i>
+      <span class="stat-number">${stats.horasAssistidas}h</span>
+      <span class="stat-label">${stats.totalEpisodiosAssistidos} episódios assistidos</span>
+    </div>
+    <div class="stat-card">
+      <i class="fas fa-chart-line stat-icon"></i>
+      <span class="stat-number">${stats.progressoMedio}%</span>
+      <div class="stat-progress"><div class="stat-progress-bar" style="width:${stats.progressoMedio}%"></div></div>
+      <span class="stat-label">Progresso médio</span>
+    </div>
+    <div class="stat-card">
+      <i class="fas fa-check-circle stat-icon"></i>
+      <span class="stat-number">${stats.taxaConclusao}%</span>
+      <span class="stat-label">${stats.concluidos} de ${stats.total} concluídos</span>
+    </div>
+    <div class="stat-card">
+      <i class="fas fa-play stat-icon"></i>
+      <span class="stat-number">${stats.assistindo}</span>
+      <span class="stat-label">Em andamento • ${stats.planejados} na lista</span>
+    </div>
   `;
 }
 

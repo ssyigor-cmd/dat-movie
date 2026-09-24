@@ -3,7 +3,7 @@
  * Usa callTMDB e implementa cache em memória de 5 minutos.
  */
 import { callTMDB } from './api.js';
-import { filterNotInCatalog as catalogFilterNotInCatalog } from './catalog.js';
+import { filterNotInCatalog as catalogFilterNotInCatalog, calcularProgresso } from './catalog.js';
 import { cacheGet, cacheSet, cacheClear } from './cache.js';
 
 function cacheKey(endpoint, params, lang) {
@@ -275,18 +275,23 @@ export function getFavorites(catalogItems, limit = null) {
 }
 
 /**
- * Calcula estatísticas rápidas do catálogo em único passe
+ * Calcula estatísticas úteis do catálogo em único passe
  * @param {Array} catalogItems
- * @returns {{total:number, assistindo:number, concluidos:number, planejados:number, totalEpisodiosAssistidos:number}}
+ * @returns {{total:number, assistindo:number, concluidos:number, planejados:number, totalEpisodiosAssistidos:number, horasAssistidas:number, progressoMedio:number, taxaConclusao:number}}
  */
 export function getCatalogStats(catalogItems) {
-  if (!Array.isArray(catalogItems)) return { total: 0, assistindo: 0, concluidos: 0, planejados: 0, totalEpisodiosAssistidos: 0 };
-  let assistindo = 0, concluidos = 0, planejados = 0, totalEpisodiosAssistidos = 0;
+  if (!Array.isArray(catalogItems) || catalogItems.length === 0) return { total: 0, assistindo: 0, concluidos: 0, planejados: 0, totalEpisodiosAssistidos: 0, horasAssistidas: 0, progressoMedio: 0, taxaConclusao: 0 };
+  let assistindo = 0, concluidos = 0, planejados = 0, totalEpisodiosAssistidos = 0, somaProgresso = 0;
   for (const it of catalogItems) {
     if (it.status === 'assistindo') assistindo++;
     else if (it.status === 'concluido') concluidos++;
     else if (it.status === 'planejado') planejados++;
     totalEpisodiosAssistidos += Number(it.episodio) || 0;
+    somaProgresso += calcularProgresso(it);
   }
-  return { total: catalogItems.length, assistindo, concluidos, planejados, totalEpisodiosAssistidos };
+  const total = catalogItems.length;
+  const horasAssistidas = Math.round((totalEpisodiosAssistidos * 24) / 60);
+  const progressoMedio = total ? Math.round(somaProgresso / total) : 0;
+  const taxaConclusao = total ? Math.round((concluidos / total) * 100) : 0;
+  return { total, assistindo, concluidos, planejados, totalEpisodiosAssistidos, horasAssistidas, progressoMedio, taxaConclusao };
 }
