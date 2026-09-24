@@ -204,13 +204,11 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
   limited.forEach((item) => {
     const posterUrl = item.imagem || '';
     const subtitle = `T${item.temporada} · Ep ${String(item.episodio).padStart(2, '0')}`;
-    const badge = item.tier || '';
     const extra = `<div class="home-card-progress"><div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div>`;
     const card = createHomeCard({
       posterUrl,
       title: item.nome,
       subtitle,
-      badge,
       extraHtml: extra,
       onClick: () => onCardClick && onCardClick(items.indexOf(item))
     });
@@ -235,20 +233,12 @@ export function renderHomeFavorites(container, items, onCardClick) {
   grid.innerHTML = '';
   favs.forEach((item) => {
     const posterUrl = item.imagem || '';
-    const badge = item.tier || '';
     const card = createHomeCard({
       posterUrl,
       title: item.nome,
-      subtitle: badge ? `Tier ${badge}` : '',
-      badge,
+      subtitle: '',
       onClick: () => onCardClick && onCardClick(items.indexOf(item))
     });
-    // Add tier color class to badge if exists
-    const badgeEl = card.querySelector('.home-card-badge');
-    if (badgeEl && badge) {
-      const cls = getTierClass(badge);
-      if (cls) badgeEl.classList.add(cls);
-    }
     grid.appendChild(card);
   });
   animateCards(grid);
