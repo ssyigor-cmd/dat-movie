@@ -497,7 +497,7 @@ img { max-width: 100%; height: auto; display: block; }
 .modal.modal-detail {
   width: 100%;
   max-width: min(1100px, 96%);
-  height: min(90dvh, 860px);
+  height: auto;
   max-height: min(90dvh, 860px);
   padding: 0;
   background: var(--bg-primary);
@@ -508,8 +508,8 @@ img { max-width: 100%; height: auto; display: block; }
   opacity: 0;
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
   overflow: hidden;
-  display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  display: flex;
+  flex-direction: column;
   position: relative;
 }
 .modal-overlay.active .modal.modal-detail {
@@ -521,17 +521,17 @@ img { max-width: 100%; height: auto; display: block; }
   background: rgba(0, 0, 0, 0.75);
 }
 .modal.modal-detail .detail-header { flex-shrink: 0; min-height: clamp(56px, 8vh, 72px); padding: clamp(12px,1.5vh,20px) 0 clamp(6px,1vh,8px); }
-.modal.modal-detail .dm-poster-wrap { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-primary); width: 100%; margin: 0; border-radius: 0; }
+.modal.modal-detail .dm-poster-wrap { flex: 1 1 auto; min-height: 0; max-height: 62vh; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-primary); width: 100%; margin: 0; border-radius: 0; }
 .modal.modal-detail .dm-poster-wrap img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; object-position: center; border-radius: 0; flex: 0 1 auto; min-height: 0; }
-.modal.modal-detail .dm-poster-dual { gap: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.modal.modal-detail .dm-poster-dual { gap: 0; width: 100%; height: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; }
 .modal.modal-detail .dm-poster-dual img:first-child { flex: 0 1 auto; max-width: 28%; max-height: 100%; width: auto; height: auto; object-fit: contain; min-height: 0; }
 .modal.modal-detail .dm-poster-dual img:last-child { flex: 0 1 auto; max-width: 68%; max-height: 100%; width: auto; height: auto; object-fit: contain; min-height: 0; }
-.modal.modal-detail .poster-steppers-row { flex: 0 0 auto; min-height: 0; overflow: hidden; display: flex; align-items: stretch; margin-top: auto; border-top: 1px solid var(--border); }
-.modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 6px; }
-.modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 6px; }
-.modal.modal-detail .epp-season-label, .modal.modal-detail .epp-episode-label { font-size: 0.48rem; letter-spacing: 0.06em; }
-.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 2.4rem; font-weight: 900; line-height: 1; }
-.modal.modal-detail .dm-status-btn, .modal.modal-detail .dm-action-btn { padding: 1px 5px; font-size: 0.55rem; }
+.modal.modal-detail .poster-steppers-row { flex: 0 0 auto; min-height: 0; max-height: 28vh; overflow: hidden; display: flex; align-items: stretch; }
+.modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 4px; }
+.modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 4px; }
+.modal.modal-detail .epp-season-label, .modal.modal-detail .epp-episode-label { font-size: 0.58rem; }
+.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 1.1rem; }
+.modal.modal-detail .dm-status-btn, .modal.modal-detail .dm-action-btn { padding: 3px 7px; font-size: 0.6rem; }
 
 /* Híbrido: fullscreen em telas baixas ou estreitas */
 @media (max-height: 700px), (max-width: 768px) {
@@ -807,27 +807,27 @@ img { max-width: 100%; height: auto; display: block; }
   margin-top: 12px;
 }
 .epp-combined {
-  flex: 1 1 75%;
-  max-width: 75%;
+  flex: 1 1 60%;
+  max-width: 60%;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   background: var(--bg-surface);
 }
 .epp-combined .epp-season {
-  flex: 0 0 13.33%;
-  max-width: 13.33%;
+  flex: 0 0 25%;
+  max-width: 25%;
   border-right: none;
 }
 .epp-combined .epp-episode {
   position: relative;
-  flex: 0 0 13.33%;
-  max-width: 13.33%;
+  flex: 0 0 25%;
+  max-width: 25%;
   border-right: none;
 }
 .epp-episode-meta {
-  flex: 0 0 73.34%;
-  max-width: 73.34%;
+  flex: 0 0 50%;
+  max-width: 50%;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -924,13 +924,13 @@ img { max-width: 100%; height: auto; display: block; }
   flex-shrink: 0;
 }
 .epp-actions {
-  flex: 0 0 15%;
-  max-width: 15%;
+  flex: 0 0 18%;
+  max-width: 18%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
   padding: 12px 10px;
   border-left: 1px solid var(--border);
   background: var(--bg-surface);
@@ -987,7 +987,7 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: center;
 }
 .epp-season .epp-season-val {
-  font-size: 2.4rem;
+  font-size: 2rem;
   color: var(--accent);
 }
 .epp-season .epp-season-max {
@@ -1027,7 +1027,7 @@ img { max-width: 100%; height: auto; display: block; }
 .epp-season-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 .epp-season-btn {
   width: 28px !important;
@@ -1044,7 +1044,7 @@ img { max-width: 100%; height: auto; display: block; }
   gap: 6px;
 }
 .epp-season-val {
-  font-size: 2.4rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #fff;
   line-height: 1;
@@ -1102,7 +1102,7 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: center;
 }
 .epp-episode .epp-ep-badge {
-  font-size: 2.4rem;
+  font-size: 2rem;
   color: var(--accent);
 }
 .epp-episode .epp-max {
@@ -1126,7 +1126,7 @@ img { max-width: 100%; height: auto; display: block; }
 .epp-episode-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 .epp-episode-controls .poster-stepper-btn {
@@ -1140,7 +1140,7 @@ img { max-width: 100%; height: auto; display: block; }
   min-width: 0;
 }
 .epp-ep-badge {
-  font-size: 2.4rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: #fff;
   font-family: var(--font-body);
@@ -1233,13 +1233,13 @@ img { max-width: 100%; height: auto; display: block; }
   gap: 6px !important;
 }
 .epp-status {
-  flex: 0 0 10%;
-  max-width: 10%;
+  flex: 0 0 22%;
+  max-width: 22%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
   padding: 12px 10px;
   border-right: 1px solid var(--border);
   background: var(--bg-surface);
@@ -1508,8 +1508,52 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 0.65rem;
 }
 
+/* ── Synopsis (overlay on poster) ────────────────────────── */
 .dm-poster-wrap {
   position: relative;
+  cursor: pointer;
+}
+.dm-poster-sinopse {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  z-index: 2;
+  overflow-y: auto;
+}
+.dm-poster-blur {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  filter: blur(14px);
+  opacity: 0.95;
+  z-index: 1;
+  display: none;
+}
+.dm-poster-wrap.sinopse-open .dm-poster-blur {
+  display: block;
+}
+.dm-poster-wrap.sinopse-open .dm-poster-sinopse {
+  display: flex;
+}
+.dm-poster-wrap.sinopse-open img {
+  filter: blur(14px);
+  transform: scale(1.05);
+}
+.dm-sinopse-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: justify;
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
 }
 .dm-poster-wrap .form-loading {
   position: relative;
@@ -2818,6 +2862,21 @@ a:focus-visible,
   }
   .dm-footer .dm-btn {
     justify-content: center;
+  }
+  .dm-sinopse-text {
+    font-size: 0.78rem;
+    padding: 12px;
+  }
+  /* Sinopse no mobile: evitar que o texto fique escondido sob a barra inferior
+     e melhorar a rolagem em pôsteres curtos */
+  #detailPosterWrap.sinopse-open .dm-poster-sinopse {
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 40px 14px 52px;
+  }
+  #detailPosterWrap.sinopse-open .dm-sinopse-text {
+    text-align: left;
+    padding: 0;
   }
   .poster-steppers-row {
     padding: 0 16px 8px !important;

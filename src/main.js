@@ -1098,17 +1098,6 @@ async function openAddModalWithTmdbResult(raw) {
         const modalTitleTextEl = document.getElementById('modalTitleText');
         if (modalTitleTextEl) modalTitleTextEl.textContent = displayTitle;
       }
-      const addStillsEl = document.getElementById('addStills');
-      if (addStillsEl && tmdbId) {
-        try {
-          const imgData = await callTMDB(`tv/${tmdbId}/images`, { include_image_language: 'en,null' });
-          const backs = (imgData.backdrops || []).slice(0, 4);
-          if (backs.length > 0) {
-            addStillsEl.innerHTML = backs.map(b => `<img src="https://image.tmdb.org/t/p/w300${b.file_path}" alt="" loading="lazy" />`).join('');
-            addStillsEl.style.display = 'grid';
-          } else addStillsEl.style.display = 'none';
-        } catch { if (addStillsEl) addStillsEl.style.display = 'none'; }
-      }
     } catch (err) {
       console.warn('Erro ao buscar detalhes:', err);
       if (posterUrl && previewImgEl) {
@@ -1535,8 +1524,6 @@ function closeModal() {
   modalOverlay.classList.remove('active');
   const addListModal = document.getElementById('addListModal');
   if (addListModal) addListModal.classList.remove('active');
-  const addStillsEl = document.getElementById('addStills');
-  if (addStillsEl) { addStillsEl.style.display = 'none'; addStillsEl.innerHTML = ''; }
   if (addEpisodesBtn) { addEpisodesBtn.style.display = 'none'; addEpisodesBtn.onclick = null; }
   unlockScreen();
   releaseFocusTrap();
@@ -1806,7 +1793,59 @@ sortOrder.addEventListener('change', render);
     updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
   });
 
-  // Sinopse ao clicar na imagem removida do projeto
+  // Poster click toggles synopsis overlay
+  const detailPosterWrap = document.getElementById('detailPosterWrap');
+  if (detailPosterWrap) {
+    const togglePosterSinopse = () => {
+      detailPosterWrap.classList.toggle('sinopse-open');
+    };
+    detailPosterWrap.addEventListener('click', (e) => {
+      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.poster-top-links')) return;
+      togglePosterSinopse();
+    });
+    detailPosterWrap.addEventListener('keydown', (e) => {
+      if (e.target.closest('.poster-steppers-row')) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        togglePosterSinopse();
+      }
+    });
+    // Close overlay when detail modal closes
+    const detailModalEl = document.getElementById('detailModal');
+    if (detailModalEl) {
+      const observer = new MutationObserver(() => {
+        if (!detailModalEl.classList.contains('active')) {
+          detailPosterWrap.classList.remove('sinopse-open');
+        }
+      });
+      observer.observe(detailModalEl, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+
+  // Add modal poster sinopse toggle
+  if (addPosterWrap) {
+    const toggleAddSinopse = () => {
+      addPosterWrap.classList.toggle('sinopse-open');
+    };
+    addPosterWrap.addEventListener('click', (e) => {
+      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.add-poster-bar')) return;
+      toggleAddSinopse();
+    });
+    addPosterWrap.addEventListener('keydown', (e) => {
+      if (e.target.closest('.poster-steppers-row')) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAddSinopse(); }
+    });
+    // Auto-close sinopse when add modal closes
+    const addModalEl = document.getElementById('modalOverlay');
+    if (addModalEl) {
+      const addModalObserver = new MutationObserver(() => {
+        if (!addModalEl.classList.contains('active')) {
+          addPosterWrap.classList.remove('sinopse-open');
+        }
+      });
+      addModalObserver.observe(addModalEl, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
 
   // ensure toolbar toggles reflect current select values on init
   updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
