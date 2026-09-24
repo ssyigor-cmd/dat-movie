@@ -3,7 +3,7 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres } from '../lib/trendingApi.js';
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -375,7 +375,12 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
   const wrap = container.querySelector('#homeCategories');
   if (!wrap) return;
   wrap.innerHTML = '';
-  for (const cat of CATEGORIES) {
+  let categories = CATEGORIES;
+  try {
+    const userCats = await getUserTopGenres(items, 4);
+    if (Array.isArray(userCats) && userCats.length > 0) categories = userCats;
+  } catch {}
+  for (const cat of categories) {
     const section = document.createElement('section');
     section.className = 'home-section';
     section.innerHTML = `

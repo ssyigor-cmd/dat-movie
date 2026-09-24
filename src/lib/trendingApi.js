@@ -120,6 +120,48 @@ export const CATEGORIES = [
   { id: 10765, name: 'Ficção Científica', icon: 'fa-rocket' },
 ];
 
+const GENRE_MAP = {
+  10759: { name: 'Ação', icon: 'fa-bolt' },
+  16: { name: 'Animação', icon: 'fa-palette' },
+  35: { name: 'Comédia', icon: 'fa-laugh' },
+  18: { name: 'Drama', icon: 'fa-theater-masks' },
+  27: { name: 'Terror', icon: 'fa-ghost' },
+  10765: { name: 'Ficção Científica', icon: 'fa-rocket' },
+  10762: { name: 'Infantil', icon: 'fa-child' },
+  9648: { name: 'Mistério', icon: 'fa-search' },
+  80: { name: 'Crime', icon: 'fa-user-secret' },
+  99: { name: 'Documentário', icon: 'fa-film' },
+  10768: { name: 'Guerra', icon: 'fa-fighter-jet' },
+};
+
+export async function getUserTopGenres(catalogItems, topN = 4) {
+  if (!Array.isArray(catalogItems) || catalogItems.length === 0) return CATEGORIES.slice(0, topN);
+  const candidates = catalogItems.filter(i => i.status === 'assistindo' && i.tmdb_id);
+  if (candidates.length === 0) return CATEGORIES.slice(0, topN);
+  const counts = new Map();
+  const toFetch = candidates.slice(0, 12);
+  const results = await Promise.allSettled(toFetch.map(async (item) => {
+    try {
+      const details = await cachedCallTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR');
+      return (details.genres || []).map(g => g.id);
+    } catch { return []; }
+  }));
+  for (const r of results) {
+    if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+      for (const gid of r.value) counts.set(gid, (counts.get(gid) || 0) + 1);
+    }
+  }
+  if (counts.size === 0) return CATEGORIES.slice(0, topN);
+  const sorted = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0, topN).map(([id]) => ({ id, name: GENRE_MAP[id]?.name || `Gênero ${id}`, icon: GENRE_MAP[id]?.icon || 'fa-tag' }));
+  // Completa com categorias fixas se faltar
+  const existingIds = new Set(sorted.map(c => c.id));
+  for (const cat of CATEGORIES) {
+    if (sorted.length >= topN) break;
+    if (!existingIds.has(cat.id)) sorted.push(cat);
+  }
+  return sorted.slice(0, topN);
+}
+
 export async function getTitlesByGenre(genreId, catalogItems = [], limit = null) {
   const lim = limit ?? getFullWidthCount();
   try {
@@ -137,7 +179,22 @@ export async function getTitlesByGenre(genreId, catalogItems = [], limit = null)
 export async function getRecommendationsForUser(catalogItems, limit = null) {
   const lim = limit ?? getFullWidthCount();
   if (!Array.isArray(catalogItems) || catalogItems.length === 0) return null;
-  const base = [...catalogItems].filter(i => i.tier === 'S+' || i.tier === 'S').sort((a,b) => (a.tier === 'S+' && b.tier !== 'S+' ? -1 : 1))[0] || [...catalogItems].filter(i => i.status === 'assistindo').sort((a,b) => new Date(b.dataAtualizacao||0)-new Date(a.dataAtualizacao||0))[0] || catalogItems[0];
+  // Pondera por tier + progresso + recência
+  const assistindo = catalogItems.filter(i => i.status === 'assistindo' && i.tmdb_id);
+  let base = null;
+  if (assistindo.length > 0) {
+    const scored = assistindo.map(item => {
+      const prog = calcularProgresso(item);
+      const tierBonus = item.tier === 'S+' ? 20 : item.tier === 'S' ? 12 : item.tier === 'A' ? 5 : 0;
+      const recency = Math.max(0, 10 - Math.floor((Date.now() - new Date(item.dataAtualizacao || item.dataCriacao || 0).getTime()) / (1000*60*60*24*7)));
+      return { item, score: prog + tierBonus + recency };
+    });
+    scored.sort((a,b) => b.score - a.score);
+    base = scored[0].item;
+  }
+  if (!base) {
+    base = [...catalogItems].filter(i => (i.tier === 'S+' || i.tier === 'S') && i.tmdb_id).sort((a,b) => (a.tier === 'S+' && b.tier !== 'S+' ? -1 : 1))[0] || assistindo[0] || catalogItems.find(i => i.tmdb_id) || catalogItems[0];
+  }
   if (!base || !base.tmdb_id) return null;
   try {
     let data;
