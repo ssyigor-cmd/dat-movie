@@ -524,9 +524,12 @@ img { max-width: 100%; height: auto; display: block; }
 .modal.modal-detail .dm-poster-wrap { flex: 0 1 44%; max-height: 44vh; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-primary); }
 .modal.modal-detail .dm-poster-wrap img,
 .modal.modal-detail .dm-poster-dual img { max-height: 44vh; width: auto; max-width: 100%; height: auto; object-fit: contain; object-position: center; }
-.modal.modal-detail .poster-steppers-row { flex: 0 1 44%; min-height: 0; overflow: hidden; display: flex; align-items: stretch; }
-.modal.modal-detail .episode-progress-panel { height: 100%; min-height: 0; padding: clamp(6px,1vh,10px); gap: clamp(6px,1vh,10px); }
-.modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: clamp(6px,1vh,10px); }
+.modal.modal-detail .poster-steppers-row { flex: 0 0 auto; max-height: 32vh; min-height: 0; overflow: hidden; display: flex; align-items: stretch; }
+.modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 4px; }
+.modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 4px; }
+.modal.modal-detail .epp-season-label, .modal.modal-detail .epp-episode-label { font-size: 0.58rem; }
+.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 1.1rem; }
+.modal.modal-detail .dm-status-btn, .modal.modal-detail .dm-action-btn { padding: 3px 7px; font-size: 0.6rem; }
 
 /* Híbrido: fullscreen em telas baixas ou estreitas */
 @media (max-height: 700px), (max-width: 768px) {
