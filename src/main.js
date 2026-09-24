@@ -1208,6 +1208,23 @@ function render() {
   }
   
   headerListName.textContent = label;
+  const headerSubtitle = document.getElementById('headerSubtitle');
+  if (headerSubtitle) {
+    const subtitles = {
+      'all': 'Seu arquivo vivo — sem algoritmo, só o seu gosto em jogo',
+      'planejado': 'O que vem depois do próximo play',
+      'pesquisa': 'Garimpe o próximo título para a coleção',
+      'list': 'Sua curadoria, sem ruído'
+    };
+    let sub = '';
+    if (state.currentListId) {
+      const lst = state.userLists.find(l => l.id === state.currentListId);
+      sub = lst ? `Coleção “${lst.nome}” — só o que importa` : subtitles['list'];
+    } else {
+      sub = subtitles[state.currentTab] || '';
+    }
+    headerSubtitle.textContent = sub;
+  }
 
   if (state.currentTab === 'planejado') {
     groupToggle.style.display = 'none';
