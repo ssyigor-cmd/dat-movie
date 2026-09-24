@@ -497,7 +497,7 @@ img { max-width: 100%; height: auto; display: block; }
 .modal.modal-detail {
   width: 100%;
   max-width: min(1100px, 96%);
-  height: auto;
+  height: min(90dvh, 860px);
   max-height: min(90dvh, 860px);
   padding: 0;
   background: var(--bg-primary);
