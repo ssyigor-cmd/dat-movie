@@ -15,6 +15,10 @@ import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
+import anime from 'animejs';
+import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
+import { state, persistNavState, setActiveTab } from './lib/state.js';
+if (typeof window !== 'undefined') window.anime = anime;
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
@@ -128,6 +132,624 @@ const modalTitleText = $('modalTitleText');
 const addPosterSteppersRow = $('addPosterSteppersRow');
 
 
+// ========== AUTENTICAÇÃO ==========
+function setAuthUI(showLogin) {
+  authContainer.style.display = showLogin ? 'flex' : 'none';
+  if (navbar) navbar.style.display = showLogin ? 'none' : 'flex';
+  document.querySelector('.main-content').style.display = showLogin ? 'none' : 'block';
+  
+  // Update logos when auth state changes
+  updateLogos();
+}
+
+async function checkSession() {
+  try {
+    const session = await getCurrentSession();
+    if (session) {
+      setAuthUI(false);
+      const user = await getCurrentUser();
+      state.currentUser = user || null;
+      if (user) {
+        profileEmail.textContent = user.email.split('@')[0] || user.email;
+        profileEmailFull.textContent = user.email;
+      }
+      // Default to home on fresh login if no persisted tab
+      if (!localStorage.getItem('activeTab')) {
+        state.currentTab = 'home';
+        state.currentListId = null;
+        persistNavState();
+      }
+      await loadItems();
+    } else {
+      setAuthUI(true);
+    }
+  } catch (error) {
+    console.error('Erro ao verificar sessão:', error);
+    console.error('Detalhes do erro:', error.message, error.status, error.name);
+    setAuthUI(true);
+    if (error.message) {
+      authMessage.textContent = `Erro: ${error.message}`;
+    } else {
+      authMessage.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+    }
+  }
+}
+
+const authLoginBtnDefaultHTML = authLoginBtn.innerHTML;
+const authSignupBtnDefaultHTML = authSignupBtn.innerHTML;
+
+function setAuthLoading(show) {
+  authLoginBtn.disabled = show;
+  authSignupBtn.disabled = show;
+  authLoginBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i> Entrando...' : authLoginBtnDefaultHTML;
+  authSignupBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : authSignupBtnDefaultHTML;
+}
+
+async function handleLogin() {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+  setAuthLoading(true);
+  try {
+    await loginWithPassword(email, password);
+    authMessage.textContent = 'Login realizado!';
+    await checkSession();
+  } catch (error) {
+    console.error('Erro de login:', error);
+    console.error('Detalhes do erro:', error.message, error.status, error.name);
+    authMessage.textContent = `Erro: ${error.message || 'Não foi possível entrar. Verifique seu email e senha.'}`;
+  }
+  setAuthLoading(false);
+}
+
+async function handleSignup() {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+  setAuthLoading(true);
+  try {
+    await signUpWithPassword(email, password);
+    authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.';
+  } catch (error) {
+    console.error('Erro de cadastro:', error);
+    authMessage.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
+  }
+  setAuthLoading(false);
+}
+
+// ========== SUPABASE CRUD ==========
+async function fetchItemsFromSupabase() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  
+  // Buscar itens com suas listas relacionadas
+  const { data, error } = await supabase
+    .from('items')
+    .select(`
+      *,
+      item_lists (
+        list_id,
+        user_lists (
+          id, nome, is_system
+        )
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('data_criacao', { ascending: false });
+  
+  if (error) { 
+    console.error('Erro ao buscar itens:', error);
+    console.error('Detalhes do erro:', error.message, error.code, error.hint);
+    throw new Error(`Erro ao buscar itens: ${error.message}`); 
+  }
+  
+  return data.map(item => ({
+    id: item.id, user_id: item.user_id, nome: item.nome, tipo: item.tipo,
+    temporada: item.temporada, episodio: item.episodio, totalEpisodios: item.total_episodios,
+    seasonEpisodesMap: item.season_episodes_map || {}, status: item.status, nota: item.nota,
+    imagem: item.imagem, dataCriacao: item.data_criacao, dataAtualizacao: item.data_atualizacao,
+    tmdb_id: item.tmdb_id, tier: item.tier || null,
+    ano: item.ano || null,
+    lists: item.item_lists?.map(il => il.user_lists).filter(Boolean) || []
+  }));
+}
+
+async function addItemToSupabase(item) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não logado.');
+  const dbItem = {
+    user_id: user.id, nome: item.nome, tipo: item.tipo, temporada: item.temporada,
+    episodio: item.episodio, total_episodios: item.totalEpisodios,
+    season_episodes_map: item.seasonEpisodesMap || {}, status: item.status,
+    tier: item.tier || null, imagem: item.imagem || null, tmdb_id: item.tmdb_id || null,
+    ano: item.ano || null,
+    data_criacao: item.dataCriacao || new Date().toISOString()
+  };
+  const { data, error } = await supabase.from('items').insert([dbItem]).select();
+  if (error) throw error;
+  return { ...data[0], totalEpisodios: data[0].total_episodios, seasonEpisodesMap: data[0].season_episodes_map || {}, dataCriacao: data[0].data_criacao, dataAtualizacao: data[0].data_atualizacao };
+}
+
+async function updateItemInSupabase(id, updates) {
+  const dbUpdates = {};
+  ['nome', 'tipo', 'temporada', 'episodio', 'status', 'tier', 'imagem', 'tmdb_id', 'ano'].forEach(key => { if (updates[key] !== undefined) dbUpdates[key] = updates[key]; });
+  if (updates.totalEpisodios !== undefined) dbUpdates.total_episodios = updates.totalEpisodios;
+  if (updates.seasonEpisodesMap !== undefined) dbUpdates.season_episodes_map = updates.seasonEpisodesMap;
+  if (updates.dataCriacao !== undefined) dbUpdates.data_criacao = updates.dataCriacao;
+  const { data, error } = await supabase.from('items').update(dbUpdates).eq('id', id).select();
+  if (error) throw error;
+  return { ...data[0], totalEpisodios: data[0].total_episodios, seasonEpisodesMap: data[0].season_episodes_map || {}, dataCriacao: data[0].data_criacao, dataAtualizacao: data[0].data_atualizacao };
+}
+
+async function deleteItemFromSupabase(id) {
+  const { error } = await supabase.from('items').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ========== CARREGAR ITENS ==========
+async function loadItems() {
+  try {
+    const data = await fetchItemsFromSupabase();
+    state.items = data;
+    await loadUserLists();
+    render();
+  } catch (error) {
+    console.error('Erro ao carregar itens:', error);
+    throw error;
+  }
+}
+
+async function loadUserLists() {
+  try {
+    state.userLists = await fetchUserLists();
+    renderNavbar();
+  } catch (error) {
+    console.error('Erro ao carregar listas:', error);
+    throw error;
+  }
+}
+
+// ========== RENDER NAVBAR ==========
+
+function buildListNavItem(list) {
+  const listBtn = document.createElement('button');
+  listBtn.className = `nav-item ${state.currentListId === list.id ? 'active' : ''}`;
+  listBtn.dataset.listId = list.id;
+
+  const dragHandle = document.createElement('i');
+  dragHandle.className = 'fas fa-grip-vertical nav-drag-handle';
+  dragHandle.title = 'Arrastar para reordenar';
+  listBtn.appendChild(dragHandle);
+
+  const contentSpan = document.createElement('span');
+  contentSpan.className = 'nav-item-label';
+  contentSpan.textContent = list.nome;
+  listBtn.appendChild(contentSpan);
+
+  const actionsWrap = document.createElement('span');
+  actionsWrap.className = 'nav-item-actions';
+
+  const renameIcon = document.createElement('i');
+  renameIcon.className = 'fas fa-pencil-alt nav-action-icon';
+  renameIcon.title = 'Editar';
+  renameIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startInlineEdit(listBtn, list, contentSpan, actionsWrap);
+  });
+  actionsWrap.appendChild(renameIcon);
+
+  listBtn.appendChild(actionsWrap);
+
+  listBtn.addEventListener('click', () => {
+    if (listBtn.classList.contains('editing')) return;
+    closeListsDropdown();
+    setActiveTab('list', list.id);
+  });
+
+  return listBtn;
+}
+
+function buildListsButton() {
+  const toggle = document.createElement('button');
+  toggle.className = 'nav-item';
+  toggle.id = 'listsToggle';
+  toggle.setAttribute('aria-haspopup', 'true');
+  toggle.setAttribute('aria-expanded', 'false');
+  if (state.currentTab === 'list' && state.currentListId) toggle.classList.add('active');
+  toggle.innerHTML = '<i class="fas fa-layer-group"></i> <span>Listas</span> <i class="fas fa-chevron-down lists-chevron"></i>';
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleListsDropdown();
+  });
+  return toggle;
+}
+
+function buildListsDropdown() {
+  const dropdown = document.createElement('div');
+  dropdown.className = 'nav-dropdown';
+  dropdown.id = 'listsDropdown';
+
+  const label = document.createElement('div');
+  label.className = 'nav-section-label';
+  label.textContent = 'Minhas Listas';
+  dropdown.appendChild(label);
+
+  const sep = document.createElement('div');
+  sep.className = 'nav-separator';
+  dropdown.appendChild(sep);
+
+  const userListsOnly = state.userLists.filter(l => !l.is_system);
+
+  if (userListsOnly.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'nav-empty-hint';
+    empty.textContent = 'Nenhuma lista criada ainda';
+    dropdown.appendChild(empty);
+  } else {
+    userListsOnly.forEach(list => {
+      dropdown.appendChild(buildListNavItem(list));
+    });
+  }
+
+  const sep2 = document.createElement('div');
+  sep2.className = 'nav-separator';
+  dropdown.appendChild(sep2);
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'nav-item add-list-btn';
+  addBtn.innerHTML = '<i class="fas fa-plus"></i> <span>Nova Lista</span>';
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeListsDropdown();
+    promptCreateList();
+  });
+  dropdown.appendChild(addBtn);
+
+  return dropdown;
+}
+
+function renderNavbar() {
+  if (!navbarNav) return;
+
+  const fragment = document.createDocumentFragment();
+
+  // --- Início (Home) ---
+  const homeBtn = document.createElement('button');
+  homeBtn.className = `nav-item ${state.currentTab === 'home' ? 'active' : ''}`;
+  homeBtn.dataset.tab = 'home';
+  homeBtn.innerHTML = '<i class="fas fa-home"></i> <span>Início</span>';
+  homeBtn.addEventListener('click', () => setActiveTab('home', null));
+  fragment.appendChild(homeBtn);
+
+  // --- Navegação principal (colada ao ícone da marca) ---
+  const todosBtn = document.createElement('button');
+  todosBtn.className = `nav-item ${state.currentTab === 'all' && !state.currentListId ? 'active' : ''}`;
+  todosBtn.dataset.tab = 'all';
+  todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Catálogo</span>';
+  todosBtn.addEventListener('click', () => setActiveTab('all', null));
+  fragment.appendChild(todosBtn);
+
+  const systemLists = state.userLists.filter(l => l.is_system);
+  const wishlist = systemLists.find(l => l.nome === 'Próximos' || l.nome === 'Lista de Desejos') || systemLists[0];
+
+  const wishlistBtn = document.createElement('button');
+  wishlistBtn.className = `nav-item nav-item-system ${state.currentTab === 'planejado' && !state.currentListId ? 'active' : ''}`;
+  wishlistBtn.dataset.tab = 'planejado';
+  wishlistBtn.dataset.system = 'true';
+  if (wishlist) { wishlistBtn.dataset.listId = wishlist.id; }
+  wishlistBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> <span>Próximos</span>';
+  wishlistBtn.addEventListener('click', () => setActiveTab('planejado', null));
+  fragment.appendChild(wishlistBtn);
+
+  const pesquisaBtn = document.createElement('button');
+  pesquisaBtn.className = `nav-item ${state.currentTab === 'pesquisa' ? 'active' : ''}`;
+  pesquisaBtn.dataset.tab = 'pesquisa';
+  pesquisaBtn.innerHTML = '<i class="fas fa-search"></i> <span>Pesquisar</span>';
+  pesquisaBtn.addEventListener('click', () => setActiveTab('pesquisa', null));
+  fragment.appendChild(pesquisaBtn);
+
+  // --- Botão "Listas" (integrado na navegação centralizada) ---
+  fragment.appendChild(buildListsButton());
+
+  navbarNav.innerHTML = '';
+  navbarNav.appendChild(fragment);
+
+  // --- Dropdown "Listas" (fora do container com overflow, anexado ao top-navbar) ---
+  const topNavbar = document.getElementById('topNavbar');
+  if (topNavbar) {
+    // Remove dropdown anterior se existir
+    const oldDropdown = document.getElementById('listsDropdown');
+    if (oldDropdown) {
+      if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch(e){} }
+      oldDropdown.remove();
+    }
+    
+    const dropdown = buildListsDropdown();
+    topNavbar.appendChild(dropdown);
+    initListsSortable();
+  }
+}
+
+function initListsSortable() {
+  const dropdown = document.getElementById('listsDropdown');
+  if (!dropdown || !window.Sortable) return;
+  if (state.listsSortable) { try { state.listsSortable.destroy(); } catch(e){} state.listsSortable = null; }
+  const handleExists = dropdown.querySelector('.nav-drag-handle');
+  if (!handleExists) return;
+  state.listsSortable = new window.Sortable(dropdown, {
+    handle: '.nav-drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    filter: '.nav-section-label, .nav-separator, .nav-empty-hint, .add-list-btn',
+    preventOnFilter: true,
+    onEnd: async () => {
+      const orderedIds = [...dropdown.querySelectorAll('.nav-item[data-list-id]')].map(el => el.dataset.listId);
+      if (orderedIds.length === 0) return;
+      const ordered = orderedIds.map((id, idx) => ({ id, ordem: idx }));
+      try {
+        await updateListsOrder(ordered);
+        // Reordena state.userLists localmente conforme novo ordem
+        const byId = new Map(state.userLists.map(l => [l.id, l]));
+        const reordered = orderedIds.map(id => byId.get(id)).filter(Boolean);
+        const rest = state.userLists.filter(l => !orderedIds.includes(l.id));
+        state.userLists = [...reordered, ...rest];
+      } catch (err) {
+        showErrorToast('Erro ao salvar ordem', err);
+        await loadUserLists();
+      }
+    }
+  });
+}
+
+function toggleListsDropdown() {
+  const dropdown = document.getElementById('listsDropdown');
+  const btn = document.getElementById('listsToggle');
+  if (!dropdown || !btn) return;
+  const isOpen = dropdown.classList.contains('show');
+  
+  if (!isOpen) {
+    // Position dropdown under the button
+    const btnRect = btn.getBoundingClientRect();
+    const navbarRect = document.getElementById('topNavbar').getBoundingClientRect();
+    dropdown.style.left = (btnRect.left - navbarRect.left) + 'px';
+    dropdown.style.top = (btnRect.bottom - navbarRect.top + 8) + 'px';
+  }
+  
+  dropdown.classList.toggle('show', !isOpen);
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  btn.classList.toggle('open', !isOpen);
+}
+
+function closeListsDropdown() {
+  const dropdown = document.getElementById('listsDropdown');
+  const btn = document.getElementById('listsToggle');
+  if (dropdown) dropdown.classList.remove('show');
+  if (btn) {
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('open');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('listsDropdown');
+  const btn = document.getElementById('listsToggle');
+  if (!dropdown || !btn) return;
+  if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+    closeListsDropdown();
+  }
+});
+
+function updateActiveNav() {
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.remove('active');
+    
+    const tab = btn.dataset.tab;
+    const listId = btn.dataset.listId;
+    
+    if ((tab === state.currentTab && !state.currentListId) || (listId === state.currentListId)) {
+      btn.classList.add('active');
+    }
+  });
+
+  const listsToggle = document.getElementById('listsToggle');
+  if (listsToggle) {
+    listsToggle.classList.toggle('active', state.currentTab === 'list' && Boolean(state.currentListId));
+  }
+  
+  // Gerenciar filtros baseado na aba atual
+  if (state.currentTab === 'home') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+  } else if (state.currentTab === 'planejado') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    // Esconder opções de ordenação sem sentido para Próximos
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+    // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
+    const hiddenValues = ['tier-asc','progresso-desc','ano-desc'];
+    if (hiddenValues.includes(sortOrder.value)) {
+      sortOrder.value = 'data-desc';
+      markMenuActive(sortMenu, sortOrder);
+    }
+  } else if (state.currentTab === 'pesquisa') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    if (statusWrapper) statusWrapper.style.display = 'none';
+    if (tierWrapper) tierWrapper.style.display = 'none';
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+  } else {
+    filterStatus.style.display = '';
+    filterTier.style.display = '';
+    if (statusWrapper) statusWrapper.style.display = '';
+    if (tierWrapper) tierWrapper.style.display = '';
+    // Restaurar todas as opções de ordenação
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = '');
+  }
+}
+
+async function promptCreateList() {
+  const nome = prompt('Nome da nova lista:');
+  if (!nome || nome.trim() === '') return;
+  
+  try {
+    await createList(nome.trim());
+    await loadUserLists();
+    showToast('Lista criada com sucesso!');
+  } catch (error) {
+    showErrorToast('Erro ao criar lista', error);
+  }
+}
+
+let activeInlineEdit = null;
+
+function startInlineEdit(listBtn, list, contentSpan, actionsWrap) {
+  if (activeInlineEdit) cancelInlineEdit();
+  
+  listBtn.classList.add('editing');
+  listBtn.style.pointerEvents = 'auto';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'nav-inline-input';
+  input.value = list.nome;
+  input.maxLength = 100;
+  
+  contentSpan.style.display = 'none';
+  actionsWrap.innerHTML = '';
+  
+  const confirmIcon = document.createElement('i');
+  confirmIcon.className = 'fas fa-check nav-action-icon nav-action-confirm';
+  confirmIcon.title = 'Salvar';
+  
+  const deleteIcon = document.createElement('i');
+  deleteIcon.className = 'fas fa-trash nav-action-icon nav-action-delete';
+  deleteIcon.title = 'Excluir lista';
+  
+  actionsWrap.appendChild(confirmIcon);
+  actionsWrap.appendChild(deleteIcon);
+  
+  listBtn.insertBefore(input, actionsWrap);
+  input.focus();
+  input.select();
+  
+  const save = async () => {
+    const novoNome = input.value.trim();
+    if (!novoNome || novoNome === list.nome) {
+      cancelInlineEdit();
+      return;
+    }
+    try {
+      await renameList(list.id, novoNome);
+      await loadUserLists();
+      showToast('Lista renomeada!');
+    } catch (error) {
+      showErrorToast('Erro ao renomear', error);
+    }
+  };
+  
+  const remove = async () => {
+    const ok = await showConfirm(`Tem certeza que deseja excluir a lista "${list.nome}"?`, 'Excluir lista');
+    if (!ok) return;
+    try {
+      await deleteList(list.id);
+      if (state.currentListId === list.id) {
+        state.currentTab = 'all';
+        state.currentListId = null;
+        persistNavState();
+      }
+      await loadItems();
+      showToast('Lista excluída!');
+    } catch (error) {
+      showErrorToast('Erro ao excluir lista', error);
+    }
+  };
+  
+  confirmIcon.addEventListener('click', (e) => { e.stopPropagation(); save(); });
+  deleteIcon.addEventListener('click', (e) => { e.stopPropagation(); remove(); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') cancelInlineEdit();
+  });
+  input.addEventListener('blur', () => { setTimeout(cancelInlineEdit, 150); });
+  
+  activeInlineEdit = { listBtn, contentSpan, actionsWrap, input };
+}
+
+function cancelInlineEdit() {
+  if (!activeInlineEdit) return;
+  const { listBtn, contentSpan, actionsWrap, input } = activeInlineEdit;
+  
+  if (input && input.parentNode) input.remove();
+  contentSpan.style.display = '';
+  actionsWrap.innerHTML = '';
+  
+  const renameIcon = document.createElement('i');
+  renameIcon.className = 'fas fa-pencil-alt nav-action-icon';
+  renameIcon.title = 'Editar';
+  renameIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const list = state.userLists.find(l => l.id === listBtn.dataset.listId);
+    if (list) startInlineEdit(listBtn, list, contentSpan, actionsWrap);
+  });
+  actionsWrap.appendChild(renameIcon);
+  
+  listBtn.classList.remove('editing');
+  activeInlineEdit = null;
+}
+
+// ========== SELEÇÃO DE LISTAS NOS MODAIS ==========
+function populateListCheckboxes(container, selectedIdSet) {
+  if (!container) return;
+  container.innerHTML = '';
+  const sorted = [...state.userLists].filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
+  sorted.forEach(list => {
+    const label = document.createElement('label');
+    label.className = 'list-checkbox-pill';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = list.id;
+    checkbox.checked = selectedIdSet.has(list.id);
+    const icon = document.createElement('i');
+    icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
+    const text = document.createTextNode(` ${list.nome}`);
+    label.appendChild(checkbox);
+    label.appendChild(icon);
+    label.appendChild(text);
+    container.appendChild(label);
+  });
+}
+function populateAddListCheckboxes(preselectedIds = []) {
+  populateListCheckboxes(addListCheckboxes, new Set(preselectedIds));
+}
+
+function populateDetailListCheckboxes(itemLists = []) {
+  populateListCheckboxes(detailListCheckboxes, new Set(itemLists.map(l => l.id)));
+}
+// ========== STEPPER ADAPTERS ==========
+const addInputs = {
+  tempInput: addTemporadaInput,
+  epInput: addEpisodioInput,
+  epDisplay: addEpisodioDisplay,
+  tempDisplay: addTemporadaDisplay
+};
+
+// ========== ADD MODAL EPISODE PROGRESS PANEL ==========
+const addSeasonMaxEl = $('addSeasonMax');
+const addSeasonNameEl = $('addSeasonName');
+const addEpMaxEl = $('addEpMax');
+const addEpTitleEl = $('addEpTitle');
+const addEpDateEl = $('addEpDate');
+const addEpOverviewEl = $('addEpOverview');
+const addEpLoadingEl = $('addEpLoading');
+
+let addEpisodeInfoRequestId = 0;
+
 function resetAddProgressPanel() {
   const temp = parseInt(addTemporadaInput.value) || 1;
   const ep = parseInt(addEpisodioInput.value) || 0;
@@ -156,11 +778,11 @@ async function syncAddProgressPanel() {
   const requestId = ++state.addEpisodeInfoRequestId;
 
   try {
-    const key = `${state.selectedTmdbId}:${temp}`;
-    let seasonData = addSeasonDataCache.get(key);
+    const key = `season_${state.selectedTmdbId}:${temp}`;
+    let seasonData = cacheGet(key);
     if (!seasonData) {
       seasonData = await callTMDB(`tv/${state.selectedTmdbId}/season/${temp}`, {}, 'pt-BR');
-      addSeasonDataCache.set(key, seasonData);
+      cacheSet(key, seasonData);
     }
     if (requestId !== state.addEpisodeInfoRequestId) return;
 
@@ -515,7 +1137,8 @@ function render() {
     if (homeSection) {
       renderHome(homeSection, {
         user: state.currentUser,
-        items: state.items, onCardClick: handleCardClick,
+        items: state.items,
+        onCardClick: handleCardClick,
         onAddFromTrending: handleTrendingAdd,
         onOpenAddModal: handleHomeContinueAdd
       });
@@ -928,6 +1551,7 @@ document.addEventListener('click', () => {
 
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
+  cacheClear();
   await checkSession();
 });
 

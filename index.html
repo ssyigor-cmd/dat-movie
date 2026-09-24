@@ -8,12 +8,10 @@
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
-  <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-light.svg" media="(prefers-color-scheme: light)" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script type="importmap">
   {
     "imports": {
@@ -81,15 +79,10 @@
         </select>
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
-          <option value="nome-desc">Nome (Z–A)</option>
-          <option value="progresso-asc" data-wishlist-hidden>Progresso ↑</option>
-          <option value="progresso-desc" data-wishlist-hidden>Progresso ↓</option>
-          <option value="data-asc">Mais antigo</option>
-          <option value="data-desc" selected>Mais recente</option>
-          <option value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</option>
-          <option value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</option>
-          <option value="temporada-asc" data-wishlist-hidden>Temporada ↑</option>
-          <option value="temporada-desc" data-wishlist-hidden>Temporada ↓</option>
+          <option value="data-desc" selected>Data adicionada</option>
+          <option value="tier-asc" data-wishlist-hidden>Tier</option>
+          <option value="progresso-desc" data-wishlist-hidden>Progresso</option>
+          <option value="ano-desc" data-wishlist-hidden>Ano</option>
         </select>
       </div>
 
@@ -167,15 +160,10 @@
             </button>
             <div id="sortMenu" class="filter-menu filter-menu-wide" role="menu" aria-hidden="true">
               <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-desc">Nome (Z–A)</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-asc" data-wishlist-hidden>Progresso ↑</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso ↓</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-asc">Mais antigo</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Mais recente</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier (melhor → pior)</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-desc" data-wishlist-hidden>Tier (pior → melhor)</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-asc" data-wishlist-hidden>Temporada ↑</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="temporada-desc" data-wishlist-hidden>Temporada ↓</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Data adicionada</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="ano-desc" data-wishlist-hidden>Ano</button>
             </div>
           </div>
 

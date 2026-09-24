@@ -7,24 +7,18 @@
 assets/
 ├── logo/
 │   ├── logotype-dark.svg    # Full horizontal logotype (dark theme)
-│   ├── logotype-light.svg   # Full horizontal logotype (light theme)
-│   ├── stacked-dark.svg     # Stacked vertical logo (dark theme)
-│   └── stacked-light.svg    # Stacked vertical logo (light theme)
+│   └── stacked-dark.svg     # Stacked vertical logo (dark theme)
 ├── icon/
-│   ├── icon-96-dark.svg     # App icon 96px (dark theme)
-│   └── icon-96-light.svg    # App icon 96px (light theme)
+│   └── icon-96-dark.svg     # App icon 96px (dark theme)
 └── favicon/
-    ├── favicon-32-dark.svg  # Favicon 32px (dark theme)
-    └── favicon-32-light.svg # Favicon 32px (light theme)
+    └── favicon-32-dark.svg  # Favicon 32px (dark theme)
 ```
 
 ## Color Palette
 
 ### Primary Colors
 - **Dark Background**: `#08080F`
-- **Light Background**: `#F4F4F8`
 - **Accent Blue**: `#4A9EFF`
-- **Text Dark**: `#08080F`
 - **Text Light**: `#FFFFFF`
 - **Divider Gray**: `#666666`
 
@@ -40,28 +34,24 @@ assets/
 ### Full Logotype (Horizontal)
 - **Use cases**: Headers, navigation, main branding
 - **Dark theme**: `assets/logo/logotype-dark.svg`
-- **Light theme**: `assets/logo/logotype-light.svg`
 - **Dimensions**: 320x80px
 - **Minimum size**: 160x40px
 
 ### Stacked Logo (Vertical)
 - **Use cases**: Splash screens, mobile headers, condensed spaces
 - **Dark theme**: `assets/logo/stacked-dark.svg`
-- **Light theme**: `assets/logo/stacked-light.svg`
 - **Dimensions**: 200x200px
 - **Minimum size**: 100x100px
 
 ### App Icon
 - **Use cases**: App launcher, mobile icons, PWA
 - **Dark theme**: `assets/icon/icon-96-dark.svg`
-- **Light theme**: `assets/icon/icon-96-light.svg`
 - **Dimensions**: 96x96px
 - **Available sizes**: 32px, 48px, 64px, 96px, 128px, 192px
 
 ### Favicon
 - **Use cases**: Browser tabs, bookmarks
 - **Dark theme**: `assets/favicon/favicon-32-dark.svg`
-- **Light theme**: `assets/favicon/favicon-32-light.svg`
 - **Dimensions**: 32x32px
 - **Available sizes**: 16px, 32px, 48px
 
@@ -79,11 +69,6 @@ The galaxy/atom icon features:
 - Background: `#08080F`
 - Text: `#FFFFFF`
 - Icon elements: White with varying opacity
-
-### Light Theme
-- Background: `#F4F4F8`
-- Text: `#08080F`
-- Icon elements: Dark with varying opacity
 
 ## Usage Guidelines
 
@@ -119,8 +104,6 @@ The galaxy/atom icon features:
 <!-- Dark theme logotype -->
 <img src="assets/logo/logotype-dark.svg" alt="Dat-Movie" class="logo">
 
-<!-- Light theme logotype -->
-<img src="assets/logo/logotype-light.svg" alt="Dat-Movie" class="logo">
 ```
 
 ### CSS Example
@@ -137,17 +120,12 @@ The galaxy/atom icon features:
   }
 }
 
-@media (prefers-color-scheme: light) {
-  .logo {
-    content: url('assets/logo/logotype-light.svg');
-  }
 }
 ```
 
 ### Favicon Implementation
 ```html
 <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg">
-<link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-light.svg" media="(prefers-color-scheme: light)">
 ```
 
 ## PWA Configuration

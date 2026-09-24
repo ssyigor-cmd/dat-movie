@@ -226,6 +226,10 @@ export function sortItems(items, sortKey = 'data-desc') {
         valA = a.temporada || 0;
         valB = b.temporada || 0;
         break;
+      case 'ano':
+        valA = a.ano || 0;
+        valB = b.ano || 0;
+        break;
       default:
         valA = 0;
         valB = 0;
