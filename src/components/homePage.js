@@ -117,10 +117,12 @@ export function renderHomeBase(container, context) {
     <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       <div class="home-roulette-controls">
-        <select id="homeRouletteTime" class="tool-btn" aria-label="Tempo disponível"><option value="30">30 min</option><option value="60" selected>1h</option><option value="120">2h</option><option value="9999">Qualquer</option></select>
+        <select id="homeRouletteTime" class="tool-btn" aria-label="Tempo disponível"><option value="30">30 min</option><option value="60" selected>1h</option><option value="120">2h</option><option value="240">4h</option><option value="9999">Qualquer</option></select>
+        <select id="homeRouletteType" class="tool-btn" aria-label="Tipo"><option value="todos" selected>Todos</option><option value="anime">Anime</option><option value="serie">Série</option><option value="animacao">Animação</option></select>
         <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear</button>
       </div>
       <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
+      <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
     </section>
 
     <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
@@ -519,24 +521,76 @@ export function loadAndRenderTimeline(container, items, onCardClick) {
 
 export function setupRoulette(container, items, onCardClick) {
   const btn = container.querySelector('#homeRouletteBtn');
-  const sel = container.querySelector('#homeRouletteTime');
+  const selTime = container.querySelector('#homeRouletteTime');
+  const selType = container.querySelector('#homeRouletteType');
   const res = container.querySelector('#homeRouletteResult');
-  if (!btn || !sel || !res) return;
-  btn.addEventListener('click', () => {
-    const mins = parseInt(sel.value, 10) || 60;
-    const picked = pickRandomByTime(items, mins);
-    if (!picked) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear - adicione títulos em planejados ou pausados.</p>'; return; }
+  const histWrap = container.querySelector('#homeRouletteHistory');
+  const histList = container.querySelector('#homeRouletteHistoryList');
+  if (!btn || !selTime || !res) return;
+  const history = [];
+  function getFiltered() {
+    const mins = parseInt(selTime.value, 10) || 60;
+    const tipo = selType ? selType.value : 'todos';
+    let pool = items.filter(i => i.status === 'planejado' || i.status === 'pausado');
+    if (tipo !== 'todos') pool = pool.filter(i => i.tipo === tipo);
+    if (pool.length === 0) return [];
+    // Filtra por tempo estimado restante
+    const byTime = pool.filter(i => {
+      const total = Number(i.totalEpisodios || 1);
+      const remaining = Math.max(0, total - (Number(i.episodio) || 0) + (i.status === 'planejado' ? 0 : 0));
+      const est = remaining * 24;
+      return est <= mins || mins >= 9999;
+    });
+    return (byTime.length > 0 ? byTime : pool);
+  }
+  btn.addEventListener('click', async () => {
+    const pool = getFiltered();
+    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear com esse filtro. Tente "Qualquer" ou adicione títulos.</p>'; return; }
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sorteando...';
     res.style.display = '';
+    res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Embaralhando...</div>';
+    // Animação de embaralhamento - mostra 4 picks rápidos
+    for (let k = 0; k < 4; k++) {
+      await new Promise(r => setTimeout(r, 120 + k*40));
+      const tmp = pool[Math.floor(Math.random()*pool.length)];
+      res.innerHTML = `<div class="home-roulette-shuffle" style="opacity:${0.6 + k*0.1}">${escapeHTML(tmp.nome)}</div>`;
+    }
+    await new Promise(r => setTimeout(r, 180));
+    const picked = pool[Math.floor(Math.random()*pool.length)];
+    const remaining = Math.max(0, (Number(picked.totalEpisodios||1) - (Number(picked.episodio)||0)) * 24);
+    const horas = Math.floor(remaining/60), mins = remaining%60;
+    const tempoTxt = remaining > 0 ? `${horas > 0 ? horas+'h ' : ''}${mins}min restantes` : 'Pronto para começar';
     res.innerHTML = '';
-    const card = createHomeCard({ posterUrl: picked.imagem || '', title: picked.nome, subtitle: `T${picked.temporada} E${picked.episodio} • ${picked.status}`, onClick: () => onCardClick && onCardClick(items.indexOf(picked)) });
-    res.appendChild(card);
-    const again = document.createElement('button');
-    again.className = 'home-empty-btn';
-    again.style.marginTop = '8px';
-    again.textContent = 'Ver detalhes';
-    again.addEventListener('click', () => onCardClick && onCardClick(items.indexOf(picked)));
-    res.appendChild(again);
+    const wrap = document.createElement('div');
+    wrap.className = 'home-roulette-card';
+    wrap.innerHTML = `
+      <div class="home-roulette-poster"><img src="${picked.imagem || ''}" alt="" onerror="this.style.display='none'" /></div>
+      <div class="home-roulette-info">
+        <strong>${escapeHTML(picked.nome)}</strong>
+        <small>T${picked.temporada} E${String(picked.episodio).padStart(2,'0')} • ${picked.status} ${picked.tier ? '• Tier '+escapeHTML(picked.tier) : ''}</small>
+        <small style="color:var(--text-muted)">${tempoTxt} • ${picked.tipo || 'serie'}</small>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button class="home-empty-btn" data-action="details"><i class="fas fa-eye"></i> Ver detalhes</button>
+          <button class="tool-btn" data-action="again"><i class="fas fa-redo"></i> Sortear outro</button>
+        </div>
+      </div>`;
+    wrap.querySelector('[data-action="details"]').addEventListener('click', () => onCardClick && onCardClick(items.indexOf(picked)));
+    wrap.querySelector('[data-action="again"]').addEventListener('click', () => btn.click());
+    res.appendChild(wrap);
+    // Histórico
+    history.unshift(picked.nome);
+    if (history.length > 3) history.pop();
+    if (histWrap && histList) {
+      histWrap.style.display = '';
+      histList.textContent = history.join(' • ');
+    }
+    if (typeof window !== 'undefined' && window.anime) {
+      window.anime({ targets: wrap, scale: [0.96,1], opacity: [0,1], duration: 300, easing: 'easeOutQuad' });
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear';
   });
+  if (selType) selType.addEventListener('change', () => { res.style.display = 'none'; });
+  selTime.addEventListener('change', () => { res.style.display = 'none'; });
 }
 
 function animateCards(gridEl) {
