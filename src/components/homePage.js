@@ -3,8 +3,9 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem } from '../lib/trendingApi.js';
 import { callTMDB } from '../lib/api.js';
+import { filterNotInCatalog } from '../lib/catalog.js';
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -544,10 +545,23 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
   const history = [];
   async function getNewPool() {
     try {
-      const trending = await getTrendingToSuggest(items, 20);
-      if (trending.length > 0) return trending;
-      const randomCat = CATEGORIES[Math.floor(Math.random()*CATEGORIES.length)];
-      return await getTitlesByGenre(randomCat.id, items, 20);
+      if (Math.random() < 0.3) {
+        const trending = await getTrendingToSuggest(items, 20);
+        if (trending.length > 0) return trending.sort(() => 0.5 - Math.random());
+      }
+      const page = Math.floor(Math.random() * 10) + 1;
+      const sorts = ['popularity.desc', 'vote_average.desc', 'first_air_date.desc', 'vote_count.desc'];
+      const sort = sorts[Math.floor(Math.random() * sorts.length)];
+      const useGenre = Math.random() < 0.5;
+      const params = { sort_by: sort, page, 'vote_count.gte': 30 };
+      if (useGenre) {
+        const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+        params.with_genres = String(cat.id);
+      }
+      const data = await callTMDB('discover/tv', params, 'pt-BR');
+      const results = (data.results || []).filter(r => r.poster_path);
+      const filtered = filterNotInCatalog(results, items);
+      return filtered.slice(0, 20).map(normalizeTrendingItem).sort(() => 0.5 - Math.random());
     } catch { return []; }
   }
   btn.addEventListener('click', async () => {
