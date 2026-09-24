@@ -118,9 +118,11 @@ export function renderHomeBase(container, context) {
     <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       <div class="home-roulette-controls">
-        <select id="homeRouletteTime" class="tool-btn" aria-label="Tempo disponível"><option value="30">30 min</option><option value="60" selected>1h</option><option value="120">2h</option><option value="240">4h</option><option value="9999">Qualquer</option></select>
-        <select id="homeRouletteType" class="tool-btn" aria-label="Tipo"><option value="todos" selected>Todos</option><option value="anime">Anime</option><option value="serie">Série</option><option value="animacao">Animação</option></select>
-        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear</button>
+        <div class="home-roulette-time">
+          <input type="range" id="homeRouletteTime" min="30" max="480" step="30" value="60" aria-label="Tempo disponível" />
+          <span id="homeRouletteTimeLabel" class="home-roulette-time-label">1h</span>
+        </div>
+        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear aleatório</button>
       </div>
       <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
@@ -540,30 +542,39 @@ export function loadAndRenderTimeline(container, items, onCardClick) {
 export function setupRoulette(container, items, onCardClick) {
   const btn = container.querySelector('#homeRouletteBtn');
   const selTime = container.querySelector('#homeRouletteTime');
-  const selType = container.querySelector('#homeRouletteType');
+  const label = container.querySelector('#homeRouletteTimeLabel');
   const res = container.querySelector('#homeRouletteResult');
   const histWrap = container.querySelector('#homeRouletteHistory');
   const histList = container.querySelector('#homeRouletteHistoryList');
   if (!btn || !selTime || !res) return;
+  function formatMins(v) {
+    const n = parseInt(v, 10) || 60;
+    if (n >= 480) return '8h+';
+    if (n % 60 === 0) return `${n/60}h`;
+    const h = Math.floor(n/60), m = n%60;
+    return h ? `${h}h ${m}min` : `${m}min`;
+  }
+  if (label) label.textContent = formatMins(selTime.value);
+  selTime.addEventListener('input', () => {
+    if (label) label.textContent = formatMins(selTime.value);
+    res.style.display = 'none';
+  });
   const history = [];
   function getFiltered() {
     const mins = parseInt(selTime.value, 10) || 60;
-    const tipo = selType ? selType.value : 'todos';
     let pool = items.filter(i => i.status === 'planejado' || i.status === 'pausado');
-    if (tipo !== 'todos') pool = pool.filter(i => i.tipo === tipo);
     if (pool.length === 0) return [];
-    // Filtra por tempo estimado restante
     const byTime = pool.filter(i => {
       const total = Number(i.totalEpisodios || 1);
-      const remaining = Math.max(0, total - (Number(i.episodio) || 0) + (i.status === 'planejado' ? 0 : 0));
+      const remaining = Math.max(0, total - (Number(i.episodio) || 0));
       const est = remaining * 24;
-      return est <= mins || mins >= 9999;
+      return est <= mins || mins >= 480;
     });
     return (byTime.length > 0 ? byTime : pool);
   }
   btn.addEventListener('click', async () => {
     const pool = getFiltered();
-    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear com esse filtro. Tente "Qualquer" ou adicione títulos.</p>'; return; }
+    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nada para sortear - adicione títulos em planejados ou pausados.</p>'; return; }
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sorteando...';
     res.style.display = '';
     res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Embaralhando...</div>';
@@ -605,10 +616,8 @@ export function setupRoulette(container, items, onCardClick) {
     if (typeof window !== 'undefined' && window.anime) {
       window.anime({ targets: wrap, scale: [0.96,1], opacity: [0,1], duration: 300, easing: 'easeOutQuad' });
     }
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear';
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório';
   });
-  if (selType) selType.addEventListener('change', () => { res.style.display = 'none'; });
-  selTime.addEventListener('change', () => { res.style.display = 'none'; });
 }
 
 function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {

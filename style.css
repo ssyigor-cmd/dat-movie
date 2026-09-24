@@ -3218,6 +3218,9 @@ a:focus-visible,
 .home-calendar-date { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 8px; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
 .home-calendar_eps { display: flex; flex-direction: column; gap: 8px; }
 .home-roulette-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.home-roulette-time { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 320px; min-width: 200px; }
+.home-roulette-time input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer; }
+.home-roulette-time-label { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--text-primary); min-width: 48px; text-align: center; background: var(--bg-elevated); border: 1px solid var(--border); padding: 4px 8px; border-radius: var(--radius-pill); }
 .home-roulette-result { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; width: 100%; }
 .home-roulette-card { display: flex; gap: 16px; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; width: 100%; max-width: 560px; }
 .home-roulette-poster img { width: 84px; height: 126px; object-fit: cover; border-radius: 6px; background: var(--bg-secondary); flex-shrink: 0; }
