@@ -1,31 +1,18 @@
 import { supabase } from './supabase.js';
+import { cacheGet, cacheSet, appCache } from './cache.js';
 
-// ========== CACHE DE LOGOS ==========
-const logoCache = new Map(); // Cache em memória: tmdbId_mediaType -> logoUrl
-
-/**
- * Verifica se o logo está no cache
- * @param {number|string} tmdbId - ID do TMDB
- * @param {string} mediaType - Tipo de mídia
- * @returns {string|null} URL do logo ou null se não estiver em cache
- */
+// ========== CACHE DE LOGOS (via appCache) ==========
 export function getLogoFromCache(tmdbId, mediaType) {
-  const cacheKey = `${tmdbId}_${mediaType}`;
-  return logoCache.get(cacheKey) || null;
+  const cacheKey = `logo_${tmdbId}_${mediaType}`;
+  return cacheGet(cacheKey) || null;
 }
 
-/**
- * Adiciona logo ao cache
- * @param {number|string} tmdbId - ID do TMDB
- * @param {string} mediaType - Tipo de mídia
- * @param {string} logoUrl - URL do logo
- */
 export function setLogoInCache(tmdbId, mediaType, logoUrl) {
-  const cacheKey = `${tmdbId}_${mediaType}`;
+  const cacheKey = `logo_${tmdbId}_${mediaType}`;
   if (logoUrl) {
-    logoCache.set(cacheKey, logoUrl);
+    cacheSet(cacheKey, logoUrl);
   } else {
-    logoCache.delete(cacheKey);
+    appCache.delete(cacheKey);
   }
 }
 

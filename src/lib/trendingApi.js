@@ -4,37 +4,30 @@
  */
 import { callTMDB } from './api.js';
 import { filterNotInCatalog as catalogFilterNotInCatalog } from './catalog.js';
+import { cacheGet, cacheSet, cacheClear } from './cache.js';
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-const cache = new Map(); // key -> { data, expiresAt }
-
-/**
- * Gera chave de cache a partir do endpoint e params
- */
 function cacheKey(endpoint, params, lang) {
-  return `${endpoint}|${JSON.stringify(params)}|${lang}`;
+  return `trending_${endpoint}|${JSON.stringify(params)}|${lang}`;
 }
 
 export function clearTrendingCache() {
-  cache.clear();
+  cacheClear();
 }
 
 export function _getCacheEntry(key) {
-  return cache.get(key) || null;
+  return cacheGet(key) ? { data: cacheGet(key), expiresAt: Date.now() + 300000 } : null;
 }
 
 export function _setCacheEntry(key, data) {
-  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  cacheSet(key, data);
 }
 
 async function cachedCallTMDB(endpoint, params = {}, lang = 'pt-BR') {
   const key = cacheKey(endpoint, params, lang);
-  const entry = cache.get(key);
-  if (entry && Date.now() < entry.expiresAt) {
-    return entry.data;
-  }
+  const cached = cacheGet(key);
+  if (cached !== undefined) return cached;
   const data = await callTMDB(endpoint, params, lang);
-  cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+  cacheSet(key, data);
   return data;
 }
 

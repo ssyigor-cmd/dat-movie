@@ -2,7 +2,7 @@
  * HomePage - Renderiza a página inicial do Dat-Movie
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
-import { escapeHTML, getTierClass } from '../lib/catalog.js';
+import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
 import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate } from '../lib/trendingApi.js';
 
 /**
@@ -179,7 +179,7 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
     const posterUrl = item.imagem || '';
     const subtitle = `T${item.temporada} · Ep ${String(item.episodio).padStart(2, '0')}`;
     const badge = item.tier || '';
-    const extra = `<div class="home-card-progress"><div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${calcProgress(item)}%"></div></div></div>`;
+    const extra = `<div class="home-card-progress"><div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div>`;
     const card = createHomeCard({
       posterUrl,
       title: item.nome,
@@ -191,22 +191,6 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
     grid.appendChild(card);
   });
   animateCards(grid);
-}
-
-function calcProgress(item) {
-  const total = Math.max(1, item.totalEpisodios || 1);
-  let cur = 0;
-  try {
-    if (item.seasonEpisodesMap && typeof item.seasonEpisodesMap === 'object' && item.temporada) {
-      let sum = 0;
-      for (const [s, eps] of Object.entries(item.seasonEpisodesMap)) {
-        if (Number(s) < Number(item.temporada) && typeof eps === 'number') sum += eps;
-      }
-      cur = sum + (item.episodio || 0);
-    } else cur = item.episodio || 0;
-  } catch { cur = item.episodio || 0; }
-  if (cur > total) cur = total;
-  return Math.round((cur / total) * 100);
 }
 
 /**

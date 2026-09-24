@@ -15,6 +15,7 @@ import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
+import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
 
 // ========== ADAPTADORES PARA UI HELPERS ==========
 const toast = document.getElementById('toast');
@@ -734,58 +735,33 @@ function cancelInlineEdit() {
 }
 
 // ========== SELEÇÃO DE LISTAS NOS MODAIS ==========
-function populateAddListCheckboxes(preselectedIds = []) {
-  if (!addListCheckboxes) return;
-  addListCheckboxes.innerHTML = '';
-
+function populateListCheckboxes(container, selectedIdSet) {
+  if (!container) return;
+  container.innerHTML = '';
   const sorted = [...userLists].filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
   sorted.forEach(list => {
     const label = document.createElement('label');
     label.className = 'list-checkbox-pill';
-    
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.value = list.id;
-    checkbox.checked = preselectedIds.includes(list.id);
-    
+    checkbox.checked = selectedIdSet.has(list.id);
     const icon = document.createElement('i');
     icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
-    
     const text = document.createTextNode(` ${list.nome}`);
-    
     label.appendChild(checkbox);
     label.appendChild(icon);
     label.appendChild(text);
-    addListCheckboxes.appendChild(label);
+    container.appendChild(label);
   });
+}
+function populateAddListCheckboxes(preselectedIds = []) {
+  populateListCheckboxes(addListCheckboxes, new Set(preselectedIds));
 }
 
 function populateDetailListCheckboxes(itemLists = []) {
-  if (!detailListCheckboxes) return;
-  detailListCheckboxes.innerHTML = '';
-
-  const sorted = [...userLists].filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
-  sorted.forEach(list => {
-    const label = document.createElement('label');
-    label.className = 'list-checkbox-pill';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = list.id;
-    checkbox.checked = itemLists.some(l => l.id === list.id);
-    
-    const icon = document.createElement('i');
-    icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
-    
-    const text = document.createTextNode(` ${list.nome}`);
-    
-    label.appendChild(checkbox);
-    label.appendChild(icon);
-    label.appendChild(text);
-    detailListCheckboxes.appendChild(label);
-  });
+  populateListCheckboxes(detailListCheckboxes, new Set(itemLists.map(l => l.id)));
 }
-
 // ========== STEPPER ADAPTERS ==========
 const addInputs = {
   tempInput: addTemporadaInput,
@@ -804,7 +780,6 @@ const addEpOverviewEl = $('addEpOverview');
 const addEpLoadingEl = $('addEpLoading');
 
 let addEpisodeInfoRequestId = 0;
-const addSeasonDataCache = new Map();
 
 function resetAddProgressPanel() {
   const temp = parseInt(addTemporadaInput.value) || 1;
@@ -834,11 +809,11 @@ async function syncAddProgressPanel() {
   const requestId = ++addEpisodeInfoRequestId;
 
   try {
-    const key = `${selectedTmdbId}:${temp}`;
-    let seasonData = addSeasonDataCache.get(key);
+    const key = `season_${selectedTmdbId}:${temp}`;
+    let seasonData = cacheGet(key);
     if (!seasonData) {
       seasonData = await callTMDB(`tv/${selectedTmdbId}/season/${temp}`, {}, 'pt-BR');
-      addSeasonDataCache.set(key, seasonData);
+      cacheSet(key, seasonData);
     }
     if (requestId !== addEpisodeInfoRequestId) return;
 
@@ -1607,6 +1582,7 @@ document.addEventListener('click', () => {
 
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
+  cacheClear();
   await checkSession();
 });
 

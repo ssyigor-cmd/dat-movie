@@ -2,7 +2,7 @@
  * Componente de Cards - Renderização dos cards da grade e bento "Continuando"
  */
 
-import { calcularProgresso, getTierClass, escapeHTML } from '../lib/catalog.js';
+import { calcularProgresso, getTierClass, escapeHTML, filterItems } from '../lib/catalog.js';
 import { fetchTitleLogo } from '../lib/api.js';
 
 /**
@@ -15,17 +15,7 @@ import { fetchTitleLogo } from '../lib/api.js';
  * @param {Function} createCardElement - Função para criar cards
  */
 export function renderContinueWatching(items, currentTab, currentListId, continueSection, continueGrid, createCardElement) {
-  let pool = items.slice();
-  if (currentTab === 'planejado') {
-    pool = pool.filter(i => i.status === 'planejado');
-  } else if (currentTab === 'list' && currentListId) {
-    pool = pool.filter(i => i.lists?.some(l => l.id === currentListId));
-  } else if (currentTab !== 'all') {
-    pool = pool.filter(i => i.status !== 'planejado' && i.tipo === currentTab);
-  } else {
-    pool = pool.filter(i => i.status !== 'planejado');
-  }
-  pool = pool.filter(i => i.status === 'assistindo');
+  let pool = filterItems(items, { currentTab, currentListId, statusFilter: 'assistindo', tierFilter: 'todos', search: '' });
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
 
   continueGrid.innerHTML = '';

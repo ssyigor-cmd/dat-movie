@@ -6,8 +6,7 @@ import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { getTierClass, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 import { showConfirm } from './confirmModal.js';
-
-const seasonDataCache = new Map();
+import { cacheGet, cacheSet } from '../lib/cache.js';
 
 /**
  * Configura e controla o modal de detalhes
@@ -127,10 +126,11 @@ export function setupDetailModal(elements, callbacks) {
   }
 
   async function fetchSeasonData(tmdbId, seasonNum) {
-    const key = `${tmdbId}:${seasonNum}`;
-    if (seasonDataCache.has(key)) return seasonDataCache.get(key);
+    const key = `season_${tmdbId}:${seasonNum}`;
+    const cached = cacheGet(key);
+    if (cached !== undefined) return cached;
     const data = await callTMDB(`tv/${tmdbId}/season/${seasonNum}`, {}, 'pt-BR');
-    seasonDataCache.set(key, data);
+    cacheSet(key, data);
     return data;
   }
 
