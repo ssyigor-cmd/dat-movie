@@ -1508,52 +1508,8 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 0.65rem;
 }
 
-/* ── Synopsis (overlay on poster) ────────────────────────── */
 .dm-poster-wrap {
   position: relative;
-  cursor: pointer;
-}
-.dm-poster-sinopse {
-  position: absolute;
-  inset: 0;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  z-index: 2;
-  overflow-y: auto;
-}
-.dm-poster-blur {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  filter: blur(14px);
-  opacity: 0.95;
-  z-index: 1;
-  display: none;
-}
-.dm-poster-wrap.sinopse-open .dm-poster-blur {
-  display: block;
-}
-.dm-poster-wrap.sinopse-open .dm-poster-sinopse {
-  display: flex;
-}
-.dm-poster-wrap.sinopse-open img {
-  filter: blur(14px);
-  transform: scale(1.05);
-}
-.dm-sinopse-text {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--text-primary);
-  margin: 0;
-  text-align: justify;
-  position: relative;
-  z-index: 2;
-  max-width: 100%;
 }
 .dm-poster-wrap .form-loading {
   position: relative;
@@ -2862,21 +2818,6 @@ a:focus-visible,
   }
   .dm-footer .dm-btn {
     justify-content: center;
-  }
-  .dm-sinopse-text {
-    font-size: 0.78rem;
-    padding: 12px;
-  }
-  /* Sinopse no mobile: evitar que o texto fique escondido sob a barra inferior
-     e melhorar a rolagem em pôsteres curtos */
-  #detailPosterWrap.sinopse-open .dm-poster-sinopse {
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding: 40px 14px 52px;
-  }
-  #detailPosterWrap.sinopse-open .dm-sinopse-text {
-    text-align: left;
-    padding: 0;
   }
   .poster-steppers-row {
     padding: 0 16px 8px !important;
