@@ -962,25 +962,33 @@ function handleHomeContinueAdd() {
   setTimeout(() => { const inp = document.getElementById('pesquisaInput'); if (inp) inp.focus(); }, 100);
 }
 
-async function handleTrendingAdd(trendingItem) {
+async function openAddModalWithTmdbResult(raw) {
+  // Normaliza raw vindo de search/multi ou trending
+  const tmdbId = raw.id;
+  const mediaType = raw.media_type || raw.mediaType || 'tv';
+  const displayTitle = raw.title || raw.name || '';
+  const posterPath = raw.poster_path || raw.posterPath || '';
+  const rawYear = raw.first_air_date || raw.release_date || raw.date || '';
+  const year = rawYear ? String(rawYear).substring(0,4) : '';
+  const posterUrl = posterPath ? `https://image.tmdb.org/t/p/w342${posterPath}` : (raw.posterUrl || '');
+
   if (editingIndex !== null) cancelEdit();
   clearAllFieldErrors(form);
   clearPreview();
   cachedShowDetails = null;
   statusSelect.value = 'assistindo';
-  // sync status buttons if exists
   const addPosterStatusBar = document.getElementById('addPosterStatusBar');
   if (addPosterStatusBar) addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(b => b.classList.toggle('active', b.dataset.status === statusSelect.value));
   tierForm.value = '';
   const addTierBadgeEl = document.getElementById('addTierBadge');
   if (addTierBadgeEl) { addTierBadgeEl.textContent = '?'; addTierBadgeEl.className = 'tier-badge-large'; addTierBadgeEl.style.display = 'flex'; }
   const addYearDisplayEl = document.getElementById('addYearDisplay');
-  if (addYearDisplayEl) addYearDisplayEl.textContent = trendingItem.date ? trendingItem.date.substring(0,4) : '--';
-  selectedTmdbId = trendingItem.id;
-  selectedMediaType = trendingItem.mediaType || 'tv';
-  selectedPosterPath = trendingItem.posterPath || '';
-  selectedAno = trendingItem.date ? trendingItem.date.substring(0,4) : null;
-  selectedName = trendingItem.title;
+  if (addYearDisplayEl) addYearDisplayEl.textContent = year || '--';
+  selectedTmdbId = tmdbId;
+  selectedMediaType = mediaType;
+  selectedPosterPath = posterPath;
+  selectedAno = year || null;
+  selectedName = displayTitle;
   const addTemporadaInputEl = document.getElementById('addTemporada');
   const addTemporadaDisplayEl = document.getElementById('addTemporadaDisplay');
   const addEpisodioInputEl = document.getElementById('addEpisodio');
@@ -990,7 +998,8 @@ async function handleTrendingAdd(trendingItem) {
   if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
   if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
   addSeasonLimits = {};
-  const existing = items.find(it => it.tmdb_id && String(it.tmdb_id) === String(trendingItem.id)) || null;
+  resetAddProgressPanel();
+  const existing = items.find(it => it.tmdb_id && String(it.tmdb_id) === String(tmdbId)) || null;
   existingItemForSearch = existing;
   const preselectedIds = existing ? (existing.lists || []).map(l => l.id) : [];
   populateAddListCheckboxes(preselectedIds);
@@ -1001,7 +1010,7 @@ async function handleTrendingAdd(trendingItem) {
     });
   }
   const addPosterSteppersRowEl = document.getElementById('addPosterSteppersRow');
-  if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = (selectedMediaType === 'tv') ? 'flex' : 'none';
+  if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = (mediaType === 'tv') ? 'flex' : 'none';
   const addLogoContainerEl = document.getElementById('addLogoContainer');
   const addLogoImgEl = document.getElementById('addLogoImg');
   const addOriginalTitleEl = document.getElementById('addOriginalTitle');
@@ -1021,17 +1030,37 @@ async function handleTrendingAdd(trendingItem) {
   const previewImgEl = document.getElementById('previewImg');
   const previewImgCardEl = document.getElementById('previewImgCard');
   const previewPlaceholderEl = document.getElementById('previewPlaceholder');
+  // Episódios button
+  if (addEpisodesBtn) {
+    if (mediaType === 'tv') {
+      addEpisodesBtn.style.display = 'inline-flex';
+      if (existing) {
+        addEpisodesBtn.onclick = () => {
+          const existingIndex = items.indexOf(existing);
+          if (existingIndex !== -1) { closeModal(); episodesModalAPI.open(existingIndex, items); }
+        };
+      } else {
+        addEpisodesBtn.onclick = () => {
+          const tempItem = { id: Date.now(), nome: displayTitle || 'Série', tmdb_id: tmdbId, tipo: 'serie', temporada: parseInt(document.getElementById('addTemporada')?.value) || 1, episodio: parseInt(document.getElementById('addEpisodio')?.value) || 0 };
+          try { if (typeof episodesModalAPI !== 'undefined' && episodesModalAPI.open) episodesModalAPI.open(0, [tempItem]); } catch (e) { console.error('Erro ao abrir episódios para novo item', e); }
+        };
+      }
+    } else {
+      addEpisodesBtn.style.display = 'none';
+      addEpisodesBtn.onclick = null;
+    }
+  }
   // Fetch details
   (async () => {
     try {
       let details = null;
-      if (selectedMediaType === 'tv') {
-        details = await callTMDB(`tv/${selectedTmdbId}`, {}, 'pt-BR');
+      if (mediaType === 'tv') {
+        details = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
         const seasons = details.seasons || [];
         const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
         const maxEpByTemp = {};
         seasons.forEach(s => { if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0; });
-        const yr = details.first_air_date ? details.first_air_date.substring(0,4) : (trendingItem.date ? trendingItem.date.substring(0,4) : '');
+        const yr = details.first_air_date ? details.first_air_date.substring(0,4) : year;
         addSeasonLimits = { maxTemp, maxEpByTemp };
         if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
         if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
@@ -1040,7 +1069,7 @@ async function handleTrendingAdd(trendingItem) {
         if (addYearDisplayEl) addYearDisplayEl.textContent = yr || '--';
         if (yr) selectedAno = yr;
         if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'flex';
-        tipo.value = 'serie';
+        syncAddProgressPanel();
         const genres = details.genre_ids || (details.genres || []).map(g => g.id);
         const countries = details.origin_country || [];
         const isAnimation = genres.includes(16);
@@ -1050,7 +1079,7 @@ async function handleTrendingAdd(trendingItem) {
         else if (isAnimation) detectedTipo = 'animacao';
         tipo.value = detectedTipo;
       } else {
-        details = await callTMDB(`movie/${selectedTmdbId}`, {}, 'pt-BR');
+        details = await callTMDB(`movie/${tmdbId}`, {}, 'pt-BR');
         addSeasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
         if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
         if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
@@ -1058,19 +1087,25 @@ async function handleTrendingAdd(trendingItem) {
         if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
         tipo.value = 'filme';
         if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'none';
+        syncAddProgressPanel();
       }
       let backdropUrl = '';
       if (details && details.backdrop_path) {
         backdropUrl = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
         if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
         if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-      } else if (trendingItem.posterUrl) {
-        backdropUrl = trendingItem.posterUrl.replace('w342','w1280');
+      } else if (posterPath) {
+        backdropUrl = `https://image.tmdb.org/t/p/w1280${posterPath}`;
+        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
+        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+      } else if (posterUrl) {
+        backdropUrl = posterUrl.replace('w342','w1280');
         if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
         if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
       }
       if (previewImgCardEl) {
-        if (trendingItem.posterUrl) { previewImgCardEl.src = trendingItem.posterUrl; previewImgCardEl.style.display = 'block'; }
+        if (posterPath) { previewImgCardEl.src = `https://image.tmdb.org/t/p/w342${posterPath}`; previewImgCardEl.style.display = 'block'; }
+        else if (posterUrl) { previewImgCardEl.src = posterUrl; previewImgCardEl.style.display = 'block'; }
         else if (backdropUrl) { previewImgCardEl.src = backdropUrl; previewImgCardEl.style.display = 'block'; }
         else { previewImgCardEl.style.display = 'none'; previewImgCardEl.src = ''; }
       }
@@ -1079,31 +1114,36 @@ async function handleTrendingAdd(trendingItem) {
       if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'none';
       if (details) {
         const originalName = details.original_name || details.original_title || '';
-        if (originalName && originalName !== trendingItem.title && addOriginalTitleEl) {
+        if (originalName && originalName !== displayTitle && addOriginalTitleEl) {
           addOriginalTitleEl.textContent = originalName;
           addOriginalTitleEl.style.display = '';
         }
       }
-      const logoUrl = await fetchTitleLogo(selectedTmdbId, selectedMediaType);
+      const logoUrl = await fetchTitleLogo(tmdbId, mediaType);
       if (logoUrl && addLogoImgEl && addLogoContainerEl) {
         addLogoImgEl.src = logoUrl;
-        addLogoImgEl.alt = `Logo de ${trendingItem.title}`;
+        addLogoImgEl.alt = `Logo de ${displayTitle}`;
         addLogoContainerEl.style.display = 'flex';
         if (modalTitleEl) modalTitleEl.style.display = 'none';
       } else {
         if (addLogoContainerEl) addLogoContainerEl.style.display = 'none';
         if (modalTitleEl) modalTitleEl.style.display = '';
         const modalTitleTextEl = document.getElementById('modalTitleText');
-        if (modalTitleTextEl) modalTitleTextEl.textContent = trendingItem.title;
+        if (modalTitleTextEl) modalTitleTextEl.textContent = displayTitle;
       }
     } catch (err) {
-      console.warn('Erro ao buscar detalhes trending:', err);
-      if (trendingItem.posterUrl && previewImgEl) {
-        const fallbackUrl = trendingItem.posterUrl.replace('w342','w1280');
-        previewImgEl.src = fallbackUrl;
-        previewImgEl.style.display = 'block';
+      console.warn('Erro ao buscar detalhes:', err);
+      if (posterUrl && previewImgEl) {
+        const fallbackUrl = posterUrl.replace('w342','w1280');
+        previewImgEl.src = fallbackUrl; previewImgEl.style.display = 'block';
         if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-        if (previewImgCardEl) { previewImgCardEl.src = trendingItem.posterUrl; previewImgCardEl.style.display = 'block'; }
+        if (previewImgCardEl) { previewImgCardEl.src = posterUrl; previewImgCardEl.style.display = 'block'; }
+        if (addBlurBgEl) addBlurBgEl.style.backgroundImage = `url(${fallbackUrl})`;
+      } else if (posterPath) {
+        const fallbackUrl = `https://image.tmdb.org/t/p/w1280${posterPath}`;
+        previewImgEl.src = fallbackUrl; previewImgEl.style.display = 'block';
+        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
+        if (previewImgCardEl) { previewImgCardEl.src = `https://image.tmdb.org/t/p/w342${posterPath}`; previewImgCardEl.style.display = 'block'; }
         if (addBlurBgEl) addBlurBgEl.style.backgroundImage = `url(${fallbackUrl})`;
       }
       if (addSinopseEl) addSinopseEl.textContent = 'Erro ao carregar sinopse.';
@@ -1112,6 +1152,21 @@ async function handleTrendingAdd(trendingItem) {
     }
   })();
   openModal();
+}
+
+async function handleTrendingAdd(trendingItem) {
+  const raw = {
+    id: trendingItem.id,
+    media_type: trendingItem.mediaType || trendingItem.media_type,
+    title: trendingItem.title,
+    name: trendingItem.title,
+    poster_path: trendingItem.posterPath || '',
+    posterUrl: trendingItem.posterUrl || '',
+    first_air_date: trendingItem.date || '',
+    release_date: trendingItem.date || '',
+    date: trendingItem.date || ''
+  };
+  return openAddModalWithTmdbResult(raw);
 }
 
 // ========== RENDER ==========
@@ -1307,8 +1362,8 @@ async function addItem(e) {
           cachedShowDetails = { totalEpisodes: 1, seasons: [{ season_number: 1, episode_count: 1 }] };
         }
       } else {
-        const data = await callTMDB('search/tv', { query: nomeVal }, 'pt-BR');
-        const result = data.results?.[0];
+        const data = await callTMDB('search/multi', { query: nomeVal }, 'pt-BR');
+        const result = data.results?.find(r => r.media_type === 'tv' || r.media_type === 'movie') || data.results?.[0];
         if (result) {
           const tvData = await callTMDB(`tv/${result.id}`, {}, 'pt-BR');
           cachedShowDetails = { totalEpisodes: tvData.number_of_episodes || 0, seasons: tvData.seasons || [] };
@@ -1931,17 +1986,18 @@ if (pesquisaInput) {
 
     pesquisaTimeout = setTimeout(async () => {
       try {
-        const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
+        const data = await callTMDB('search/multi', { query: q }, 'pt-BR');
         pesquisaLoading.style.display = 'none';
 
-        if (!data.results || data.results.length === 0) {
+        const filteredResults = (data.results || []).filter(r => r.media_type === 'tv' || r.media_type === 'movie');
+        if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
           return;
         }
 
         const fragment = document.createDocumentFragment();
-        data.results.forEach(res => {
+        filteredResults.forEach(res => {
           const name = res.name || res.title;
           if (!name) return;
           const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
@@ -1972,219 +2028,7 @@ if (pesquisaInput) {
             </div>
           `;
 
-          const openAddModal = () => {
-            if (editingIndex !== null) cancelEdit();
-            clearAllFieldErrors(form);
-            clearPreview();
-            cachedShowDetails = null;
-            statusSelect.value = 'assistindo';
-            syncAddStatusBtns();
-            tierForm.value = '';
-            updateAddTierBadge('');
-            addYearDisplay.textContent = year || '--';
-            selectedTmdbId = res.id;
-            selectedMediaType = res.media_type || 'tv';
-            if (addPosterSteppersRow) addPosterSteppersRow.style.display = (!res.media_type || res.media_type === 'tv') ? 'flex' : 'none';
-            selectedPosterPath = poster;
-            selectedAno = year || null;
-            selectedName = name;
-            addTemporadaInput.value = 1;
-            addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-            addEpisodioInput.value = 0;
-            addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-            addSeasonLimits = {};
-            resetAddProgressPanel();
-            // Reset logo and original title
-            if (addLogoContainer) addLogoContainer.style.display = 'none';
-            if (addLogoImg) addLogoImg.src = '';
-            if (addOriginalTitle) { addOriginalTitle.style.display = 'none'; addOriginalTitle.textContent = ''; }
-            // Reset sinopse
-            if (addSinopse) addSinopse.textContent = '';
-            if (addSinopseLoading) addSinopseLoading.style.display = 'flex';
-            if (addBlurBg) addBlurBg.style.backgroundImage = '';
-            if (addPosterWrap) addPosterWrap.classList.remove('sinopse-open');
-            // Hide title text, will show logo if available
-            modalTitle.style.display = 'none';
-            // Check if this title already exists in catalog
-            existingItemForSearch = items.find(it => it.tmdb_id && String(it.tmdb_id) === String(res.id)) || null;
-            const preselectedIds = existingItemForSearch
-              ? (existingItemForSearch.lists || []).map(l => l.id)
-              : [];
-            populateAddListCheckboxes(preselectedIds);
-            // Highlight pre-existing list checkboxes
-            if (existingItemForSearch && preselectedIds.length > 0 && addListCheckboxes) {
-              addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-                cb.closest('.list-checkbox-pill')?.classList.add('list-existing');
-              });
-            }
-            // Show episodes button for series (tv) — visible mesmo para novos
-            if (addEpisodesBtn) {
-              if (!res.media_type || res.media_type === 'tv') {
-                addEpisodesBtn.style.display = 'inline-flex';
-                if (existingItemForSearch) {
-                  addEpisodesBtn.onclick = () => {
-                    const existingIndex = items.indexOf(existingItemForSearch);
-                    if (existingIndex !== -1) {
-                      closeModal();
-                      episodesModalAPI.open(existingIndex, items);
-                    }
-                  };
-                } else {
-                  addEpisodesBtn.onclick = () => {
-                    // Para novos, abre modal com todos os episódios via TMDB (sem precisar salvar)
-                    const tempItem = {
-                      id: Date.now(),
-                      nome: res.title || res.name || 'Série',
-                      tmdb_id: res.id,
-                      tipo: 'serie',
-                      temporada: parseInt(document.getElementById('addTemporada')?.value) || 1,
-                      episodio: parseInt(document.getElementById('addEpisodio')?.value) || 0
-                    };
-                    try {
-                      if (typeof episodesModalAPI !== 'undefined' && episodesModalAPI.open) {
-                        episodesModalAPI.open(0, [tempItem]);
-                      } else {
-                        // fallback: destaca bloco de episódio
-                        const target = document.getElementById('addStepperEpisodio');
-                        if (target) {
-                          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          target.style.boxShadow = '0 0 0 2px var(--accent) inset';
-                          setTimeout(() => { target.style.boxShadow = ''; }, 1500);
-                        }
-                      }
-                    } catch (e) {
-                      console.error('Erro ao abrir episódios para novo item', e);
-                    }
-                  };
-                }
-              } else {
-                addEpisodesBtn.style.display = 'none';
-                addEpisodesBtn.onclick = null;
-              }
-            }
-
-            // Fetch full details: backdrop, logo, original title, steppers
-            (async () => {
-              try {
-                let details = null;
-                if (!res.media_type || res.media_type === 'tv') {
-                  details = await callTMDB(`tv/${res.id}`, {}, 'pt-BR');
-                  const seasons = details.seasons || [];
-                  const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
-                  const maxEpByTemp = {};
-                  seasons.forEach(s => {
-                    if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0;
-                  });
-                  const yr = details.first_air_date ? details.first_air_date.substring(0, 4) : year;
-                  addSeasonLimits = { maxTemp, maxEpByTemp };
-                  addTemporadaInput.value = 1;
-                  addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-                  addEpisodioInput.value = 0;
-                  addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-                  addYearDisplay.textContent = yr || '--';
-                  if (yr) selectedAno = yr;
-                  if (addPosterSteppersRow) addPosterSteppersRow.style.display = 'flex';
-                  syncAddProgressPanel();
-                  // Detect type
-                  const genres = details.genre_ids || (details.genres || []).map(g => g.id);
-                  const countries = details.origin_country || [];
-                  const isAnimation = genres.includes(16);
-                  const isJapanese = countries.includes('JP');
-                  let detectedTipo = 'serie';
-                  if (isAnimation && isJapanese) detectedTipo = 'anime';
-                  else if (isAnimation) detectedTipo = 'animacao';
-                  tipo.value = detectedTipo;
-                } else if (res.media_type === 'movie') {
-                  details = await callTMDB(`movie/${res.id}`, {}, 'pt-BR');
-                  addSeasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
-                  addTemporadaInput.value = 1;
-                  addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-                  addEpisodioInput.value = 0;
-                  addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-                  tipo.value = 'filme';
-                  if (addPosterSteppersRow) addPosterSteppersRow.style.display = 'none';
-                  syncAddProgressPanel();
-                }
-
-                // Backdrop image (16:9) + card poster left
-                let backdropUrl = '';
-                if (details && details.backdrop_path) {
-                  backdropUrl = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
-                  previewImg.src = backdropUrl;
-                  previewImg.style.display = 'block';
-                  previewPlaceholder.style.display = 'none';
-                } else if (poster) {
-                  backdropUrl = `https://image.tmdb.org/t/p/w1280${poster}`;
-                  previewImg.src = backdropUrl;
-                  previewImg.style.display = 'block';
-                  previewPlaceholder.style.display = 'none';
-                }
-                if (previewImgCard) {
-                  if (poster) {
-                    previewImgCard.src = `https://image.tmdb.org/t/p/w342${poster}`;
-                    previewImgCard.style.display = 'block';
-                  } else if (backdropUrl) {
-                    previewImgCard.src = backdropUrl;
-                    previewImgCard.style.display = 'block';
-                  } else {
-                    previewImgCard.style.display = 'none';
-                    previewImgCard.src = '';
-                  }
-                }
-
-                // Blur background for sinopse
-                if (addBlurBg && backdropUrl) {
-                  addBlurBg.style.backgroundImage = `url(${backdropUrl})`;
-                }
-
-                // Sinopse
-                if (addSinopse) {
-                  addSinopse.textContent = details?.overview || 'Sinopse não disponível.';
-                }
-                if (addSinopseLoading) addSinopseLoading.style.display = 'none';
-
-                // Original title
-                if (details) {
-                  const originalName = details.original_name || details.original_title || '';
-                  if (originalName && originalName !== name) {
-                    addOriginalTitle.textContent = originalName;
-                    addOriginalTitle.style.display = '';
-                  }
-                }
-
-                // Logo
-                const logoUrl = await fetchTitleLogo(res.id, res.media_type);
-                if (logoUrl) {
-                  addLogoImg.src = logoUrl;
-                  addLogoImg.alt = `Logo de ${name}`;
-                  addLogoContainer.style.display = 'flex';
-                  modalTitle.style.display = 'none';
-                } else {
-                  addLogoContainer.style.display = 'none';
-                  modalTitle.style.display = '';
-                }
-              } catch (err) {
-                console.warn('Erro ao buscar detalhes:', err);
-                // Fallback: show poster as backdrop
-                if (poster) {
-                  const fallbackUrl = `https://image.tmdb.org/t/p/w1280${poster}`;
-                  previewImg.src = fallbackUrl;
-                  previewImg.style.display = 'block';
-                  previewPlaceholder.style.display = 'none';
-                  if (previewImgCard) {
-                    previewImgCard.src = `https://image.tmdb.org/t/p/w342${poster}`;
-                    previewImgCard.style.display = 'block';
-                  }
-                  if (addBlurBg) addBlurBg.style.backgroundImage = `url(${fallbackUrl})`;
-                }
-                if (addSinopse) addSinopse.textContent = 'Erro ao carregar sinopse.';
-                if (addSinopseLoading) addSinopseLoading.style.display = 'none';
-                modalTitle.style.display = '';
-              }
-            })();
-
-            openModal();
-          };
+          const openAddModal = () => openAddModalWithTmdbResult(res);
 
           card.addEventListener('click', openAddModal);
           card.addEventListener('keydown', (e) => {
