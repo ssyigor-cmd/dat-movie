@@ -807,27 +807,27 @@ img { max-width: 100%; height: auto; display: block; }
   margin-top: 12px;
 }
 .epp-combined {
-  flex: 1 1 60%;
-  max-width: 60%;
+  flex: 1 1 75%;
+  max-width: 75%;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   background: var(--bg-surface);
 }
 .epp-combined .epp-season {
-  flex: 0 0 25%;
-  max-width: 25%;
+  flex: 0 0 20%;
+  max-width: 20%;
   border-right: none;
 }
 .epp-combined .epp-episode {
   position: relative;
-  flex: 0 0 25%;
-  max-width: 25%;
+  flex: 0 0 20%;
+  max-width: 20%;
   border-right: none;
 }
 .epp-episode-meta {
-  flex: 0 0 50%;
-  max-width: 50%;
+  flex: 0 0 60%;
+  max-width: 60%;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -924,8 +924,8 @@ img { max-width: 100%; height: auto; display: block; }
   flex-shrink: 0;
 }
 .epp-actions {
-  flex: 0 0 18%;
-  max-width: 18%;
+  flex: 0 0 15%;
+  max-width: 15%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1233,8 +1233,8 @@ img { max-width: 100%; height: auto; display: block; }
   gap: 6px !important;
 }
 .epp-status {
-  flex: 0 0 22%;
-  max-width: 22%;
+  flex: 0 0 10%;
+  max-width: 10%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
