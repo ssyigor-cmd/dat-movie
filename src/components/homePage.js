@@ -576,7 +576,7 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
         <small>${picked.date ? formatAirDate(picked.date) : 'Série'}${picked.voteAverage ? ` • ★ ${picked.voteAverage.toFixed(1)}` : ''}</small>
         <small style="color:var(--text-muted)">Título novo para descobrir</small>
         <div style="margin-top:8px; display:flex; gap:8px;">
-          <button class="home-empty-btn" data-action="details"><i class="fas fa-plus"></i> Adicionar</button>
+          <button class="home-empty-btn" data-action="details"><i class="fas fa-eye"></i> Mais Detalhes</button>
           <button class="tool-btn" data-action="again"><i class="fas fa-redo"></i> Sortear outro</button>
         </div>
       </div>`;
