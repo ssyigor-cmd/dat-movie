@@ -117,14 +117,10 @@ export function renderHomeBase(container, context) {
 
     <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
-      <div class="home-roulette-controls">
-        <div class="home-roulette-time">
-          <input type="range" id="homeRouletteTime" min="30" max="480" step="30" value="60" aria-label="Tempo disponível" />
-          <span id="homeRouletteTimeLabel" class="home-roulette-time-label">1h</span>
-        </div>
-        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear aleatório</button>
+      <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
+        <button id="homeRouletteBtn" class="home-empty-btn" style="padding:12px 32px; font-size:1rem;"><i class="fas fa-dice"></i> Sortear título novo</button>
       </div>
-      <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
+      <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
     </section>
 
@@ -541,44 +537,26 @@ export function loadAndRenderTimeline(container, items, onCardClick) {
 
 export function setupRoulette(container, items, onCardClick, onAddFromTrending) {
   const btn = container.querySelector('#homeRouletteBtn');
-  const selTime = container.querySelector('#homeRouletteTime');
-  const label = container.querySelector('#homeRouletteTimeLabel');
   const res = container.querySelector('#homeRouletteResult');
   const histWrap = container.querySelector('#homeRouletteHistory');
   const histList = container.querySelector('#homeRouletteHistoryList');
-  if (!btn || !selTime || !res) return;
-  function formatMins(v) {
-    const n = parseInt(v, 10) || 60;
-    if (n >= 480) return '8h+';
-    if (n % 60 === 0) return `${n/60}h`;
-    const h = Math.floor(n/60), m = n%60;
-    return h ? `${h}h ${m}min` : `${m}min`;
-  }
-  if (label) label.textContent = formatMins(selTime.value);
-  selTime.addEventListener('input', () => {
-    if (label) label.textContent = formatMins(selTime.value);
-    res.style.display = 'none';
-  });
+  if (!btn || !res) return;
   const history = [];
-  async function getNewPool(mins) {
-    // Sorteio de título novo - busca no TMDb o que não está no catálogo
+  async function getNewPool() {
     try {
       const trending = await getTrendingToSuggest(items, 20);
-      if (trending.length > 0) {
-        // Filtra por tempo estimado se possível (precisa buscar detalhes para totalEpisodios)
-        // Para novos, filtra por popularidade já é aleatório; mantém tempo como soft filter via voto
-        return trending;
-      }
-      // Fallback: discover por gênero aleatório
+      if (trending.length > 0) return trending;
       const randomCat = CATEGORIES[Math.floor(Math.random()*CATEGORIES.length)];
       return await getTitlesByGenre(randomCat.id, items, 20);
     } catch { return []; }
   }
   btn.addEventListener('click', async () => {
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sorteando...';
-    res.style.display = '';
+    res.style.display = 'flex';
+    res.style.justifyContent = 'center';
     res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Buscando título novo...</div>';
-    const pool = await getNewPool(parseInt(selTime.value, 10) || 60);
+    res.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const pool = await getNewPool();
     if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nenhum título novo encontrado. Tente novamente.</p>'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório'; return; }
     // Animação de embaralhamento - mostra 4 picks rápidos
     for (let k = 0; k < 4; k++) {
