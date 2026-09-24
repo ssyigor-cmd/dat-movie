@@ -14,9 +14,12 @@ function renderTitlePage(item, container) {
   currentItem = item;
   const tierClass = item.tier ? getTierClass(item.tier) : '';
   container.innerHTML = `
-    <button id="titleBack" class="tool-btn" style="margin:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
+    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px; gap:16px;">
+      <button id="titleBack" class="tool-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
+      <div id="titleLogoWrap" style="display:none; flex:1; justify-content:center; pointer-events:none;"><img id="titleLogoImg" src="" alt="Logo" style="max-width:420px; max-height:80px; object-fit:contain;" /></div>
+      <div style="width:80px;"></div>
+    </div>
     <div style="max-width:1100px; margin:0 auto; border:1px solid var(--border); display:grid; grid-template-columns: 340px 1fr; min-height:520px; background:var(--bg-primary); position:relative;">
-      <div id="titleLogoWrap" style="display:none; position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:5; pointer-events:none;"><img id="titleLogoImg" src="" alt="Logo" style="max-width:520px; max-height:110px; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.9));" /></div>
       <!-- ESQUERDA: Imagem Vertical -->
       <div style="border-right:1px solid var(--border); display:flex; flex-direction:column; position:relative;">
         <div style="display:flex; justify-content:space-between; padding:8px 10px; font-size:0.7rem; font-weight:600; border-bottom:1px solid var(--border);">
