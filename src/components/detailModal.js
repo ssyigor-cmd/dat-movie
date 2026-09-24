@@ -231,12 +231,15 @@ export function setupDetailModal(elements, callbacks) {
         }
       }
 
+      let logoUrl = null;
       if (tmdbId) {
-        try {
-          detailsData = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-        } catch (e) {
-          console.warn('Falha ao buscar TV:', e);
-        }
+        // Paraleliza detalhes + logo para ganhar ~400ms
+        const [detailsRes, logoRes] = await Promise.all([
+          callTMDB(`tv/${tmdbId}`, {}, 'pt-BR').catch(e => { console.warn('Falha ao buscar TV:', e); return null; }),
+          fetchTitleLogo(tmdbId, mediaType).catch(() => null)
+        ]);
+        detailsData = detailsRes;
+        logoUrl = logoRes;
       }
 
       let overview = detailsData?.overview || 'Sinopse não disponível.';
@@ -302,11 +305,6 @@ export function setupDetailModal(elements, callbacks) {
         if (blurBg) {
           blurBg.style.backgroundImage = `url(${item.imagem})`;
         }
-      }
-
-      let logoUrl = null;
-      if (tmdbId) {
-        logoUrl = await fetchTitleLogo(tmdbId, mediaType);
       }
 
       if (logoUrl) {

@@ -3,7 +3,7 @@
  */
 
 import { calcularProgresso, getTierClass, escapeHTML, filterItems } from '../lib/catalog.js';
-import { fetchTitleLogo } from '../lib/api.js';
+import { fetchTitleLogo, callTMDB } from '../lib/api.js';
 
 /**
  * Renderiza a seção "Assistindo" com todos os títulos em andamento
@@ -72,7 +72,7 @@ export function createCardElement(item, variant = null, items, onCardClick) {
     </div>
   `;
   
-  // Pré-carregar logo no hover
+  // Pré-carregar logo + detalhes no hover para modal instantâneo
   let logoPreloadTimeout = null;
   card.addEventListener('mouseenter', () => {
     const tmdbId = card.dataset.tmdbId;
@@ -81,8 +81,12 @@ export function createCardElement(item, variant = null, items, onCardClick) {
     if (tmdbId && mediaType) {
       clearTimeout(logoPreloadTimeout);
       logoPreloadTimeout = setTimeout(async () => {
-        await fetchTitleLogo(tmdbId, mediaType, true);
-      }, 300); // Delay de 300ms para não carregar em todos os hovers rápidos
+        // Paraleliza logo + detalhes
+        await Promise.allSettled([
+          fetchTitleLogo(tmdbId, mediaType, true),
+          callTMDB(`tv/${tmdbId}`, {}, 'pt-BR').catch(()=>null)
+        ]);
+      }, 200);
     }
   });
   

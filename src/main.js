@@ -1086,7 +1086,7 @@ async function openAddModalWithTmdbResult(raw) {
           addOriginalTitleEl.style.display = '';
         }
       }
-      const logoUrl = await fetchTitleLogo(tmdbId, mediaType);
+      const logoUrl = logoUrlParallel;
       if (logoUrl && addLogoImgEl && addLogoContainerEl) {
         addLogoImgEl.src = logoUrl;
         addLogoImgEl.alt = `Logo de ${displayTitle}`;
