@@ -15,7 +15,8 @@ function renderTitlePage(item, container) {
   const tierClass = item.tier ? getTierClass(item.tier) : '';
   container.innerHTML = `
     <button id="titleBack" class="tool-btn" style="margin:16px;"><i class="fas fa-arrow-left"></i> Voltar</button>
-    <div style="max-width:1100px; margin:0 auto; border:1px solid var(--border); display:grid; grid-template-columns: 340px 1fr; min-height:520px; background:var(--bg-primary);">
+    <div style="max-width:1100px; margin:0 auto; border:1px solid var(--border); display:grid; grid-template-columns: 340px 1fr; min-height:520px; background:var(--bg-primary); position:relative;">
+      <div id="titleLogoWrap" style="display:none; position:absolute; top:0; left:0; right:0; height:260px; z-index:5; align-items:center; justify-content:center; pointer-events:none;"><img id="titleLogoImg" src="" alt="Logo" style="max-width:60%; max-height:120px; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.9));" /></div>
       <!-- ESQUERDA: Imagem Vertical -->
       <div style="border-right:1px solid var(--border); display:flex; flex-direction:column; position:relative;">
         <div style="display:flex; justify-content:space-between; padding:8px 10px; font-size:0.7rem; font-weight:600; border-bottom:1px solid var(--border);">
@@ -38,7 +39,6 @@ function renderTitlePage(item, container) {
         <div style="flex:1; background:var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; min-height:260px; position:relative; overflow:hidden;">
           <img id="titleHorizontalImg" src="" alt="Horizontal" style="width:100%; height:100%; object-fit:contain; display:none;" />
           <div id="titleHorizontalPlaceholder" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; letter-spacing:0.05em;">IMAGEM HORIZONTAL</div>
-          <div id="titleLogoWrap" style="display:none; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3);"><img id="titleLogoImg" src="" alt="Logo" style="max-width:70%; max-height:60%; object-fit:contain;" /></div>
         </div>
         <div style="display:grid; grid-template-columns: 110px 110px 1fr; gap:0; border-bottom:1px solid var(--border); min-height:110px;">
           <div style="border-right:1px solid var(--border); padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;">
