@@ -948,6 +948,44 @@ const episodesModalAPI = setupEpisodesModal({
 setupTitlePage({
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
+  onGetUserLists: () => state.userLists,
+  onAddItemToList: (itemId, listId) => addItemToList(itemId, listId),
+  onRemoveItemFromList: (itemId, listId) => removeItemFromList(itemId, listId),
+  onOpenEpisodes: (...args) => {
+    if (Array.isArray(args[1])) {
+      return episodesModalAPI.open(args[0], args[1], args[2], args[3]);
+    }
+    if (args[1] && typeof args[1] === 'object' && args[1].id) {
+      return episodesModalAPI.open(0, [args[1]], args[2], args[3]);
+    }
+    return episodesModalAPI.open(0, [args[1]].filter(Boolean), args[2], args[3]);
+  },
+  onCreateItem: async (payload) => {
+    const created = await addItemToSupabase({
+      nome: payload.nome,
+      tipo: payload.tipo,
+      temporada: payload.temporada,
+      episodio: payload.episodio,
+      totalEpisodios: payload.totalEpisodios,
+      seasonEpisodesMap: payload.seasonEpisodesMap,
+      status: payload.status,
+      tier: payload.tier,
+      imagem: payload.imagem,
+      tmdb_id: payload.tmdb_id,
+      ano: payload.ano
+    });
+    const fullItem = { ...created, totalEpisodios: created.total_episodios, seasonEpisodesMap: created.season_episodes_map || {}, dataCriacao: created.data_criacao, dataAtualizacao: created.data_atualizacao, lists: [] };
+    if (payload.lists && payload.lists.length) {
+      const results = await Promise.allSettled(payload.lists.map(id => addItemToList(fullItem.id, id)));
+      const okIds = new Set(payload.lists.filter((_,i)=> results[i]?.status==='fulfilled'));
+      fullItem.lists = state.userLists.filter(l => okIds.has(l.id));
+    }
+    state.items.unshift(fullItem);
+    await loadUserLists();
+    render();
+    showToast('Título adicionado!');
+    return fullItem;
+  },
   onBack: () => {
     history.pushState(null, '', location.pathname + location.search);
     hideTitlePage(titlePageEl);
@@ -1190,7 +1228,48 @@ async function handleTrendingAdd(trendingItem) {
     release_date: trendingItem.date || '',
     date: trendingItem.date || ''
   };
-  return openAddModalWithTmdbResult(raw);
+  return openTitlePageForSearch(raw);
+}
+
+// — Padrão único: pesquisa e catálogo usam a mesma TitlePage
+function openTitlePageForSearch(raw) {
+  const tmdbId = raw.id;
+  const existing = state.items.find(it => String(it.tmdb_id) === String(tmdbId));
+  if (existing) {
+    history.pushState({ titleId: existing.id }, '', `#/titulo/${existing.id}`);
+    document.getElementById('homeSection').style.display = 'none';
+    document.getElementById('gridSection').style.display = 'none';
+    document.getElementById('searchView').style.display = 'none';
+    document.getElementById('continueSection').style.display = 'none';
+    const mh = document.querySelector('.main-header');
+    if (mh) mh.style.display = 'none';
+    showTitlePage(existing, titlePageEl);
+    return;
+  }
+  const preview = {
+    id: `preview-${tmdbId}`,
+    _isPreview: true,
+    nome: raw.title || raw.name || raw.title || 'Título',
+    tipo: 'serie',
+    temporada: 1,
+    episodio: 0,
+    totalEpisodios: 1,
+    seasonEpisodesMap: {},
+    status: 'planejado',
+    tier: null,
+    imagem: raw.poster_path ? `https://image.tmdb.org/t/p/w500${raw.poster_path}` : (raw.posterUrl || ''),
+    tmdb_id: tmdbId,
+    ano: (raw.first_air_date || raw.release_date || raw.date || '').slice(0,4) || null,
+    lists: []
+  };
+  history.pushState({ titleId: preview.id }, '', `#/titulo/preview-${tmdbId}`);
+  document.getElementById('homeSection').style.display = 'none';
+  document.getElementById('gridSection').style.display = 'none';
+  document.getElementById('searchView').style.display = 'none';
+  document.getElementById('continueSection').style.display = 'none';
+  const mh2 = document.querySelector('.main-header');
+  if (mh2) mh2.style.display = 'none';
+  showTitlePage(preview, titlePageEl);
 }
 
 // ========== RENDER ==========
@@ -2033,7 +2112,7 @@ if (pesquisaInput) {
         const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
         pesquisaLoading.style.display = 'none';
 
-        const filteredResults = (data.results || []).filter(r => r.media_type === 'tv');
+        const filteredResults = data.results || [];
         if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
@@ -2072,11 +2151,11 @@ if (pesquisaInput) {
             </div>
           `;
 
-          const openAddModal = () => openAddModalWithTmdbResult(res);
+          const openPreview = () => openTitlePageForSearch(res);
 
-          card.addEventListener('click', openAddModal);
+          card.addEventListener('click', openPreview);
           card.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAddModal(); }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPreview(); }
           });
 
           fragment.appendChild(card);

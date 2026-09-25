@@ -1,200 +1,653 @@
+/**
+ * Página de Título — HUD + Layout Principal + Sidebar
+ * Categorias:
+ *  1) Estado & Callbacks
+ *  2) Helpers — Tier / Temporada / Episódio / Cache
+ *  3) Render — HUD, Poster, Conteúdo, Episódio Unificado, Sidebar
+ *  4) Eventos & Side-effects (TMDB, listas, episódios)
+ *  5) API pública
+ */
+
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass } from '../lib/catalog.js';
+import { getTierClass, formatDateBR, calcularProgresso } from '../lib/catalog.js';
+import { cacheGet, cacheSet } from '../lib/cache.js';
+import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
 
-let onUpdate, onDelete, onBack;
+// ================================================================
+// 1) ESTADO & CALLBACKS
+// ================================================================
 let currentItem = null;
+let onUpdate = null;
+let onDelete = null;
+let onBack = null;
+let onAddItemToList = null;
+let onRemoveItemFromList = null;
+let onGetUserLists = null;
+let onOpenEpisodes = null;
+let onCreateItem = null;
 
-export function setupTitlePage(cbs) {
-  onUpdate = cbs.onUpdateItem;
-  onDelete = cbs.onDeleteItem;
-  onBack = cbs.onBack;
+/**
+ * @param {Object} callbacks
+ * @param {Function} callbacks.onUpdateItem - (id, updates) => Promise<item>
+ * @param {Function} callbacks.onDeleteItem - (id) => Promise
+ * @param {Function} callbacks.onBack - () => void
+ * @param {Function} [callbacks.onGetUserLists]
+ * @param {Function} [callbacks.onAddItemToList]
+ * @param {Function} [callbacks.onRemoveItemFromList]
+ * @param {Function} [callbacks.onOpenEpisodes]
+ * @param {Function} [callbacks.onCreateItem] - (itemData) => Promise<item> para preview de pesquisa
+ */
+export function setupTitlePage(callbacks) {
+  onUpdate = callbacks.onUpdateItem;
+  onDelete = callbacks.onDeleteItem;
+  onBack = callbacks.onBack;
+  onAddItemToList = callbacks.onAddItemToList || null;
+  onRemoveItemFromList = callbacks.onRemoveItemFromList || null;
+  onGetUserLists = callbacks.onGetUserLists || null;
+  onOpenEpisodes = callbacks.onOpenEpisodes || null;
+  onCreateItem = callbacks.onCreateItem || null;
 }
 
+// ================================================================
+// 2) HELPERS
+// ================================================================
+async function fetchSeasonData(tmdbId, seasonNum) {
+  const key = `season_${tmdbId}:${seasonNum}`;
+  const cached = cacheGet(key);
+  if (cached !== undefined) return cached;
+  const data = await callTMDB(`tv/${tmdbId}/season/${seasonNum}`, {}, 'pt-BR');
+  cacheSet(key, data);
+  return data;
+}
+
+function getSeasonLimits(item) {
+  const map = item.seasonEpisodesMap || {};
+  const keys = Object.keys(map).map(Number).filter(n => n > 0);
+  const max = keys.length ? Math.max(...keys) : 1;
+  return { maxTemp: max, map };
+}
+
+// ================================================================
+// 3) RENDER
+// ================================================================
 function renderTitlePage(item, container) {
   currentItem = item;
   const tierClass = item.tier ? getTierClass(item.tier) : '';
+  const progress = calcularProgresso(item); // mantido para cálculo interno, UI removida
+  const { maxTemp: computedMaxTemp, map: seasonMap } = getSeasonLimits(item);
+  const displayMaxTemp = String(computedMaxTemp).padStart(2, '0');
+  const curTempInit = String(item.temporada || 1).padStart(2, '0');
+  const curEpInit = String(item.episodio || 0).padStart(2, '0');
+  const maxEpInit = String((seasonMap[item.temporada] || item.totalEpisodios || 1)).padStart(2, '0');
+
+  // ——— Categorias de layout ———
+  // A) HUD Superior: Voltar | Logo+Original | Tier (mesmo design)
+  // B) Layout: Main (Poster + Conteúdo) + Sidebar Vertical
+  // C) Main Esquerda: Poster vertical
+  // D) Main Direita: Backdrop horizontal + Episódio (Temporada | Episódio | Sinopse)
+  // E) Sidebar: Status | Listas/Episódios | Salvar/Remover
   container.innerHTML = `
-    <div style="max-width:1100px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:16px; gap:16px;">
-      <button id="titleBack" class="tool-btn"><i class="fas fa-arrow-left"></i> Voltar</button>
-      <div id="titleLogoWrap" style="display:none; flex:1; justify-content:center; pointer-events:none;"><img id="titleLogoImg" src="" alt="Logo" style="max-width:420px; max-height:80px; object-fit:contain;" /></div>
-      <div style="width:80px;"></div>
-    </div>
-    <div style="max-width:1100px; margin:0 auto; border:1px solid var(--border); display:grid; grid-template-columns: 340px 1fr; min-height:520px; background:var(--bg-primary); position:relative;">
-      <!-- ESQUERDA: Imagem Vertical -->
-      <div style="border-right:1px solid var(--border); display:flex; flex-direction:column; position:relative;">
-        <div style="display:flex; justify-content:space-between; padding:8px 10px; font-size:0.7rem; font-weight:600; border-bottom:1px solid var(--border);">
-          <span style="border:1px solid var(--border); padding:2px 6px; ${item.tier ? '' : 'visibility:hidden;'} ${tierClass ? `background:var(--tier-${item.tier === 'S+' ? 'splus' : item.tier.toLowerCase()});` : ''}">${item.tier || 'TIER'}</span>
-          <span style="display:flex; gap:12px;"><a id="titleImdbLink" href="#" target="_blank" style="color:var(--text-muted); text-decoration:none;">IMDB</a> <a id="titleWikiLink" href="#" target="_blank" style="color:var(--text-muted); text-decoration:none;">WIKI</a> <a id="titleYoutubeLink" href="#" target="_blank" style="color:var(--text-muted); text-decoration:none;">YOUTUBE</a></span>
-        </div>
-        <div style="flex:1; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
-          <img id="titleVerticalImg" src="${item.imagem || ''}" alt="Vertical" style="width:100%; height:100%; object-fit:contain; display:${item.imagem ? 'block' : 'none'};" />
-          <div id="titleVerticalPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; width:100%; height:100%; align-items:center; justify-content:center; color:var(--text-muted);">IMAGEM VERTICAL</div>
-        </div>
-        <div id="titleStatusBar" style="display:flex; border-top:1px solid var(--border); font-size:0.7rem; font-weight:600;">
-          <button class="dm-status-btn ${item.status==='assistindo'?'active':''}" data-status="assistindo" style="flex:1; border-radius:0; border:none; border-right:1px solid var(--border); padding:10px 4px; font-size:0.65rem;">ASSISTIDO</button>
-          <button class="dm-status-btn ${item.status==='concluido'?'active':''}" data-status="concluido" style="flex:1; border-radius:0; border:none; border-right:1px solid var(--border); padding:10px 4px; font-size:0.65rem;">CONCLUIDO</button>
-          <button class="dm-status-btn ${item.status==='pausado'?'active':''}" data-status="pausado" style="flex:1; border-radius:0; border:none; border-right:1px solid var(--border); padding:10px 4px; font-size:0.65rem;">PAUSADO</button>
-          <button class="dm-status-btn ${item.status==='planejado'?'active':''}" data-status="planejado" style="flex:1; border-radius:0; border:none; padding:10px 4px; font-size:0.65rem;">PLANEJADO</button>
-        </div>
-      </div>
-      <!-- DIREITA -->
-      <div style="display:flex; flex-direction:column; min-height:0;">
-        <div style="flex:1; background:var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; min-height:260px; position:relative; overflow:hidden;">
-          <img id="titleHorizontalImg" src="" alt="Horizontal" style="width:100%; height:100%; object-fit:contain; display:none;" />
-          <div id="titleHorizontalPlaceholder" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; letter-spacing:0.05em;">IMAGEM HORIZONTAL</div>
-        </div>
-        <div style="display:grid; grid-template-columns: 110px 110px 1fr; gap:0; border-bottom:1px solid var(--border); min-height:110px;">
-          <div style="border-right:1px solid var(--border); padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;">
-            <span style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-align:center;">NUMERO DA TEMPORADA</span>
-            <div style="display:flex; align-items:center; gap:8px;"><button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1" style="width:28px; height:28px;">-</button><span id="titleTemporadaDisplay" style="font-size:1.6rem; font-weight:700; min-width:32px; text-align:center;">${String(item.temporada||1).padStart(2,'0')}</span><button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="1" style="width:28px; height:28px;">+</button></div>
-            <small style="font-size:0.65rem; color:var(--text-muted);">/ <span id="titleSeasonMax">--</span></small>
-          </div>
-          <div style="border-right:1px solid var(--border); padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;">
-            <span style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-align:center;">NUMERO DO EPISODIO</span>
-            <div style="display:flex; align-items:center; gap:8px;"><button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1" style="width:28px; height:28px;">-</button><span id="titleEpisodioDisplay" style="font-size:1.6rem; font-weight:700; min-width:32px; text-align:center;">${String(item.episodio||0).padStart(2,'0')}</span><button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="1" style="width:28px; height:28px;">+</button></div>
-            <small style="font-size:0.65rem; color:var(--text-muted);">/ <span id="titleEpMax">--</span></small>
-            <div id="titleEpLoading" style="display:none; font-size:0.6rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i></div>
-          </div>
-          <div style="padding:12px; display:flex; flex-direction:column; gap:6px; min-width:0;">
-            <span style="font-size:0.65rem; font-weight:600; color:var(--text-muted);">SINOPSE DO EPISODIO</span>
-            <strong id="titleEpTitle" style="font-size:0.85rem; line-height:1.2;">—</strong>
-            <small id="titleEpDate" style="font-size:0.7rem; color:var(--text-muted);"></small>
-            <p id="titleEpOverview" style="font-size:0.75rem; color:var(--text-secondary); line-height:1.4; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; margin:0;"></p>
+    <!-- A) HUD SUPERIOR — tier como marcador de livro rente ao limite -->
+    <div class="tp-hud">
+      <div class="tp-hud-top tp-pill" style="position:relative; overflow:visible;">
+        <button id="titleBack" class="tp-back-btn--unified" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button>
+        <div class="tp-logo-block" id="tpLogoPill">
+          <div id="titleLogoWrap" style="display:none; align-items:center; justify-content:center; max-width:380px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:44px; max-width:340px; object-fit:contain; display:block;" /></div>
+          <div id="titleNameFallback" style="text-align:center; line-height:1.2;">
+            <div id="titleName" style="font-family:var(--font-display); font-weight:700; font-size:0.95rem;">${item.nome}</div>
+            <div id="titleOriginalName" style="font-size:0.68rem; color:var(--text-muted); font-style:italic; margin-top:2px; display:none;"></div>
+            <div id="titleDates" style="font-size:0.62rem; color:rgba(255,255,255,0.35); margin-top:3px; display:none; align-items:center; justify-content:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
           </div>
         </div>
-        <div style="display:flex; border-top:1px solid var(--border); font-size:0.7rem; font-weight:600;">
-          <button id="titleEpisodesBtn" style="flex:1; padding:14px; background:transparent; border:none; border-right:1px solid var(--border); color:var(--text-primary); cursor:pointer;">EPISODIOS</button>
-          <button id="titleListsBtn" style="flex:1; padding:14px; background:transparent; border:none; border-right:1px solid var(--border); color:var(--text-primary); cursor:pointer;">LISTAS</button>
-          <button id="titleSave" style="flex:1; padding:14px; background:var(--accent); color:var(--accent-ink); border:none; cursor:pointer; font-weight:700;">SALVAR</button>
-          <button id="titleDelete" style="flex:1; padding:14px; background:transparent; border:none; color:var(--danger); cursor:pointer;">REMOVER</button>
+        <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
+          ${item.tier ? `<div class="tier-stamp ${tierClass}" id="tpTierStamp" style="width:22px; height:28px; font-size:0.52rem; cursor:pointer; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">${item.tier}</div>` : `<div class="tier-stamp" id="tpTierStamp" style="width:22px; height:28px; font-size:0.52rem; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">Tier</div>`}
+          <div id="tpTierDropdown" style="display:none; position:absolute; top:30px; right:0; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:10px; padding:6px; flex-direction:column; gap:4px; z-index:50; box-shadow:var(--shadow-lg); min-width:80px;">
+            <button class="tier-option" data-tier="S+" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S+</button>
+            <button class="tier-option" data-tier="S" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S</button>
+            <button class="tier-option" data-tier="A" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">A</button>
+            <button class="tier-option" data-tier="B" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">B</button>
+            <button class="tier-option" data-tier="C" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">C</button>
+            <button class="tier-option" data-tier="D" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">D</button>
+            <button class="tier-option" data-tier="" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">N/A</button>
+          </div>
         </div>
       </div>
     </div>
-    <div id="titleListsWrap" style="display:none; max-width:1100px; margin:12px auto; background:var(--bg-elevated); border:1px solid var(--border); border-radius:8px; padding:12px;"></div>
+
+    <!-- B) LAYOUT PRINCIPAL + SIDEBAR -->
+    <div class="tp-layout">
+      <!-- C) MAIN -->
+      <div class="tp-main" style="flex:1;">
+        <!-- C1) Poster vertical -->
+        <div class="tp-poster-col" style="flex:0 0 380px; max-width:400px; display:flex; flex-direction:column;">
+          <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; flex:1; min-height:0;">
+              <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:100%; height:100%; object-fit:cover; object-position:center; display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
+            <div id="titlePosterPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-image"></i>&nbsp; Imagem vertical</div>
+            <div class="poster-top-links" style="position:absolute; top:8px; right:8px; display:flex; gap:4px; z-index:2;">
+              <a id="tpWikiLink" href="#" target="_blank" class="poster-icon-btn" title="Wikipédia" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fab fa-wikipedia-w"></i></a>
+              <a id="tpImdbLink" href="#" target="_blank" class="poster-icon-btn" title="IMDb" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fas fa-star"></i></a>
+              <a id="tpYoutubeLink" href="#" target="_blank" class="poster-icon-btn" title="YouTube" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fab fa-youtube"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- C2) Conteúdo direita -->
+        <div class="tp-content-col" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px;">
+        <div class="tp-frame tp-backdrop-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; flex:1; aspect-ratio:16/9;">
+            <img id="titleBackdrop" src="" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;" />
+            <div id="titleBackdropPlaceholder" style="position:relative; z-index:1; color:var(--text-muted); font-size:0.85rem; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">Imagem horizontal</div>
+            <button id="tpBackdropPrev" class="poster-icon-btn" aria-label="Imagem anterior" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); display:none; z-index:3; width:28px; height:28px;"><i class="fas fa-chevron-left"></i></button>
+            <button id="tpBackdropNext" class="poster-icon-btn" aria-label="Próxima imagem" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); display:none; z-index:3; width:28px; height:28px;"><i class="fas fa-chevron-right"></i></button>
+            <div id="tpBackdropCounter" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.55); color:#fff; padding:2px 8px; border-radius:999px; font-size:0.65rem; display:none; z-index:3; backdrop-filter:blur(4px);"></div>
+            <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.35), transparent 60%); pointer-events:none;"></div>
+          </div>
+
+          <div class="tp-episode-row" style="display:flex; gap:12px; align-items:stretch;">
+            <div class="tp-season-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
+              <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Temporada</span>
+              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+                <span id="titleTemporadaDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curTempInit}</span>
+                <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
+                <span id="titleSeasonMax" style="font-size:1.1rem; color:var(--text-muted);">${displayMaxTemp}</span>
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
+                <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+              </div>
+            </div>
+            <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
+              <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Episódio</span>
+              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+                <span id="titleEpisodioDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curEpInit}</span>
+                <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
+                <span id="titleEpMax" style="font-size:1.1rem; color:var(--text-muted);">${maxEpInit}</span>
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
+                <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+              </div>
+            </div>
+            <div class="tp-synopsis-block" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; text-align:left; position:relative; overflow:hidden;">
+              <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+                <span id="titleEpTitle" style="font-size:0.82rem; font-weight:600; color:var(--text-primary); flex:1; min-width:0;">Sinopse do episódio</span>
+                <span id="titleEpDate" style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap;"></span>
+              </div>
+              <p id="titleSynopsisEp" style="margin:0; font-size:0.78rem; line-height:1.45; color:var(--text-secondary); display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">Selecione temporada e episódio para ver a sinopse.</p>
+              <div id="titleEpLoading" style="display:none; position:absolute; top:8px; right:8px; font-size:0.6rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D) SIDEBAR VERTICAL — 3 categorias separadas -->
+      <div class="tp-side-hud">
+        <!-- D1) Categoria: Status -->
+        <div class="tp-side-card">
+          <div class="tp-side-card-head"><i class="fas fa-play-circle"></i> Status</div>
+          <div id="titlePageStatusBar" class="tp-status-col" style="display:flex; flex-direction:column; gap:12px;">
+            <button class="dm-status-btn ${item.status==='assistindo'?'active':''}" data-status="assistindo">Assistindo</button>
+            <button class="dm-status-btn ${item.status==='concluido'?'active':''}" data-status="concluido">Concluído</button>
+            <button class="dm-status-btn ${item.status==='planejado'?'active':''}" data-status="planejado">Planejado</button>
+            <button class="dm-status-btn ${item.status==='pausado'?'active':''}" data-status="pausado">Pausado</button>
+          </div>
+        </div>
+        <!-- D2) Categoria: Coleções -->
+        <div class="tp-side-card">
+          <div class="tp-side-card-head"><i class="fas fa-layer-group"></i> Coleções</div>
+          <button id="tpListBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-layer-group"></i> Listas</button>
+          <button id="tpEpisodesBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-film"></i> Episódios</button>
+        </div>
+        <!-- D3) Categoria: Ações -->
+        <div class="tp-side-card tp-side-card--actions">
+          <div class="tp-side-card-head"><i class="fas fa-bolt"></i> ${item._isPreview ? 'Adicionar' : 'Ações'}</div>
+          ${item._isPreview ? `
+          <button id="titleAdd" class="dm-btn dm-btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-plus"></i> Adicionar</button>
+          <button id="titleCancel" class="dm-btn" style="width:100%; justify-content:center; border:1px solid var(--border); background:var(--bg-surface);"><i class="fas fa-times"></i> Cancelar</button>
+          ` : `
+          <button id="titleSave" class="dm-btn dm-btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-save"></i> Salvar</button>
+          <button id="titleDelete" class="dm-btn dm-btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Remover</button>
+          `}
+        </div>
+      </div>
+    </div>
+
+    <select id="titlePageTier" style="display:none;">
+      <option value="" ${!item.tier?'selected':''}>Sem tier</option>
+      <option value="S+" ${item.tier==='S+'?'selected':''}>S+</option>
+      <option value="S" ${item.tier==='S'?'selected':''}>S</option>
+      <option value="A" ${item.tier==='A'?'selected':''}>A</option>
+      <option value="B" ${item.tier==='B'?'selected':''}>B</option>
+      <option value="C" ${item.tier==='C'?'selected':''}>C</option>
+      <option value="D" ${item.tier==='D'?'selected':''}>D</option>
+    </select>
   `;
+
+  // ==============================================================
+  // 4) EVENTOS
+  // ==============================================================
+  // — Navegação
   container.querySelector('#titleBack').addEventListener('click', () => onBack && onBack());
-  // Status
+
+  // — Status
   container.querySelectorAll('#titlePageStatusBar .dm-status-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       container.querySelectorAll('#titlePageStatusBar .dm-status-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
     });
   });
-  // Steppers
-  let curTemp = Number(item.temporada) || 1;
-  let curEp = Number(item.episodio) || 0;
-  let seasonLimits = { maxTemp: 1, maxEpByTemp: { 1: 1 } };
-  const titleSeasonMax = container.querySelector('#titleSeasonMax');
-  const titleEpMax = container.querySelector('#titleEpMax');
-  const titleEpTitle = container.querySelector('#titleEpTitle');
-  const titleEpDate = container.querySelector('#titleEpDate');
-  const titleEpOverview = container.querySelector('#titleEpOverview');
-  const titleEpLoading = container.querySelector('#titleEpLoading');
-  async function updateEpDisplay() {
-    container.querySelector('#titleTemporadaDisplay').textContent = String(curTemp).padStart(2,'0');
-    container.querySelector('#titleEpisodioDisplay').textContent = String(curEp).padStart(2,'0');
-    const maxEp = seasonLimits.maxEpByTemp?.[curTemp] || 1;
-    if (titleEpMax) titleEpMax.textContent = String(maxEp).padStart(2,'0');
-    if (curEp === 0) {
-      if (titleEpTitle) titleEpTitle.textContent = 'Ainda não iniciado';
-      if (titleEpDate) titleEpDate.textContent = '';
-      if (titleEpOverview) titleEpOverview.textContent = '';
-      return;
-    }
-    if (!item.tmdb_id) {
-      if (titleEpTitle) titleEpTitle.textContent = `Episódio ${curEp}`;
-      return;
-    }
-    if (titleEpLoading) titleEpLoading.style.display = 'flex';
-    try {
-      const seasonData = await callTMDB(`tv/${item.tmdb_id}/season/${curTemp}`, {}, 'pt-BR');
-      const ep = seasonData.episodes?.find(e => Number(e.episode_number) === curEp);
-      if (ep) {
-        if (titleEpTitle) titleEpTitle.textContent = ep.name || `Episódio ${curEp}`;
-        if (titleEpDate) titleEpDate.textContent = ep.air_date ? ep.air_date.split('-').reverse().join('/') : '';
-        if (titleEpOverview) titleEpOverview.textContent = ep.overview || 'Sinopse não disponível.';
-      } else {
-        if (titleEpTitle) titleEpTitle.textContent = `Episódio ${curEp}`;
-      }
-    } catch {
-      if (titleEpTitle) titleEpTitle.textContent = `Episódio ${curEp}`;
-    } finally {
-      if (titleEpLoading) titleEpLoading.style.display = 'none';
+
+  // — Tier
+  const tierStamp = container.querySelector('#tpTierStamp');
+  const tierDropdown = container.querySelector('#tpTierDropdown');
+  const tierSelect = container.querySelector('#titlePageTier');
+  let currentTier = item.tier || '';
+  function updateTierUI(tier) {
+    currentTier = tier || '';
+    if (tierSelect) tierSelect.value = tier || '';
+    if (tierStamp) {
+      tierStamp.textContent = tier || 'Tier';
+      tierStamp.className = tier ? `tier-stamp ${getTierClass(tier)}` : 'tier-stamp';
+      // mantém design do HUD (pill discreto) — sem absolute
+      tierStamp.style.background = tier ? '' : 'var(--bg-elevated)';
+      tierStamp.style.color = tier ? '' : 'var(--text-muted)';
+      tierStamp.style.border = tier ? '' : '1px solid var(--border)';
+      tierStamp.style.position = 'relative';
+      tierStamp.style.top = 'auto';
+      tierStamp.style.right = 'auto';
+      tierStamp.style.width = '22px';
+      tierStamp.style.height = '28px';
+      tierStamp.style.fontSize = '0.52rem';
+      tierStamp.style.cursor = 'pointer';
+      tierStamp.style.display = 'flex';
+      tierStamp.style.alignItems = 'flex-start';
+      tierStamp.style.justifyContent = 'center';
+      tierStamp.style.padding = '4px 0 6px';
+      tierStamp.style.flexShrink = '0';
     }
   }
+  if (tierStamp && tierDropdown) {
+    tierStamp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      tierDropdown.style.display = tierDropdown.style.display === 'flex' ? 'none' : 'flex';
+    });
+    tierDropdown.querySelectorAll('.tier-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        updateTierUI(opt.dataset.tier);
+        tierDropdown.style.display = 'none';
+      });
+    });
+    document.addEventListener('click', (e) => {
+      if (!tierStamp.contains(e.target) && !tierDropdown.contains(e.target)) tierDropdown.style.display = 'none';
+    }, { once: false });
+  }
+
+  // — Steppers & Sinopse
+  let curTemp = Number(item.temporada) || 1;
+  let curEp = Number(item.episodio) || 0;
+  const temporadaDisplay = container.querySelector('#titleTemporadaDisplay');
+  const episodioDisplay = container.querySelector('#titleEpisodioDisplay');
+  const seasonMaxEl = container.querySelector('#titleSeasonMax');
+  const epMaxEl = container.querySelector('#titleEpMax');
+  const epTitleEl = container.querySelector('#titleEpTitle');
+  const epSynopsisEl = container.querySelector('#titleSynopsisEp');
+  const epDateEl = container.querySelector('#titleEpDate');
+  const epLoadingEl = container.querySelector('#titleEpLoading');
+  let seasonLimits = { maxTemp: computedMaxTemp, maxEpByTemp: seasonMap };
+
+  function updateEpMax() {
+    const maxEp = seasonLimits.maxEpByTemp?.[curTemp] ?? (item.totalEpisodios || 1);
+    if (epMaxEl) epMaxEl.textContent = String(maxEp).padStart(2,'0');
+    if (seasonMaxEl) seasonMaxEl.textContent = String(seasonLimits.maxTemp || 1).padStart(2,'0');
+  }
+
+  // — Backdrop carrossel (várias horizontais com setas, sem repetidas)
+  let backdropImages = [];
+  let currentBackdropIndex = 0;
+  const backdropEl = container.querySelector('#titleBackdrop');
+  const backdropPh = container.querySelector('#titleBackdropPlaceholder');
+  const backdropPrev = container.querySelector('#tpBackdropPrev');
+  const backdropNext = container.querySelector('#tpBackdropNext');
+  const backdropCounter = container.querySelector('#tpBackdropCounter');
+  function refreshBackdropControls() {
+    const hasMany = backdropImages.length > 1;
+    if (backdropPrev) backdropPrev.style.display = hasMany ? 'inline-flex' : 'none';
+    if (backdropNext) backdropNext.style.display = hasMany ? 'inline-flex' : 'none';
+    if (backdropCounter) {
+      if (hasMany) {
+        backdropCounter.textContent = `${currentBackdropIndex + 1} / ${backdropImages.length}`;
+        backdropCounter.style.display = 'block';
+      } else backdropCounter.style.display = 'none';
+    }
+  }
+  function showBackdropAt(idx) {
+    if (!backdropEl || backdropImages.length === 0) return;
+    currentBackdropIndex = ((idx % backdropImages.length) + backdropImages.length) % backdropImages.length;
+    const fp = backdropImages[currentBackdropIndex];
+    backdropEl.src = `https://image.tmdb.org/t/p/w1280${fp}`;
+    backdropEl.style.display = 'block';
+    if (backdropPh) backdropPh.style.display = 'none';
+    refreshBackdropControls();
+  }
+  if (backdropPrev) backdropPrev.addEventListener('click', (e) => { e.stopPropagation(); showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length)); });
+  if (backdropNext) backdropNext.addEventListener('click', (e) => { e.stopPropagation(); showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length)); });
+  // teclado ←→ e swipe
+  container.addEventListener('keydown', (e) => {
+    if (backdropImages.length <= 1) return;
+    if (e.key === 'ArrowLeft') showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length));
+    if (e.key === 'ArrowRight') showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length));
+  });
+  container.setAttribute('tabindex', '0');
+  let touchStartX = null;
+  if (backdropEl) {
+    backdropEl.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    backdropEl.addEventListener('touchend', (e) => {
+      if (touchStartX === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 40 && backdropImages.length > 1) {
+        if (dx > 0) showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length));
+        else showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length));
+      }
+      touchStartX = null;
+    });
+  }
+
+  let epRequestId = 0;
+  async function syncEpisodePanel() {
+    if (!item.tmdb_id) {
+      if (epTitleEl) epTitleEl.textContent = curEp === 0 ? 'Ainda não iniciado' : `Episódio ${curEp}`;
+      if (epSynopsisEl) epSynopsisEl.textContent = curEp === 0 ? 'Selecione temporada e episódio para ver a sinopse.' : 'Sinopse não disponível para este episódio.';
+      if (epDateEl) epDateEl.textContent = '';
+      return;
+    }
+    if (curEp === 0) {
+      if (epLoadingEl) epLoadingEl.style.display = 'none';
+      if (epTitleEl) epTitleEl.textContent = 'Ainda não iniciado';
+      if (epSynopsisEl) epSynopsisEl.textContent = 'Selecione um episódio para ver a sinopse.';
+      if (epDateEl) epDateEl.textContent = '';
+      return;
+    }
+    const requestId = ++epRequestId;
+    if (epLoadingEl) epLoadingEl.style.display = 'flex';
+    try {
+      const seasonData = await fetchSeasonData(item.tmdb_id, curTemp);
+      if (requestId !== epRequestId) return;
+      const ep = seasonData.episodes?.find(e => Number(e.episode_number) === curEp);
+      if (ep) {
+        if (epTitleEl) epTitleEl.textContent = ep.name || `Episódio ${curEp}`;
+        if (epDateEl) epDateEl.textContent = ep.air_date ? formatDateBR(ep.air_date) : '';
+        if (epSynopsisEl) epSynopsisEl.textContent = ep.overview || 'Sinopse não disponível.';
+      } else {
+        if (epTitleEl) epTitleEl.textContent = `Episódio ${curEp}`;
+        if (epDateEl) epDateEl.textContent = '';
+        if (epSynopsisEl) epSynopsisEl.textContent = 'Sinopse não disponível.';
+      }
+    } catch (e) {
+      if (requestId !== epRequestId) return;
+      if (epTitleEl) epTitleEl.textContent = `Episódio ${curEp}`;
+      if (epSynopsisEl) epSynopsisEl.textContent = 'Erro ao carregar sinopse.';
+    } finally {
+      if (requestId === epRequestId && epLoadingEl) epLoadingEl.style.display = 'none';
+    }
+  }
+
   container.querySelectorAll('.poster-stepper-btn').forEach(b => {
     b.addEventListener('click', () => {
-      const t = b.dataset.target, s = parseInt(b.dataset.step,10)||1;
-      if (t === 'titleTemporada') {
-        const maxTemp = seasonLimits.maxTemp || 1;
-        curTemp = Math.max(1, Math.min(maxTemp, curTemp + s));
+      const target = b.dataset.target;
+      const step = parseInt(b.dataset.step,10) || 1;
+      if (target === 'titleTemporada') {
+        const newTemp = Math.max(1, Math.min(seasonLimits.maxTemp || 99, curTemp + step));
+        if (newTemp === curTemp) return;
+        curTemp = newTemp;
+        temporadaDisplay.textContent = String(curTemp).padStart(2,'0');
         const maxEp = seasonLimits.maxEpByTemp?.[curTemp] || 1;
-        if (curEp > maxEp) curEp = maxEp;
+        if (curEp > maxEp) { curEp = maxEp; episodioDisplay.textContent = String(curEp).padStart(2,'0'); }
+        updateEpMax(); syncEpisodePanel();
       } else {
         const maxEp = seasonLimits.maxEpByTemp?.[curTemp] || 1;
-        curEp = Math.max(0, Math.min(maxEp, curEp + s));
+        const newEp = Math.max(0, Math.min(maxEp, curEp + step));
+        if (newEp === curEp) return;
+        curEp = newEp; episodioDisplay.textContent = String(curEp).padStart(2,'0'); syncEpisodePanel();
       }
-      updateEpDisplay();
     });
   });
-  container.querySelector('#titleSave').addEventListener('click', async () => {
-    const ns = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || item.status;
-    const nt = null; // tier não exibido aqui, mantém
-    try { const saved = await onUpdate(item.id, { temporada: curTemp, episodio: curEp, status: ns }); Object.assign(item, saved); onBack(); } catch(e){ console.error(e); }
+
+  // — Salvar / Remover / Adicionar (com listas)
+  const saveBtn = container.querySelector('#titleSave');
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
+    const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || item.status;
+    const newTier = currentTier || null;
+    try {
+      const saved = await onUpdate(item.id, { temporada: curTemp, episodio: curEp, status: newStatus, tier: newTier });
+      Object.assign(item, saved);
+      const box = document.getElementById('detailListCheckboxes')?.querySelectorAll('input[type="checkbox"]:checked').length ? document.getElementById('detailListCheckboxes') : document.getElementById('addListCheckboxes');
+      if (box && onAddItemToList && onRemoveItemFromList && onGetUserLists) {
+        const selectedIds = Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const currentIds = (item.lists || []).map(l => l.id);
+        const toAdd = selectedIds.filter(id => !currentIds.includes(id));
+        const toRemove = currentIds.filter(id => !selectedIds.includes(id));
+        const userLists = onGetUserLists() || [];
+        const addRes = await Promise.allSettled(toAdd.map(id => onAddItemToList(item.id, id)));
+        const remRes = await Promise.allSettled(toRemove.map(id => onRemoveItemFromList(item.id, id)));
+        const addedOk = new Set(toAdd.filter((_,i)=>addRes[i]?.status==='fulfilled'));
+        const removedOk = new Set(toRemove.filter((_,i)=>remRes[i]?.status==='fulfilled'));
+        saved.lists = userLists.filter(l=> currentIds.includes(l.id)).filter(l=> !removedOk.has(l.id)).concat(userLists.filter(l=> addedOk.has(l.id)));
+        Object.assign(item, saved);
+      }
+      document.getElementById('detailListModal')?.classList.remove('active');
+      document.getElementById('addListModal')?.classList.remove('active');
+      onBack();
+    } catch (e) { console.error(e); }
   });
-  container.querySelector('#titleDelete').addEventListener('click', async () => {
+  const deleteBtn = container.querySelector('#titleDelete');
+  if (deleteBtn) deleteBtn.addEventListener('click', async () => {
     if (!confirm('Tem certeza que deseja remover este título?')) return;
     try { await onDelete(item.id); onBack(); } catch(e){ console.error(e); }
   });
-  const listsBtn = container.querySelector('#titleListsBtn');
-  const listsWrap = container.querySelector('#titleListsWrap');
-  if (listsBtn && listsWrap) {
-    listsBtn.addEventListener('click', () => {
-      listsWrap.style.display = listsWrap.style.display === 'none' ? 'block' : 'none';
-      listsWrap.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">Listas em breve</p>';
-    });
-  }
-  const epsBtn = container.querySelector('#titleEpisodesBtn');
-  if (epsBtn) epsBtn.addEventListener('click', () => {
-    // Reusa episodesModal se existir
-    const ev = new CustomEvent('openEpisodes', { detail: { item } });
-    window.dispatchEvent(ev);
+  const addBtn = container.querySelector('#titleAdd');
+  if (addBtn) addBtn.addEventListener('click', async () => {
+    if (!onCreateItem) { console.warn('onCreateItem não configurado'); return; }
+    const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || 'planejado';
+    const newTier = currentTier || null;
+    const box = document.getElementById('detailListCheckboxes')?.querySelectorAll('input[type="checkbox"]').length ? document.getElementById('detailListCheckboxes') : document.getElementById('addListCheckboxes');
+    const selectedIds = box ? Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
+    const payload = {
+      nome: item.nome,
+      tipo: item.tipo || 'serie',
+      temporada: curTemp,
+      episodio: curEp,
+      totalEpisodios: seasonLimits.maxEpByTemp?.[curTemp] || item.totalEpisodios || 1,
+      seasonEpisodesMap: seasonLimits.maxEpByTemp || {},
+      status: newStatus,
+      tier: newTier,
+      imagem: item.imagem || null,
+      tmdb_id: item.tmdb_id,
+      ano: item.ano || null,
+      lists: selectedIds
+    };
+    try {
+      addBtn.disabled = true;
+      addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adicionando...';
+      const created = await onCreateItem(payload);
+      document.getElementById('detailListModal')?.classList.remove('active');
+      document.getElementById('addListModal')?.classList.remove('active');
+      // atualiza item para modo catálogo e volta
+      if (created) Object.assign(item, created);
+      onBack();
+    } catch (e) { console.error(e); addBtn.disabled = false; addBtn.innerHTML = '<i class="fas fa-plus"></i> Adicionar'; }
   });
+  const cancelBtn = container.querySelector('#titleCancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => onBack && onBack());
+
+  // — Listas / Episódios — garante modal no body (detailListModal é aninhado no detailModal e ficaria escondido)
+  function ensureListModalAtBody() {
+    const m = document.getElementById('detailListModal');
+    if (m && m.parentElement !== document.body) {
+      document.body.appendChild(m);
+      m.style.zIndex = '300';
+    }
+    // também garante addListModal como fallback
+    return m || document.getElementById('addListModal');
+  }
+  const tpListBtn = container.querySelector('#tpListBtn');
+  const tpEpisodesBtn = container.querySelector('#tpEpisodesBtn');
+  if (tpListBtn) tpListBtn.addEventListener('click', () => {
+    const modal = ensureListModalAtBody();
+    const box = document.getElementById('detailListCheckboxes') || document.getElementById('addListCheckboxes');
+    if (!modal || !box) return;
+    const userLists = onGetUserLists ? onGetUserLists() : [];
+    const selected = new Set((item.lists || []).map(l => l.id));
+    box.innerHTML = '';
+    const sorted = [...userLists].filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos').sort((a,b)=>(b.is_system?1:0)-(a.is_system?1:0));
+    sorted.forEach(list => {
+      const label = document.createElement('label');
+      label.className = 'list-checkbox-pill';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = list.id; cb.checked = selected.has(list.id);
+      const icon = document.createElement('i');
+      icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
+      label.append(cb, icon, document.createTextNode(` ${list.nome}`));
+      box.appendChild(label);
+    });
+    modal.classList.add('active');
+  });
+  if (tpEpisodesBtn) tpEpisodesBtn.addEventListener('click', () => { if (onOpenEpisodes) onOpenEpisodes(null, item, curTemp, curEp); });
+  // fechar modais de listas (detail e add)
+  ['detailListModal','addListModal'].forEach(id => {
+    const m = document.getElementById(id);
+    const closeBtn = document.getElementById(id === 'detailListModal' ? 'detailListModalClose' : 'addListModalClose');
+    if (closeBtn && m) closeBtn.onclick = () => m.classList.remove('active');
+    if (m) m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
+  });
+
+  // — Links externos
+  const wikiLink = container.querySelector('#tpWikiLink');
+  const imdbLink = container.querySelector('#tpImdbLink');
+  const ytLink = container.querySelector('#tpYoutubeLink');
+  if (wikiLink) { wikiLink.href = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g,'_')}`; wikiLink.style.display = 'inline-flex'; }
+  if (imdbLink) { imdbLink.href = `https://www.imdb.com/find?q=${encodeURIComponent(item.nome)}`; imdbLink.style.display = 'inline-flex'; }
+  if (ytLink) { ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`; ytLink.style.display = 'inline-flex'; }
+
+  updateEpMax(); syncEpisodePanel();
+
+  // ==============================================================
+  // 4) SIDE-EFFECTS — TMDB
+  // ==============================================================
   (async () => {
-    if (!item.tmdb_id) { updateEpDisplay(); return; }
+    if (!item.tmdb_id) return;
     try {
       const details = await callTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR');
-      // Imagens
-      const vImg = container.querySelector('#titleVerticalImg');
-      const hImg = container.querySelector('#titleHorizontalImg');
-      const hPlaceholder = container.querySelector('#titleHorizontalPlaceholder');
-      if (details.poster_path && vImg) { vImg.src = `https://image.tmdb.org/t/p/w342${details.poster_path}`; vImg.style.display = 'block'; const ph = container.querySelector('#titleVerticalPlaceholder'); if (ph) ph.style.display = 'none'; }
-      if (details.backdrop_path && hImg) { hImg.src = `https://image.tmdb.org/t/p/w780${details.backdrop_path}`; hImg.style.display = 'block'; if (hPlaceholder) hPlaceholder.style.display = 'none'; }
-      else if (hImg && details.poster_path) { hImg.src = `https://image.tmdb.org/t/p/w780${details.poster_path}`; hImg.style.display = 'block'; if (hPlaceholder) hPlaceholder.style.display = 'none'; }
-      // Links
-      const yt = container.querySelector('#titleYoutubeLink');
-      const wiki = container.querySelector('#titleWikiLink');
-      const imdb = container.querySelector('#titleImdbLink');
-      if (yt) yt.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`;
-      if (wiki) wiki.href = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g,'_')}`;
-      if (imdb && details.imdb_id) imdb.href = `https://www.imdb.com/title/${details.imdb_id}/`;
-      // Logo
+      const genresEl = container.querySelector('#titleGenres');
+      if (genresEl) {
+        const genres = (details.genres || []).map(g => g.name).filter(Boolean).join(', ');
+        genresEl.textContent = genres || '—';
+        genresEl.title = genresEl.textContent;
+      }
+      if (details.seasons) {
+        const seasons = details.seasons.filter(s=>s.season_number>0);
+        const maxTempReal = seasons.length || computedMaxTemp;
+        const map = {};
+        seasons.forEach(s=>{ map[s.season_number]= s.episode_count || 0; });
+        seasonLimits = { maxTemp: maxTempReal, maxEpByTemp: map };
+        if (seasonMaxEl) seasonMaxEl.textContent = String(maxTempReal).padStart(2,'0');
+        updateEpMax();
+        if (curTemp > maxTempReal) { curTemp = maxTempReal; temporadaDisplay.textContent = String(curTemp).padStart(2,'0'); }
+        syncEpisodePanel();
+      }
+      // — Backdrops múltiplos com setas (sem repetidas via dedupe)
+      try {
+        const imgData = await callTMDB(`tv/${item.tmdb_id}/images`, {}, null).catch(()=>null);
+        const rawBackdrops = imgData?.backdrops || [];
+        const filtered = filterImagesByLanguage(rawBackdrops);
+        const deduped = dedupeImages(filtered);
+        const sorted = sortImagesByWidth(deduped).map(i => i.file_path).filter(Boolean);
+        // inclui backdrop principal se não estiver na lista
+        if (details.backdrop_path && !sorted.includes(details.backdrop_path)) sorted.unshift(details.backdrop_path);
+        if (sorted.length > 0) {
+          backdropImages = sorted;
+          currentBackdropIndex = 0;
+          showBackdropAt(0);
+        } else if (details.backdrop_path) {
+          backdropImages = [details.backdrop_path];
+          showBackdropAt(0);
+        } else if (details.poster_path) {
+          backdropImages = [details.poster_path];
+          showBackdropAt(0);
+        }
+      } catch {
+        const backdrop = container.querySelector('#titleBackdrop');
+        const backdropPh = container.querySelector('#titleBackdropPlaceholder');
+        if (backdrop && details.backdrop_path) {
+          backdropImages = [details.backdrop_path];
+          showBackdropAt(0);
+        } else if (backdrop && details.poster_path) {
+          backdropImages = [details.poster_path];
+          showBackdropAt(0);
+        }
+      }
+      const posterCard = container.querySelector('#titlePosterImgCard');
+      const posterPh = container.querySelector('#titlePosterPlaceholder');
+      if (posterCard && details.poster_path) {
+        posterCard.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
+        posterCard.style.display = 'block';
+        if (posterPh) posterPh.style.display = 'none';
+      }
       const logoWrap = container.querySelector('#titleLogoWrap');
       const logoImg = container.querySelector('#titleLogoImg');
-      const logo = await fetchTitleLogo(item.tmdb_id, 'tv').catch(()=>null);
-      if (logo && logoImg && logoWrap) { logoImg.src = logo; logoWrap.style.display = 'flex'; }
-      // Limites
-      const seasons = details.seasons || [];
-      const maxTemp = seasons.filter(s=>s.season_number>0).length || 1;
-      const maxEpByTemp = {};
-      seasons.forEach(s=>{ if(s.season_number>0) maxEpByTemp[s.season_number]=s.episode_count||0; });
-      seasonLimits = { maxTemp, maxEpByTemp };
-      if (titleSeasonMax) titleSeasonMax.textContent = String(maxTemp).padStart(2,'0');
-      updateEpDisplay();
-    } catch { updateEpDisplay(); }
+      const titleName = container.querySelector('#titleName');
+      const titleOriginalName = container.querySelector('#titleOriginalName');
+      const originalName = details.original_name || details.original_title || '';
+      if (titleOriginalName) {
+        if (originalName && originalName !== item.nome) { titleOriginalName.textContent = originalName; titleOriginalName.style.display = 'block'; }
+        else titleOriginalName.style.display = 'none';
+      }
+      // Lançamento / Encerramento — só ano no bloco superior
+      const titleDates = container.querySelector('#titleDates');
+      const titleStartDate = container.querySelector('#titleStartDate');
+      const titleEndDate = container.querySelector('#titleEndDate');
+      const titleStatusLabel = container.querySelector('#titleStatusLabel');
+      if (titleDates && titleStartDate && titleEndDate) {
+        const startYear = (details.first_air_date || details.release_date || '').slice(0,4) || '—';
+        let endYear = '—';
+        let statusText = details.status || '—';
+        const statusMap = { 'Returning Series':'Em exibição', 'Ended':'Finalizada', 'Canceled':'Cancelada', 'In Production':'Em produção', 'Planned':'Planejada' };
+        statusText = statusMap[statusText] || statusText;
+        if (details.status === 'Ended' && details.last_air_date) endYear = details.last_air_date.slice(0,4);
+        else if (details.status === 'Returning Series') endYear = '—';
+        else if (details.last_air_date) endYear = details.last_air_date.slice(0,4);
+        titleStartDate.textContent = startYear;
+        titleEndDate.textContent = endYear;
+        if (titleStatusLabel) titleStatusLabel.textContent = statusText;
+        titleDates.style.display = 'flex';
+      }
+      const wikiLink2 = container.querySelector('#tpWikiLink');
+      const imdbLink2 = container.querySelector('#tpImdbLink');
+      const ytLink2 = container.querySelector('#tpYoutubeLink');
+      if (wikiLink2) { wikiLink2.href = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g,'_')}`; wikiLink2.style.display = 'inline-flex'; }
+      if (imdbLink2) {
+        let imdbHref = `https://www.imdb.com/find?q=${encodeURIComponent(item.nome)}`;
+        if (details.imdb_id) imdbHref = `https://www.imdb.com/title/${details.imdb_id}/`;
+        imdbLink2.href = imdbHref; imdbLink2.style.display = 'inline-flex';
+      }
+      if (ytLink2) { ytLink2.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`; ytLink2.style.display = 'inline-flex'; }
+      try {
+        const logo = await fetchTitleLogo(item.tmdb_id, 'tv').catch(()=>null);
+        if (logo && logoImg && logoWrap) {
+          logoImg.src = logo; logoWrap.style.display = 'flex';
+          if (titleName) titleName.style.display = 'none';
+          if (titleOriginalName && originalName && originalName !== item.nome) {
+            const fallback = container.querySelector('#titleNameFallback');
+            if (fallback && !fallback.contains(titleOriginalName)) fallback.appendChild(titleOriginalName);
+          }
+        } else { if (logoWrap) logoWrap.style.display = 'none'; if (titleName) titleName.style.display = 'block'; }
+      } catch {}
+    } catch {}
   })();
 }
 
+// ================================================================
+// 5) API PÚBLICA
+// ================================================================
 export function showTitlePage(item, container) {
   container.style.display = 'block';
   renderTitlePage(item, container);
@@ -204,4 +657,5 @@ export function showTitlePage(item, container) {
 export function hideTitlePage(container) {
   container.style.display = 'none';
   container.innerHTML = '';
+  currentItem = null;
 }

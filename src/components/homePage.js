@@ -216,7 +216,7 @@ export function renderHomeStats(container, items) {
 }
 
 /**
- * Renderiza Continuar Assistindo (carrossel horizontal máx. 12)
+ * Renderiza Continuar Assistindo (carrossel horizontal máx. 20)
  */
 export function renderHomeContinue(container, items, onCardClick, onOpenAddModal) {
   const grid = container.querySelector('#homeContinueGrid');
@@ -226,7 +226,7 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
 
   const pool = items.filter((i) => i.status === 'assistindo');
   pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
-  const limited = pool.slice(0, 12);
+  const limited = pool.slice(0, 20);
 
   if (limited.length === 0) {
     grid.innerHTML = '';

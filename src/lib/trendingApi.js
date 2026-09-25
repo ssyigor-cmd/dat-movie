@@ -90,11 +90,11 @@ export function formatAirDate(dateStr) {
  */
 export function getFullWidthCount() {
   const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  if (w < 640) return 6;
-  if (w < 1024) return 8;
-  if (w < 1440) return 10;
-  if (w < 1920) return 12;
-  return 14;
+  if (w < 640) return 10;
+  if (w < 1024) return 14;
+  if (w < 1440) return 18;
+  if (w < 1920) return 20;
+  return 20;
 }
 
 export async function getTrendingToSuggest(catalogItems, limit = null) {
@@ -139,7 +139,7 @@ export async function getUserTopGenres(catalogItems, topN = 4) {
   const candidates = catalogItems.filter(i => i.status === 'assistindo' && i.tmdb_id);
   if (candidates.length === 0) return CATEGORIES.slice(0, topN);
   const counts = new Map();
-  const toFetch = candidates.slice(0, 12);
+  const toFetch = candidates.slice(0, 20);
   const results = await Promise.allSettled(toFetch.map(async (item) => {
     try {
       const details = await cachedCallTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR');
@@ -190,7 +190,7 @@ export async function getAffinityRecommendations(selectedTmdbIds, catalogItems, 
     try {
       let data;
       try { data = await cachedCallTMDB(`tv/${tmdbId}/recommendations`, { page: 1 }, 'pt-BR'); } catch { data = await cachedCallTMDB(`tv/${tmdbId}/similar`, { page: 1 }, 'pt-BR'); }
-      const res = (data.results || []).slice(0, 12);
+      const res = (data.results || []).slice(0, 20);
       for (const r of res) allRecs.push({ raw: r, sourceId: tmdbId });
     } catch {}
   }
