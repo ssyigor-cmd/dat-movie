@@ -590,9 +590,9 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 /**
  * Geometria do cilindro.
  *
- * `step` menor que a largura do card é o que produz a sobreposição: 210 de
- * largura com 130 de passo deixa 80px do card vizinho aparecendo atrás, e é
- * essa fatia que dá a leitura de "pilha girando" em vez de "cards lado a lado".
+ * `step` menor que a largura do card é o que produz a sobreposição: 170 de
+ * largura com 63 de passo deixa 107px do vizinho escondidos atrás, e é essa
+ * fatia que dá a leitura de "pilha girando" em vez de "cards lado a lado".
  *
  * `depth` e `scale` trabalham juntos de propósito: só o `rotateY` gira o card
  * sem afastá-lo, e o conjunto parece um leque de papel em vez de um disco. O
@@ -600,10 +600,13 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
  * altura aparente que ele causa.
  */
 const COVER = {
-  // 210 de largura com 78 de passo: 132px do vizinho ficam escondidos, 63% do
-  // card. Essa é a medida que faz a pilha ler como disco -- com menos
-  // sobreposição os três cards ficam lado a lado e a rotação vira só "tortos".
-  step: 78,
+  // 170 de largura com 63 de passo: 107px do vizinho ficam escondidos, 63%
+  // do card -- a MESMA proporcao de quando o card tinha 210 e passo 78. O passo
+  // acompanha a largura de proposito: com o card menor e o passo antigo (78),
+  // a sobreposicao cairia para 26% e o cilindro voltaria a parecer cards
+  // encostados, que e o defeito que o passo curto veio resolver.
+  // Largura do card: 170px, em style.css (.home-pick-card).
+  step: 63,
   // 32 graus. A 25 a compressão horizontal ficava discreta demais e o conjunto
   // não parecia girando em torno de um eixo.
   angle: 32,

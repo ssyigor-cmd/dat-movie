@@ -3549,8 +3549,8 @@ a:focus-visible,
   position: absolute;
   top: 0;
   left: 50%;
-  width: 210px;
-  margin-left: -105px;
+  width: 170px;
+  margin-left: -85px;
   transform-style: preserve-3d;
   transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.45s ease;
   will-change: transform;
@@ -3558,11 +3558,11 @@ a:focus-visible,
 .home-pick-card .home-card-body { gap: 6px; }
 .home-pick-reason {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   line-height: 1.4;
   color: var(--text-primary);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -3584,7 +3584,7 @@ a:focus-visible,
     margin-left: 0;
     transform: none !important;
     opacity: 1 !important;
-    flex: 0 0 210px;
+    flex: 0 0 170px;
   }
 }
 .home-card-epname {
