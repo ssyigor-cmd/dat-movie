@@ -209,11 +209,26 @@ export function renderHomeBase(container, context) {
       </div>
     </section>
 
-    <!-- Descoberta por afinidade e Roleta logo abaixo de "Continuar Assistindo": as duas
-         respondem "o que eu assisto agora?". Antes ficavam quase no fim da tela,
-         soterradas entre os carrosséis. -->
+<section class="home-section home-section--panel" id="homeRouletteSection" aria-label="Roleta">
+      <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
+      <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
+        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear título novo</button>
+      </div>
+      <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
+      <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
+    </section>
 
-    <section class="home-section home-section--panel" id="homeAffinitySection" aria-label="Descoberta por afinidade">
+
+    
+
+    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
+      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
+      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
+      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+    </section>
+
+<section class="home-section home-section--panel" id="homeAffinitySection" aria-label="Descoberta por afinidade">
       <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
       <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
       <div class="home-affinity-search">
@@ -230,22 +245,6 @@ export function renderHomeBase(container, context) {
       <div class="home-error" id="homeAffinityError" style="display:none;"></div>
     </section>
 
-
-    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
-      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
-      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
-      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
-    </section>
-
-<section class="home-section home-section--panel" id="homeRouletteSection" aria-label="Roleta">
-      <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
-      <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
-        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear título novo</button>
-      </div>
-      <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
-      <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
-    </section>
 
     
     <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
