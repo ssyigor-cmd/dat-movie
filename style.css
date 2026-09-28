@@ -3677,7 +3677,10 @@ a:focus-visible,
    diminuem juntas e o vao entre elas nao abre. */
 .tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
 .tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
-.tp-side-card--actions { margin-top:auto; }
+/* Antes este bloco tinha `margin-top:auto`, que empurrava "Ações" para o
+   fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
+   três cartões em gap igual, ele não é mais o elemento mais alto da linha
+   (a coluna de conteúdo é), então não precisa se auto-alinhar. */
 .tp-side-card-head { display:flex; align-items:center; gap:6px; font-family:var(--font-body); font-size:0.68rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:2px; }
 .tp-side-card-head i { font-size:0.7rem; }
 .tp-side-hud .tp-status-col .dm-status-btn { width:100%; justify-content:center; }
@@ -3756,8 +3759,12 @@ a:focus-visible,
 /* A sidebar é o elemento mais alto da linha e, sozinha, criava a faixa vazia
    embaixo do conteúdo. Encolhida, ela para de impor a altura da linha: agora
    quem manda é a coluna de conteúdo, e as bases ficam alinhadas. */
+/* Todos os vãos do menu lateral em 8px: entre os três cartões e entre os
+   botões de cada um. Antes Status usava 8px e Coleções/Ações 5px, o que
+   deixava os blocos desiguais. */
 .tp-side-hud { gap: 8px; }
-.title-page .tp-side-card { padding: 6px 8px; gap: 5px; }
+.title-page .tp-side-card { padding: 6px 8px; gap: 8px; }
+.title-page .tp-side-card .tp-status-col { gap: 8px; }
 /* Painel de episódio mais baixo, para a coluna direita terminar na mesma linha
    do card vertical. */
 .title-page .tp-season-block,
