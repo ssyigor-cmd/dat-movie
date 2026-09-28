@@ -73,7 +73,7 @@
 ## 📋 Pré-requisitos
 
 Para rodar a aplicação localmente, certifique-se de possuir:
-- **Node.js** (versão 18 ou superior)
+- **Node.js 22 ou superior** — `@supabase/supabase-js` v2.111 depende de `WebSocket` global no `createClient`, que não existe no Node 20. Abaixo de 22 a suíte de testes morre já no import. Declarado em `engines` no `package.json`.
 - Gerenciador de pacotes **npm**
 - Uma conta ativa na plataforma **Supabase** (para hospedagem das tabelas e chaves de acesso)
 
