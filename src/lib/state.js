@@ -21,8 +21,8 @@ export const state = {
   selectedAno: null,
   selectedName: '',
   existingItemForSearch: null,
-  gridDensity: parseInt(localStorage.getItem('gridDensity')) || 8,
-  groupingActive: localStorage.getItem('groupingActive') === 'true' || false,
+  gridDensity: parseInt(localStorage.getItem('state.gridDensity') ?? localStorage.getItem('gridDensity')) || 8,
+  groupingActive: (localStorage.getItem('state.groupingActive') ?? localStorage.getItem('groupingActive')) === 'true',
   addSeasonLimits: {},
   addEpisodeInfoRequestId: 0,
 };
