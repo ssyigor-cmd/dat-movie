@@ -3518,12 +3518,42 @@ a:focus-visible,
 
 /* ==========================================================================
    "Títulos para você" — indicações ancoradas em quem fez o que o usuário já
-   curtiu. O card é mais largo que o comum porque a frase precisa caber em duas
+   curtiu. O card é mais largo que o comum porque a frase precisa caber em três
    linhas: ela é a informação, o pôster é só a moldura.
+
+   A lista é curta (1 a 3 cards) e por isso não é um carrossel de rolagem: é um
+   cilindro. Os cards ficam sobrepostos em curva, e o que está no centro é o
+   único em tamanho cheio. Ver `mountPickCoverflow` em homePage.js, que
+   posiciona cada card pelo desvio em relação ao índice ativo.
    ========================================================================== */
+.home-picks-coverflow {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  /* Sem isso o rotateY achata os cards laterais em vez de dar a volta. */
+  /* Fechada de propósito: a 1200px a curva quase não aparecia. */
+  perspective: 900px;
+  perspective-origin: 50% 45%;
+  padding: 6px 0 10px;
+}
+/* Fade de entrada. Só opacity: mexer em transform aqui brigaria com a
+   matriz 3D que o coverflow escreve inline em cada card. */
+.home-picks-coverflow--in { animation: picksFade 0.4s ease both; }
+@keyframes picksFade { from { opacity: 0; } to { opacity: 1; } }
 .home-pick-card {
-  flex: 0 0 210px;
+  /* Fora do fluxo: quem centraliza é o índice ativo, não o grupo. No flex, o
+     grupo inteiro ficaria centralizado e o card da frente nunca cairia no meio
+     quando a quantidade é ímpar. */
+  position: absolute;
+  top: 0;
+  left: 50%;
   width: 210px;
+  margin-left: -105px;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.45s ease;
+  will-change: transform;
 }
 .home-pick-card .home-card-body { gap: 6px; }
 .home-pick-reason {
@@ -3535,6 +3565,27 @@ a:focus-visible,
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Tela estreita: três cards em curva não cabem, e um card cortado na metade é
+   pior que um carrossel de rolagem. Aqui vira lista com scroll, que é o
+   comportamento que o resto da home já usa. */
+@media (max-width: 640px) {
+  .home-picks-coverflow {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 12px;
+    scrollbar-width: thin;
+    padding-bottom: 8px;
+  }
+  .home-pick-card {
+    position: static;
+    margin-left: 0;
+    transform: none !important;
+    opacity: 1 !important;
+    flex: 0 0 210px;
+  }
 }
 .home-card-epname {
   font-size: 0.62rem;

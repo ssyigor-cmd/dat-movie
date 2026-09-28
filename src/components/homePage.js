@@ -215,7 +215,7 @@ export function renderHomeBase(container, context) {
         <h2 class="home-section-title"><i class="fas fa-user-friends"></i> Títulos para você</h2>
         <button type="button" id="homePicksRefresh" class="home-refresh-btn" title="Atualizar indicações" aria-label="Atualizar indicações"><i class="fas fa-rotate"></i></button>
       </div>
-      <div class="home-h-scroll" id="homePicksGrid"></div>
+      <div class="home-picks-coverflow" id="homePicksGrid"></div>
       <div class="home-skeleton" id="homePicksSkeleton">${skeletonHTML()}</div>
     </section>
 
@@ -588,6 +588,118 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 }
 
 /**
+ * Geometria do cilindro.
+ *
+ * `step` menor que a largura do card é o que produz a sobreposição: 210 de
+ * largura com 130 de passo deixa 80px do card vizinho aparecendo atrás, e é
+ * essa fatia que dá a leitura de "pilha girando" em vez de "cards lado a lado".
+ *
+ * `depth` e `scale` trabalham juntos de propósito: só o `rotateY` gira o card
+ * sem afastá-lo, e o conjunto parece um leque de papel em vez de um disco. O
+ * `translateZ` é quem cria a profundidade, e o `scale` compensa a perda de
+ * altura aparente que ele causa.
+ */
+const COVER = {
+  // 210 de largura com 78 de passo: 132px do vizinho ficam escondidos, 63% do
+  // card. Essa é a medida que faz a pilha ler como disco -- com menos
+  // sobreposição os três cards ficam lado a lado e a rotação vira só "tortos".
+  step: 78,
+  // 32 graus. A 25 a compressão horizontal ficava discreta demais e o conjunto
+  // não parecia girando em torno de um eixo.
+  angle: 32,
+  depth: 150,
+  // O scale compensa a perda de altura aparente do translateZ, e vem junto
+  // porque separados o card do fundo fica pequeno sem parecer distante.
+  scaleStep: 0.14,
+  // O escurecimento é o que vende a profundidade mais que a geometria: sem ele
+  // o card do fundo tem quase o mesmo peso visual do da frente, e o conjunto
+  // fica plano mesmo com rotateY correto.
+  fadeStep: 0.3,
+  fadeMax: 0.6
+};
+
+/**
+ * Monta o cilindro e devolve o controlador.
+ *
+ * O card no centro é o único em tamanho cheio; os outros entram na curva,
+ * menores e mais apagados. Clicar num card lateral o traz para o centro;
+ * clicar no que já está no centro abre o título. Sem scroll — são 1 a 3 cards,
+ * e rolagem aqui seria um carrossel disfarçado.
+ *
+ * @param {Element} container - Elemento com os cards já dentro.
+ * @param {Array} picks - Cards, na mesma ordem do DOM.
+ * @param {Function} onOpen - Abre o título do card.
+ * @param {Function} [onRotate] - Notifica o índice ativo.
+ * @returns {Object} `{ rotate, active, destroy }`.
+ */
+export function mountPickCoverflow(container, picks, onOpen, onRotate) {
+  const cards = [...container.querySelectorAll('.home-pick-card')];
+  if (cards.length === 0) return { rotate() {}, active: 0, destroy() {} };
+
+  // A altura do contentor é a do card mais alto: os cards são absolutos, então
+  // sem isso o contentor colapsa e a curva aparece cortada.
+  const maisAlto = cards.reduce((max, c) => Math.max(max, c.offsetHeight), 0);
+  if (maisAlto > 0) container.style.height = maisAlto + 'px';
+
+  // O ativo precisa poder ficar fora do meio. Com 2 cards só existe uma
+  // posição central de verdade, e fixar o ativo no índice 1 deixava o card 0
+  // sozinho à esquerda, com o grupo inteiro descentrado. Aqui o ativo ocupa o
+  // meio e o resto se distribui em volta: com 3 cards o primeiro plano inicial
+  // é o do meio; com 2, o segundo; com 1, o único.
+  const centro = (cards.length - 1) / 2;
+  // floor e nao round: Math.round(0.5) sobe para 1, que e justamente o caso
+  // quebrado que esta mudanca queria resolver.
+  let active = Math.floor(centro);
+
+  function paint() {
+    cards.forEach((card, i) => {
+      const d = i - active;
+      const dist = Math.abs(d);
+      card.style.transform = [
+        'translateX(' + d * COVER.step + 'px)',
+        'rotateY(' + (-d * COVER.angle) + 'deg)',
+        'translateZ(' + (-dist * COVER.depth) + 'px)',
+        'scale(' + Math.max(0.6, 1 - dist * COVER.scaleStep) + ')'
+      ].join(' ');
+      card.style.opacity = String(Math.max(1 - COVER.fadeMax, 1 - dist * COVER.fadeStep));
+      card.style.zIndex = String(50 - dist);
+      // O lateral fica sem tab-stop: ele existe para ser girado, e o teclado
+      // chega nele pelas setas a partir do card do centro.
+      card.tabIndex = d === 0 ? 0 : -1;
+      card.setAttribute('aria-current', d === 0 ? 'true' : 'false');
+    });
+    if (onRotate) onRotate(active);
+  }
+
+  function rotate(index) {
+    const next = Math.max(0, Math.min(cards.length - 1, index));
+    if (next === active) return;
+    active = next;
+    paint();
+  }
+
+  cards.forEach((card, i) => {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (i === active) { if (onOpen) onOpen(picks[i]); }
+      else rotate(i);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); rotate(active + 1); cards[active].focus(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); rotate(active - 1); cards[active].focus(); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (onOpen) onOpen(picks[i]); }
+    });
+  });
+
+  paint();
+  return {
+    rotate,
+    get active() { return active; },
+    destroy() { cards.forEach(c => { c.style.transform = ''; c.style.zIndex = ''; }); }
+  };
+}
+
+/**
  * Card de indicação: a mesma anatomia do card da home, mais a frase que
  * justifica a indicação.
  *
@@ -596,7 +708,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
  *
  * Havia aqui uma miniatura com o rosto do criador, para ligar a frase a uma
  * pessoa. Saiu a pedido do usuário: 22px não chegam a dizer nada, e o nome já
- * está na frase. SoBRAVA o furo quando o TMDb não tem foto do criador.
+ * está na frase. Sobrava o furo quando o TMDb não tem foto do criador.
  * @param {Object} pick - Item devolvido por `getFriendPicks`.
  * @param {Function} onClick - Callback de abertura.
  * @returns {HTMLElement} Card.
@@ -606,7 +718,7 @@ function createPickCard(pick, onClick) {
   card.className = 'home-card home-pick-card';
   card.setAttribute('tabindex', '0');
   card.setAttribute('role', 'button');
-  card.setAttribute('aria-label', pick.title);
+  card.setAttribute('aria-label', pick.title + '. ' + pick.reason);
   const title = escapeHTML(pick.title);
   card.innerHTML = `
     <div class="home-card-img">
@@ -636,6 +748,9 @@ function createPickCard(pick, onClick) {
  * @param {Function} onAddFromTrending - Callback dos cards.
  * @returns {Promise<void>}
  */
+/** Controlador do cilindro da última montagem, para o botão de atualizar girar. */
+let refreshPicksController = null;
+
 export async function loadAndRenderFriendPicks(container, items, onAddFromTrending) {
   const section = container.querySelector('#homePicksSection');
   const grid = container.querySelector('#homePicksGrid');
@@ -643,6 +758,11 @@ export async function loadAndRenderFriendPicks(container, items, onAddFromTrendi
   if (!section || !grid || !skel) return;
 
   setupSectionRefresh(section, () => {
+    // Gira antes de recarregar, e não depois: os cards laterais são alcançáveis
+    // por clique, mas o botão é o caminho de teclado que não exige mira. Com a
+    // lista inteira visível ele também é o que troca a âncora, então um clique
+    // faria as duas coisas — e aí o usuário nunca veria o card que girou.
+    if (refreshPicksController) refreshPicksController.rotate(0);
     bumpSeed('picks');
     loadAndRenderFriendPicks(container, items, onAddFromTrending);
   }, 'Atualizar indicações');
@@ -660,10 +780,27 @@ export async function loadAndRenderFriendPicks(container, items, onAddFromTrendi
     }
     grid.style.display = '';
     grid.innerHTML = '';
+    // O card nasce sem handler de clique: quem decide abrir ou girar é o
+    // cilindro, e ele depende de saber qual card está no centro.
     picks.forEach((pick) => {
-      grid.appendChild(createPickCard(pick, () => onAddFromTrending && onAddFromTrending(pick)));
+      grid.appendChild(createPickCard(pick, null));
     });
-    animateCards(grid);
+
+    const cover = mountPickCoverflow(
+      grid,
+      picks,
+      (pick) => onAddFromTrending && onAddFromTrending(pick)
+    );
+    // O botão de atualizar trocava a lista; agora ele também gira, para o
+    // usuário alcançar os cards fora do centro sem precisar mirar neles.
+    refreshPicksController = cover;
+
+    // Sem `animateCards` aqui, de propósito. Ele anima `opacity` e `translateY`,
+    // e o anime.js escreve no `transform` inline do elemento -- numa lista comum
+    // isso é inofensivo, mas no cilindro sobrescreveria a matriz 3D e o card
+    // voltaria a ser um retângulo reto. O próprio coverflow já anima com
+    // transition, e a entrada é o fade do contentor, abaixo.
+    grid.classList.add('home-picks-coverflow--in');
   } catch (e) {
     skel.style.display = 'none';
     section.style.display = 'none';
