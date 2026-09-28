@@ -21,7 +21,48 @@ describe('escapeHTML', () => {
   });
 });
 
+describe('filterItems — busca tolerante a erro', () => {
+  const catalogo = [
+    { nome: 'One Piece', status: 'assistindo' },
+    { nome: 'Ação', status: 'assistindo' },
+    { nome: 'The Office', status: 'assistindo' },
+    { nome: 'Breaking Bad', status: 'assistindo' },
+    { nome: 'Friends', status: 'assistindo' },
+  ];
+  const buscar = (search) => filterItems(catalogo, { currentTab: 'all', search })
+    .map(i => i.nome);
+
+  it('acha por substring normal', () => {
+    expect(buscar('one')).toContain('One Piece');
+  });
+  it('ignora acento', () => {
+    expect(buscar('acao')).toContain('Ação');
+  });
+  it('tolera erro de digitação', () => {
+    expect(buscar('one peice')).toContain('One Piece');
+    expect(buscar('braking bad')).toContain('Breaking Bad');
+  });
+  it('acha em qualquer ordem de palavras', () => {
+    expect(buscar('piece one')).toContain('One Piece');
+  });
+  it('não traz título que não tem relação', () => {
+    expect(buscar('one peice')).not.toContain('Friends');
+  });
+  it('coloca o título exato antes do que só contém a busca', () => {
+    const itens = [
+      { nome: 'One Piece: Fishman Island', status: 'assistindo' },
+      { nome: 'One Piece', status: 'assistindo' },
+    ];
+    const out = filterItems(itens, { currentTab: 'all', search: 'one piece' }).map(i => i.nome);
+    expect(out[0]).toBe('One Piece');
+  });
+  it('busca vazia devolve tudo, sem fuzzy acidental', () => {
+    expect(buscar('').length).toBe(5);
+  });
+});
+
 describe('formatDateBR', () => {
+
   it('formata data ISO AAAA-MM-DD para DD/MM/AAAA', () => {
     expect(formatDateBR('2024-10-25')).toBe('25/10/2024');
   });

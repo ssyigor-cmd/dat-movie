@@ -3,6 +3,8 @@
  * ordenação, filtragem e sanitização para o catálogo Dat-Movie.
  */
 
+import { matchScore } from './fuzzySearch.js';
+
 export const TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D'];
 
 export const TIER_COLORS = {
@@ -113,10 +115,13 @@ export function filterItems(items, { currentTab = 'all', search = '', statusFilt
     baseItems = baseItems.filter(item => item.tipo === currentTab);
   }
 
-  // Filtro por busca textual
-  const query = search.toLowerCase().trim();
-  if (query) {
-    baseItems = baseItems.filter(item => item.nome && item.nome.toLowerCase().includes(query));
+  // Filtro por busca textual (tolerante a acento, ordem e erro de digitação)
+  if (search) {
+    baseItems = baseItems
+      .map((item, i) => ({ item, i, score: matchScore(search, item.nome) }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score || a.i - b.i)
+      .map(({ item }) => item);
   }
 
   // Filtro por status

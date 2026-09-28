@@ -18,6 +18,7 @@ import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
+import { buildFallbackQueries } from './lib/fuzzySearch.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
 import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
@@ -2328,9 +2329,21 @@ if (pesquisaInput) {
     pesquisaTimeout = setTimeout(async () => {
       try {
         const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
+        let filteredResults = sortSearchResults(data.results || [], q);
+
+        // A busca do TMDb tem índice próprio e não tolera muito erro de
+        // digitação. Se vier vazio, tenta grafias alternativas (sem acento,
+        // sem artigo, só a palavra mais longa) antes de desistir.
+        if (filteredResults.length === 0) {
+          for (const alt of buildFallbackQueries(q)) {
+            const retry = await callTMDB('search/tv', { query: alt }, 'pt-BR');
+            const achou = sortSearchResults(retry.results || [], q);
+            if (achou.length > 0) { filteredResults = achou; break; }
+          }
+        }
+
         pesquisaLoading.style.display = 'none';
 
-        const filteredResults = sortSearchResults(data.results || [], q);
         if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
