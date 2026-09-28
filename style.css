@@ -530,15 +530,17 @@ img { max-width: 100%; height: auto; display: block; }
    A altura é limitada por três tetos. O teto em `cqw` (27%) é o mais
    importante: ele dimensiona pelo PIOR CASO, que é as DUAS imagens em
    16/9 (soma 3,556) e não o par misto 2:3 + 16/9 (soma 2,444).
-   Dimensionar pelo par misto estourava a largura quando o main.js coloca
-   um backdrop no slot do card — e aí a imagem era cortada. */
-.modal.modal-detail {
-  container-type: inline-size;
-}
+   Dimensionar pelo par misto estourava a largura e a imagem era cortada.
+
+   O `container-type` fica no PRÓPRIO wrap, não no modal: o wrap tem 94%
+   (regra por id em #addPosterWrap/#detailPosterWrap) e é a largura
+   realmente disponível. Medir pelo modal dava folga demais — o flex
+   encolhia as duas imagens e o `contain` abria barra vertical em volta. */
 .modal.modal-detail .dm-poster-wrap {
   /* 0 1 auto: o bloco ABRAÇA a linha de imagens em vez de esticar e deixar
      sobras ao redor (era a "borda"). O painel de episódios continua preso
      ao fundo pelo margin-top:auto dele. */
+  container-type: inline-size;
   flex: 0 1 auto;
   min-height: 0;
   max-height: 62vh;
