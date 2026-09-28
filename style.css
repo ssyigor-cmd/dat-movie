@@ -521,11 +521,62 @@ img { max-width: 100%; height: auto; display: block; }
   background: rgba(0, 0, 0, 0.75);
 }
 .modal.modal-detail .detail-header { flex-shrink: 0; min-height: clamp(56px, 8vh, 72px); padding: clamp(12px,1.5vh,20px) 0 clamp(6px,1vh,8px); }
-.modal.modal-detail .dm-poster-wrap { flex: 1 1 auto; min-height: 0; max-height: 62vh; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--bg-primary); width: 100%; margin: 0; border-radius: 0; }
-.modal.modal-detail .dm-poster-wrap img { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; object-position: center; border-radius: 0; flex: 0 1 auto; min-height: 0; }
-.modal.modal-detail .dm-poster-dual { gap: 0; width: 100%; height: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; }
-.modal.modal-detail .dm-poster-dual img:first-child { flex: 0 1 auto; max-width: 28%; max-height: 100%; width: auto; height: auto; object-fit: contain; min-height: 0; }
-.modal.modal-detail .dm-poster-dual img:last-child { flex: 0 1 auto; max-width: 68%; max-height: 100%; width: auto; height: auto; object-fit: contain; min-height: 0; }
+/* ── Imagens do modal: proporção natural, sem corte e sem barra ──────
+   São duas imagens de razões diferentes (pôster 2/3, backdrop 16/9).
+   Para ficarem lado a lado sem barra, elas precisam COMPARTILHAR a mesma
+   altura. Antes cada uma tinha a sua e o `align-items: center` centralizava
+   o backdrop no espaço do pôster — daí a faixa vazia ao redor dele.
+
+   A altura é limitada por três tetos. O teto em `cqw` (27%) é o mais
+   importante: ele dimensiona pelo PIOR CASO, que é as DUAS imagens em
+   16/9 (soma 3,556) e não o par misto 2:3 + 16/9 (soma 2,444).
+   Dimensionar pelo par misto estourava a largura quando o main.js coloca
+   um backdrop no slot do card — e aí a imagem era cortada. */
+.modal.modal-detail {
+  container-type: inline-size;
+}
+.modal.modal-detail .dm-poster-wrap {
+  /* 0 1 auto: o bloco ABRAÇA a linha de imagens em vez de esticar e deixar
+     sobras ao redor (era a "borda"). O painel de episódios continua preso
+     ao fundo pelo margin-top:auto dele. */
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 62vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: transparent;
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+.modal.modal-detail .dm-poster-dual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.2cqw, 16px);
+  width: 100%;
+  max-width: 100%;
+  height: min(40vh, 27cqw, 400px);
+  flex-shrink: 0;
+  background: transparent;
+}
+.modal.modal-detail .dm-poster-dual img,
+.modal.modal-detail .dm-poster-dual .dm-poster-card-img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
+  background: transparent;
+  border-radius: 0;
+  flex: 0 1 auto;
+  /* a regra global força 2/3 no card; com `contain` isso barra o backdrop
+     16/9 que o main.js às vezes atribui ao slot do card */
+  aspect-ratio: auto;
+}
 .modal.modal-detail .poster-steppers-row { flex: 0 0 auto; min-height: 0; max-height: 28vh; overflow: hidden; display: flex; align-items: stretch; }
 .modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 4px; }
 .modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 4px; }
@@ -555,6 +606,12 @@ img { max-width: 100%; height: auto; display: block; }
   #detailModal .modal.modal-detail .dm-poster-wrap,
   #modalOverlay .modal.modal-detail .dm-poster-wrap {
     max-height: 38vh;
+  }
+  /* mesmo compartilhamento de altura, com tetos menores para caber na faixa
+     compacta e não empurrar o painel de episódios para fora */
+  #detailModal .modal.modal-detail .dm-poster-dual,
+  #modalOverlay .modal.modal-detail .dm-poster-dual {
+    height: min(34vh, 27cqw, 380px);
   }
 }
 
