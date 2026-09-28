@@ -3673,7 +3673,9 @@ a:focus-visible,
 
 /* — B) Layout + Sidebar Vertical — */
 .tp-layout { display:flex; gap:12px; align-items:stretch; }
-.tp-side-hud { flex:0 0 170px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
+/* -10% na sidebar para acompanhar o card encolhido: as duas colunas
+   diminuem juntas e o vao entre elas nao abre. */
+.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
 .tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 .tp-side-card--actions { margin-top:auto; }
 .tp-side-card-head { display:flex; align-items:center; gap:6px; font-family:var(--font-body); font-size:0.68rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:2px; }
@@ -3684,7 +3686,7 @@ a:focus-visible,
 
 /* — C) Main — */
 .tp-main { display:flex; gap:12px; border:1px solid var(--border); border-radius:18px; padding:12px; background:transparent; align-items:stretch; }
-.tp-poster-col { flex:0 0 380px; max-width:400px; display:flex; flex-direction:column; }
+.tp-poster-col { flex:0 0 342px; max-width:362px; display:flex; flex-direction:column; }
 .tp-content-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .tp-frame { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--bg-secondary); box-shadow:var(--shadow); }
 
