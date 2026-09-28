@@ -104,8 +104,17 @@ const NOISE_ROLES = [
   /stunt|choreograph|casting/i
 ];
 
-/** Prefixo de cache. Sobrevive a `clearTrendingCache`, e deve: crédito não muda. */
-const CREDITS_CACHE_PREFIX = 'credits_';
+/**
+ * Prefixo de cache. Sobrevive a `clearTrendingCache`, e deve: crédito não muda.
+ *
+ * A versão V2 não é vaidade: a V1 guardava a lista já extraída por uma leitura
+ * errada do payload (`job` singular num endpoint que devolve `jobs`), então
+ * gravou `[]` para todo título. Como o valor é a lista final e não o payload
+ * bruto, essa entrada vazia continuaria sendo servida por uma hora inteira
+ * depois da correção — a seção seguiria escondida com o código já certo. Trocar
+ * o prefixo é o que invalida isso na hora. Mesmo motivo do `logoV2_` do api.js.
+ */
+const CREDITS_CACHE_PREFIX = 'creditsV2_';
 
 /**
  * Classifica uma função do `aggregate_credits`.

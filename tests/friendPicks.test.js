@@ -475,6 +475,31 @@ describe('getFriendPicks', () => {
     expect(creditos).toBeLessThanOrEqual(CREDIT_BUDGET);
   });
 
+  it('reaproveita os créditos do cache em vez de buscar de novo', async () => {
+    // A chave é `creditsV2_{id}` e guarda a lista já extraída, não o payload.
+    // Por isso o prefixo teve que mudar de versão quando a extração mudou: uma
+    // entrada antiga errada continuaria servida até expirar, com o código já
+    // certo. Este teste é o que garante que a segunda visita não paga a busca.
+    let creditos = 0;
+    const fake = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') { creditos += 1; return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]); }
+      if (endpoint === 'tv/900/aggregate_credits') { creditos += 1; return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]); }
+      if (endpoint === 'tv/100/recommendations') return { results: [raw()] };
+      return { results: [] };
+    };
+    const cat = [item()];
+    // As duas chamadas dentro de um único `withMock`: ele limpa o cache ao
+    // entrar e ao sair, e limpar entre elas tornaria a medição sem sentido.
+    const resultado = await withMock(fake, async (mod) => {
+      await mod.getFriendPicks(cat, { limit: 1 });
+      const primeira = creditos;
+      await mod.getFriendPicks(cat, { limit: 1 });
+      return { primeira, segunda: creditos };
+    });
+    expect(resultado.primeira).toBe(2);
+    expect(resultado.segunda).toBe(2);
+  });
+
   it('devolve null com limit 0, sem chamar a API', async () => {
     const fake = async () => { throw new Error('não deveria chamar a API'); };
     expect(await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 0 }))).toBeNull();
