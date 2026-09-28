@@ -247,7 +247,13 @@ export function renderHomeBase(container, context) {
 
 
     
-        <section class="home-section home-section--panel" id="homeYearSection" aria-label="Destaques do ano" style="display:none;">
+        
+<section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
+      <div class="home-h-scroll" id="homeAbandonedGrid"></div>
+    </section>
+
+<section class="home-section home-section--panel" id="homeYearSection" aria-label="Destaques do ano" style="display:none;">
       <h2 class="home-section-title" id="homeYearTitle"><i class="fas fa-calendar-alt"></i> Destaques do ano</h2>
       <div class="home-year-row">
         <div class="toolbar-search" style="flex:0 0 150px;">
@@ -259,11 +265,6 @@ export function renderHomeBase(container, context) {
       <div class="home-h-scroll" id="homeYearGrid"></div>
       <div class="home-skeleton" id="homeYearSkeleton" style="display:none;">${skeletonHTML()}</div>
       <div class="home-error" id="homeYearError" style="display:none;"></div>
-    </section>
-
-<section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
-      <div class="home-h-scroll" id="homeAbandonedGrid"></div>
     </section>
 
     <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
