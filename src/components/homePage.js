@@ -209,14 +209,28 @@ export function renderHomeBase(container, context) {
       </div>
     </section>
 
-    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
-      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
-      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
-      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+    <!-- Descoberta por afinidade e Roleta logo abaixo de "Continuar Assistindo": as duas
+         respondem "o que eu assisto agora?". Antes ficavam quase no fim da tela,
+         soterradas entre os carrosséis. -->
+
+    <section class="home-section" id="homeAffinitySection" aria-label="Descoberta por afinidade">
+      <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
+      <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
+      <div class="home-affinity-search">
+        <div class="toolbar-search" style="flex:1; max-width:420px;">
+          <i class="fas fa-search"></i>
+          <input type="text" id="homeAffinityInput" placeholder="Buscar título para comparar..." aria-label="Buscar título para afinidade" />
+        </div>
+        <div id="homeAffinityDropdown" class="home-affinity-dropdown" style="display:none;"></div>
+      </div>
+      <div id="homeAffinityChips" class="home-affinity-chips"></div>
+      <button id="homeAffinityAnalyze" class="home-empty-btn" disabled><i class="fas fa-microscope"></i> Analisar (0/4)</button>
+      <div class="home-h-scroll" id="homeAffinityGrid" style="display:none; margin-top:12px;"></div>
+      <div class="home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
+      <div class="home-error" id="homeAffinityError" style="display:none;"></div>
     </section>
 
-    <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
+<section class="home-section" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
         <button id="homeRouletteBtn" class="home-empty-btn" style="padding:12px 32px; font-size:1rem;"><i class="fas fa-dice"></i> Sortear título novo</button>
@@ -225,6 +239,14 @@ export function renderHomeBase(container, context) {
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
     </section>
 
+    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
+      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
+      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
+      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+    </section>
+
+    
     <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
       <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
       <div class="home-h-scroll" id="homeAbandonedGrid"></div>
@@ -252,23 +274,6 @@ export function renderHomeBase(container, context) {
     </section>
 
     <section class="home-categories" id="homeCategories" aria-label="Categorias"></section>
-
-    <section class="home-section" id="homeAffinitySection" aria-label="Descoberta por afinidade">
-      <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
-      <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
-      <div class="home-affinity-search">
-        <div class="toolbar-search" style="flex:1; max-width:420px;">
-          <i class="fas fa-search"></i>
-          <input type="text" id="homeAffinityInput" placeholder="Buscar título para comparar..." aria-label="Buscar título para afinidade" />
-        </div>
-        <div id="homeAffinityDropdown" class="home-affinity-dropdown" style="display:none;"></div>
-      </div>
-      <div id="homeAffinityChips" class="home-affinity-chips"></div>
-      <button id="homeAffinityAnalyze" class="home-empty-btn" disabled><i class="fas fa-microscope"></i> Analisar (0/4)</button>
-      <div class="home-h-scroll" id="homeAffinityGrid" style="display:none; margin-top:12px;"></div>
-      <div class="home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
-      <div class="home-error" id="homeAffinityError" style="display:none;"></div>
-    </section>
   `;
 
   // Bind add button
