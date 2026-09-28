@@ -3,9 +3,100 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getNewEpisodes, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem } from '../lib/trendingApi.js';
-import { callTMDB } from '../lib/api.js';
+import { getTrendingToSuggest, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem, pickVariety } from '../lib/trendingApi.js';
+import { callTMDB, resolveItemPosterUrl } from '../lib/api.js';
+import { pickWithMix } from '../lib/recommendScoring.js';
 import { filterNotInCatalog } from '../lib/catalog.js';
+
+/**
+ * Estado de variedade por lista: semente do último clique e ids já exibidos,
+ * para o botão de atualizar trazer títulos diferentes sempre que houver material.
+ */
+const sectionVariety = new Map();
+
+function getVariety(key) {
+  let v = sectionVariety.get(key);
+  if (!v) {
+    v = { seed: 0, seen: new Set() };
+    sectionVariety.set(key, v);
+  }
+  return v;
+}
+
+function bumpSeed(key) {
+  const v = getVariety(key);
+  v.seed += 1;
+  return v.seed;
+}
+
+/**
+ * Escolhe os itens de uma lista evitando os já exibidos e marcando os novos.
+ * @param {string} key - Chave da seção.
+ * @param {Array} pool - Candidatos.
+ * @param {number} count - Quantidade exibida.
+ * @returns {Array} Itens escolhidos.
+ */
+function pickForSection(key, pool, count) {
+  const v = getVariety(key);
+  return pickVariety(pool, v.seen, count, v.seed);
+}
+
+/**
+ * Escolhe os itens de um carrossel com cotas: a maioria são títulos conhecidos
+ * (mainstream) e só uma parte é descoberta, evitando listas cheias de nicho
+ * aleatório. A semente mantém o resultado determinístico entre renders.
+ * @param {string} key - Chave da seção.
+ * @param {Array} pool - Candidatos.
+ * @param {number} count - Quantidade exibida.
+ * @returns {Array} Itens escolhidos.
+ */
+function pickScoredForSection(key, pool, count) {
+  const v = getVariety(key);
+  return pickWithMix(pool, count, { seed: v.seed, seen: v.seen });
+}
+
+/**
+ * Garante o cabeçalho da seção com o botão discreto de atualizar e o liga uma única vez.
+ * @param {Element} section - Elemento da seção (.home-section).
+ * @param {Function} onRefresh - Callback que recarrega a lista.
+ * @param {string} [label] - Texto do title/aria-label do botão.
+ */
+function setupSectionRefresh(section, onRefresh, label = 'Atualizar lista') {
+  if (!section || typeof onRefresh !== 'function') return;
+  const title = section.querySelector('.home-section-title');
+  if (!title) return;
+  let head = title.parentElement;
+  if (!head.classList.contains('home-section-head')) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'home-section-head';
+    title.replaceWith(wrapper);
+    wrapper.appendChild(title);
+    head = wrapper;
+  }
+  let btn = head.querySelector('.home-refresh-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'home-refresh-btn';
+    btn.innerHTML = '<i class="fas fa-rotate"></i>';
+    head.appendChild(btn);
+  }
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  if (btn.dataset.bound) return;
+  btn.dataset.bound = '1';
+  btn.addEventListener('click', async () => {
+    btn.classList.add('is-loading');
+    btn.disabled = true;
+    try {
+      await onRefresh();
+    } catch (e) {
+      console.warn('Erro ao atualizar lista:', e);
+    }
+    btn.classList.remove('is-loading');
+    btn.disabled = false;
+  });
+}
 
 /**
  * Gera saudação personalizada a partir do usuário
@@ -46,7 +137,7 @@ export function skeletonHTML(count = null) {
 /**
  * Cria card pequeno para Home (120px)
  */
-function createHomeCard({ posterUrl, title, subtitle, badge, onClick, extraHtml = '', actionBtnHtml = '' }) {
+function createHomeCard({ posterUrl, title, subtitle, badge, onClick, extraHtml = '', actionBtnHtml = '', item = null }) {
   const card = document.createElement('div');
   card.className = 'home-card';
   card.setAttribute('tabindex', '0');
@@ -77,6 +168,14 @@ function createHomeCard({ posterUrl, title, subtitle, badge, onClick, extraHtml 
       // Prevent double trigger: action button stops propagation and still triggers onClick via separate handler
       // So we make button handle its own click and stop propagation to card
       btn.addEventListener('click', (e) => { e.stopPropagation(); onClick(e); });
+    }
+  }
+  if (item && item.tmdb_id) {
+    const img = card.querySelector('.home-card-img img');
+    if (img) {
+      resolveItemPosterUrl(item, 'w500')
+        .then(url => { if (url && img.src !== url) img.src = url; })
+        .catch(() => {});
     }
   }
   return card;
@@ -111,7 +210,8 @@ export function renderHomeBase(container, context) {
     </section>
 
     <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Calendário da Semana</h2>
+      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
+      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
       <div id="homeCalendarGrid" class="home-calendar-grid"></div>
       <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
     </section>
@@ -131,16 +231,12 @@ export function renderHomeBase(container, context) {
     </section>
 
     <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
-      <h2 class="home-section-title" id="homeRecommendTitle"><i class="fas fa-heart"></i> Recomendações</h2>
+      <div class="home-section-head">
+        <h2 class="home-section-title" id="homeRecommendTitle"><i class="fas fa-heart"></i> Recomendações</h2>
+        <button type="button" id="homeRecommendRefresh" class="home-refresh-btn" title="Atualizar recomendações" aria-label="Atualizar recomendações"><i class="fas fa-rotate"></i></button>
+      </div>
       <div class="home-h-scroll" id="homeRecommendGrid"></div>
       <div class="home-skeleton" id="homeRecommendSkeleton">${skeletonHTML()}</div>
-    </section>
-
-    <section class="home-section" id="homeNewEpisodesSection" aria-label="Novidades da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-sparkles"></i> Novos Episódios</h2>
-      <div class="home-h-scroll" id="homeNewEpisodesGrid"></div>
-      <div class="home-skeleton" id="homeNewEpisodesSkeleton">${skeletonHTML()}</div>
-      <div class="home-error" id="homeNewEpisodesError" style="display:none;"></div>
     </section>
 
     <section class="home-section" id="homeTrendingSection" aria-label="Em alta" style="display:none;">
@@ -249,7 +345,8 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
       title: item.nome,
       subtitle,
       extraHtml: extra,
-      onClick: () => onCardClick && onCardClick(items.indexOf(item))
+      onClick: () => onCardClick && onCardClick(items.indexOf(item)),
+      item
     });
     grid.appendChild(card);
   });
@@ -263,12 +360,17 @@ export function renderHomeFavorites(container, items, onCardClick) {
   const section = container.querySelector('#homeFavoritesSection');
   const grid = container.querySelector('#homeFavoritesGrid');
   if (!section || !grid) return;
-  const favs = getFavorites(items);
-  if (favs.length === 0) {
+  const all = getFavorites(items);
+  const favs = pickForSection('favorites', all, getFullWidthCount());
+  if (all.length === 0) {
     section.style.display = 'none';
     return;
   }
   section.style.display = '';
+  setupSectionRefresh(section, () => {
+    bumpSeed('favorites');
+    renderHomeFavorites(container, items, onCardClick);
+  }, 'Atualizar favoritos');
   grid.innerHTML = '';
   favs.forEach((item) => {
     const posterUrl = item.imagem || '';
@@ -276,59 +378,12 @@ export function renderHomeFavorites(container, items, onCardClick) {
       posterUrl,
       title: item.nome,
       subtitle: '',
-      onClick: () => onCardClick && onCardClick(items.indexOf(item))
+      onClick: () => onCardClick && onCardClick(items.indexOf(item)),
+      item
     });
     grid.appendChild(card);
   });
   animateCards(grid);
-}
-
-/**
- * Carrega e renderiza Novidades (novos episódios últimos 7 dias) de forma assíncrona
- */
-export async function loadAndRenderNewEpisodes(container, items, onCardClick) {
-  const section = container.querySelector('#homeNewEpisodesSection');
-  const grid = container.querySelector('#homeNewEpisodesGrid');
-  const skel = container.querySelector('#homeNewEpisodesSkeleton');
-  const errEl = container.querySelector('#homeNewEpisodesError');
-  if (!section || !grid || !skel) return;
-
-  // Show skeleton, hide grid
-  section.style.display = '';
-  grid.style.display = 'none';
-  skel.style.display = '';
-  if (errEl) errEl.style.display = 'none';
-
-  try {
-    const novidades = await getNewEpisodes(items, 7, new Date());
-    skel.style.display = 'none';
-    if (!novidades || novidades.length === 0) {
-      section.style.display = 'none';
-      return;
-    }
-    grid.style.display = '';
-    grid.innerHTML = '';
-    novidades.forEach(({ item, episode, airDate }) => {
-      const posterUrl = item.imagem || (episode.still_path ? `https://image.tmdb.org/t/p/w300${episode.still_path}` : '');
-      const seasonEp = `T${episode.season_number} · E${episode.episode_number}`;
-      const dateStr = formatAirDate(airDate);
-      const subtitle = `${seasonEp} · ${dateStr}`;
-      const extra = episode.name ? `<span class="home-card-epname">${escapeHTML(episode.name)}</span>` : '';
-      const card = createHomeCard({
-        posterUrl,
-        title: item.nome,
-        subtitle,
-        extraHtml: extra,
-        onClick: () => onCardClick && onCardClick(items.indexOf(item))
-      });
-      grid.appendChild(card);
-    });
-    animateCards(grid);
-  } catch (e) {
-    skel.style.display = 'none';
-    section.style.display = 'none';
-    console.warn('Erro novidades:', e);
-  }
 }
 
 /**
@@ -341,13 +396,20 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
   const errEl = container.querySelector('#homeTrendingError');
   if (!section || !grid || !skel) return;
 
+  setupSectionRefresh(section, () => {
+    bumpSeed('trending');
+    loadAndRenderTrending(container, items, onAddFromTrending);
+  }, 'Atualizar em alta');
+
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';
   if (errEl) errEl.style.display = 'none';
 
   try {
-    const trending = await getTrendingToSuggest(items);
+    const seed = getVariety('trending').seed;
+    const pool = await getTrendingToSuggest(items, null, { window: seed % 2 === 0 ? 'week' : 'day' });
+    const trending = pickScoredForSection('trending', pool, getFullWidthCount());
     skel.style.display = 'none';
     if (!trending || trending.length === 0) {
       section.style.display = 'none';
@@ -380,20 +442,28 @@ export async function loadAndRenderRecommendations(container, items, onCardClick
   const skel = container.querySelector('#homeRecommendSkeleton');
   const titleEl = container.querySelector('#homeRecommendTitle');
   if (!section || !grid || !skel) return;
+
+  setupSectionRefresh(section, () => {
+    bumpSeed('recommend');
+    loadAndRenderRecommendations(container, items, onCardClick, onAddFromTrending);
+  }, 'Atualizar recomendações');
+
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';
   try {
-    const data = await getRecommendationsForUser(items);
+    const data = await getRecommendationsForUser(items, null, { baseIndex: getVariety('recommend').seed });
+    const pool = data?.pool?.length ? data.pool : (data?.recommendations || []);
+    const chosen = pickScoredForSection('recommend', pool, getFullWidthCount());
     skel.style.display = 'none';
-    if (!data || !data.recommendations || data.recommendations.length === 0) {
+    if (!data || !chosen || chosen.length === 0) {
       section.style.display = 'none';
       return;
     }
     if (titleEl) titleEl.innerHTML = `<i class="fas fa-heart"></i> Se você gostou de "${escapeHTML(data.base.nome)}" vai gostar disso`;
     grid.style.display = '';
     grid.innerHTML = '';
-    data.recommendations.forEach((t) => {
+    chosen.forEach((t) => {
       const subtitle = t.date ? formatAirDate(t.date) : 'Série';
       const card = createHomeCard({
         posterUrl: t.posterUrl,
@@ -410,33 +480,69 @@ export async function loadAndRenderRecommendations(container, items, onCardClick
   }
 }
 
-export async function loadAndRenderCategories(container, items, onAddFromTrending) {
+/**
+ * Ordenação do pool das categorias: sempre por popularidade.
+ *
+ * Antes rodava `CAT_SORTS` alternando `popularity.desc`, `vote_average.desc` e
+ * `first_air_date.desc` a cada refresh para dar variedade. Medido no pool real,
+ * isso foi um erro: o `discover` por nota/data joga na lista muita nota alta com
+ * pouca popularidade, que é justamente o material "nada a ver" que o usuário
+ * reclamou. Drama com `vote_average.desc` devolvia 20 itens aceitos em 160,
+ * contra 126 com `popularity.desc`.
+ *
+ * A variedade agora vem da seleção (`pickWithMix`), que anda pelo ranking de
+ * score preferindo o que ainda não foi exibido. Assim o pool é sempre material
+ * conhecido e a lista ainda muda a cada clique.
+ */
+const CAT_SORT = 'popularity.desc';
+
+/**
+ * Carrega uma única categoria, sem tocar nas demais seções, para que o botão de
+ * atualizar recarregue apenas a lista em que foi clicado.
+ * @param {Element} container - Container da home.
+ * @param {Array} items - Catálogo.
+ * @param {Object} cat - Categoria { id, name, icon }.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @returns {Promise<void>}
+ */
+function renderCategorySection(container, items, cat, onAddFromTrending) {
   const wrap = container.querySelector('#homeCategories');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  let categories = CATEGORIES;
-  try {
-    const userCats = await getUserTopGenres(items, 4);
-    if (Array.isArray(userCats) && userCats.length > 0) categories = userCats;
-  } catch {}
-  for (const cat of categories) {
-    const section = document.createElement('section');
+  if (!wrap) return Promise.resolve();
+  const key = `cat-${cat.id}`;
+  let section = wrap.querySelector(`#homeCatSection-${cat.id}`);
+  if (!section) {
+    section = document.createElement('section');
     section.className = 'home-section';
+    section.id = `homeCatSection-${cat.id}`;
     section.innerHTML = `
       <h2 class="home-section-title"><i class="fas ${cat.icon}"></i> ${escapeHTML(cat.name)}</h2>
       <div class="home-h-scroll" id="cat-${cat.id}"></div>
       <div class="home-skeleton" id="cat-skel-${cat.id}">${skeletonHTML()}</div>
     `;
     wrap.appendChild(section);
-    const grid = section.querySelector(`#cat-${cat.id}`);
-    const skel = section.querySelector(`#cat-skel-${cat.id}`);
+  }
+  const grid = section.querySelector(`#cat-${cat.id}`);
+  const skel = section.querySelector(`#cat-skel-${cat.id}`);
+  if (!grid || !skel) return Promise.resolve();
+
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+
+  return (async () => {
     try {
-      const titles = await getTitlesByGenre(cat.id, items);
+      const pool = await getTitlesByGenre(cat.id, items, null, { sortBy: CAT_SORT });
+      const titles = pickScoredForSection(key, pool, getFullWidthCount());
       skel.style.display = 'none';
       if (!titles || titles.length === 0) {
         section.style.display = 'none';
-        continue;
+        return;
       }
+      setupSectionRefresh(section, () => {
+        bumpSeed(key);
+        renderCategorySection(container, items, cat, onAddFromTrending);
+      }, `Atualizar ${cat.name}`);
+      grid.style.display = '';
       grid.innerHTML = '';
       titles.forEach((t) => {
         const card = createHomeCard({
@@ -452,31 +558,103 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
       skel.style.display = 'none';
       section.style.display = 'none';
     }
+  })();
+}
+
+/**
+ * Monta e carrega as categorias da home. Ver `composeCategoryList`.
+ */
+export async function loadAndRenderCategories(container, items, onAddFromTrending) {
+  const wrap = container.querySelector('#homeCategories');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  // As 6 categorias fixas entram sempre; os gêneros do usuário viram extras.
+  let userCats = null;
+  try {
+    userCats = await getUserTopGenres(items, 4);
+  } catch {}
+  for (const cat of composeCategoryList(userCats)) {
+    await renderCategorySection(container, items, cat, onAddFromTrending);
   }
 }
 
-export async function loadAndRenderCalendar(container, items) {
+/**
+ * Carrega e renderiza o Calend�rio da Semana.
+ *
+ * Esta se��o substituiu "Novos Epis�dios", que era a mesma informa��o em linha
+ * plana: as duas chamavam `getNewEpisodes` com a mesma janela de 7 dias sobre os
+ * mesmos t�tulos `assistindo`. O calend�rio agrupa por data, o que d� o mesmo
+ * conte�do com mais contexto, ent�o a lista plana foi removida. O que ela tinha
+ * de bom foi preservado aqui: bot�o de atualizar, card clic�vel e still do
+ * epis�dio quando o t�tulo n�o tem p�ster.
+ */
+export async function loadAndRenderCalendar(container, items, onCardClick) {
   const section = container.querySelector('#homeCalendarSection');
   const grid = container.querySelector('#homeCalendarGrid');
   const skel = container.querySelector('#homeCalendarSkeleton');
+  const hint = container.querySelector('#homeCalendarHint');
   if (!section || !grid || !skel) return;
+  setupSectionRefresh(section, () => {
+    loadAndRenderCalendar(container, items, onCardClick);
+  }, 'Atualizar calend�rio');
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';
+  if (hint) hint.style.display = 'none';
   try {
     const week = await getCalendarWeek(items);
     skel.style.display = 'none';
     if (!week || week.length === 0) { section.style.display = 'none'; return; }
     grid.style.display = '';
     grid.innerHTML = '';
+    // Sem nada agendado, `getCalendarWeek` devolve o que acabou de exibir. O
+    // rótulo evita que o usuário leia "Calendário da Semana" e ache que o
+    // aplicativo errou a data.
+    const isUpcoming = week[0][2];
+    if (hint) {
+      hint.textContent = isUpcoming
+        ? 'Próximos episódios dos títulos que você está assistindo'
+        : 'Nada agendado para os próximos dias. Estes são os episódios que saíram na semana.';
+      hint.style.display = '';
+    }
+    const hoje = new Date();
+    const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
     week.forEach(([date, eps]) => {
       const col = document.createElement('div');
-      col.className = 'home-calendar-day';
-      col.innerHTML = `<div class="home-calendar-date">${formatAirDate(date)}</div><div class="home-calendar_eps"></div>`;
+      // A data vem do TMDB como `YYYY-MM-DD`. Fatiar a string evita passar por
+      // `new Date()`, onde um deslocamento de fuso poderia trocar o dia.
+      const partes = String(date).split('-');
+      const br = partes.length === 3 ? `${partes[2]}/${partes[1]}` : formatAirDate(date);
+      const brCompleta = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : br;
+      // Meio-dia no parse: fora do horário de verão, o dia não pula.
+      const dt = new Date(date + 'T12:00:00');
+      const valido = !Number.isNaN(dt.getTime());
+      const dow = valido ? dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace(/\./g, '') : '';
+      const estado = date === hojeIso ? 'is-today' : (isUpcoming ? 'is-future' : 'is-past');
+      col.className = `home-calendar-day ${estado}`;
+      col.innerHTML = `
+        <div class="home-calendar-date" title="${escapeHTML(brCompleta)}">
+          <span class="home-calendar-dow">${escapeHTML(dow)}</span>
+          <span class="home-calendar-dnum">${escapeHTML(br)}</span>
+        </div>
+        <div class="home-calendar_eps"></div>`;
       const epsWrap = col.querySelector('.home-calendar_eps');
       eps.forEach(({ item, episode }) => {
-        const c = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `T${episode.season_number} E${episode.episode_number} - ${episode.name || ''}`, onClick: null });
-        c.style.flex = '0 0 100px'; c.style.width = '100px';
+        // Sem pôster do título, usa a still do episódio: melhor que cartão vazio.
+        const posterUrl = item.imagem || (episode.still_path ? `https://image.tmdb.org/t/p/w300${episode.still_path}` : '');
+        const epName = episode.name || '';
+        const c = createHomeCard({
+          posterUrl,
+          title: item.nome,
+          // Temporada e episódio no subtítulo, como nos outros cards da home. O
+          // nome do episódio ia espremido no subtítulo, que é de 0.62rem com
+          // ellipsis: ficava "T1 E2 - Episó..." e não se lia nada.
+          subtitle: `T${episode.season_number} · E${episode.episode_number}`,
+          extraHtml: epName ? `<span class="home-cal-epname" title="${escapeHTML(epName)}">${escapeHTML(epName)}</span>` : '',
+          onClick: () => onCardClick && onCardClick(items.indexOf(item)),
+          item
+        });
+        c.classList.add('home-cal-card');
         epsWrap.appendChild(c);
       });
       grid.appendChild(col);
@@ -504,13 +682,18 @@ export function loadAndRenderAbandoned(container, items, onCardClick) {
   const section = container.querySelector('#homeAbandonedSection');
   const grid = container.querySelector('#homeAbandonedGrid');
   if (!section || !grid) return;
-  const list = getAbandoned(items);
-  if (list.length === 0) { section.style.display = 'none'; return; }
+  const all = getAbandoned(items);
+  const list = pickForSection('abandoned', all, getFullWidthCount());
+  if (all.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
+  setupSectionRefresh(section, () => {
+    bumpSeed('abandoned');
+    loadAndRenderAbandoned(container, items, onCardClick);
+  }, 'Atualizar abandonados');
   grid.innerHTML = '';
   list.forEach(item => {
     const days = Math.floor((Date.now() - new Date(item.dataAtualizacao || item.dataCriacao || 0).getTime())/86400000);
-    const card = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `há ${days}d • T${item.temporada} E${item.episodio}`, onClick: () => onCardClick && onCardClick(items.indexOf(item)) });
+    const card = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `há ${days}d • T${item.temporada} E${item.episodio}`, onClick: () => onCardClick && onCardClick(items.indexOf(item)), item });
     grid.appendChild(card);
   });
   animateCards(grid);
@@ -532,6 +715,12 @@ export function loadAndRenderTimeline(container, items, onCardClick) {
     card.innerHTML = `<div class="home-timeline-date">${dateStr}</div><div class="home-timeline-card"><img src="${item.imagem || ''}" alt="" style="width:40px;height:60px;object-fit:cover;border-radius:4px;" /><div><strong>${escapeHTML(item.nome)}</strong><br><small>T${item.temporada} E${item.episodio} • ${item.status}</small><div class="home-card-progress-track" style="margin-top:4px;"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div></div>`;
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => onCardClick && onCardClick(items.indexOf(item)));
+    if (item.tmdb_id) {
+      const img = card.querySelector('img');
+      resolveItemPosterUrl(item, 'w500')
+        .then(url => { if (url && img.src !== url) img.src = url; })
+        .catch(() => {});
+    }
     grid.appendChild(card);
   });
 }
@@ -728,12 +917,11 @@ export async function renderHome(container, context) {
   renderHomeContinue(container, items, context.onCardClick, context.onOpenAddModal);
   renderHomeFavorites(container, items, context.onCardClick);
   // Novas seções
-  loadAndRenderCalendar(container, items);
+  loadAndRenderCalendar(container, items, context.onCardClick);
   setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
-  loadAndRenderNewEpisodes(container, items, context.onCardClick);
   loadAndRenderTrending(container, items, context.onAddFromTrending);
   loadAndRenderRecommendations(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderCategories(container, items, context.onAddFromTrending);

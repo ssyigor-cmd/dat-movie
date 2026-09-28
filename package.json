@@ -2,16 +2,24 @@
   "name": "dat-movie",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "test": "vitest run",
+    "dev": "node node_modules/vite/bin/vite.js",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "preview": "node node_modules/vite/bin/vite.js preview",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "lint": "node node_modules/eslint/bin/eslint.js src tests scripts",
+    "check": "npm run lint && npm run test && npm run build",
     "migrate": "node scripts/migrate-data.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",
-    "animejs": "^3.2.1"
+    "animejs": "^3.2.1",
+    "sortablejs": "^1.15.7"
   },
   "devDependencies": {
     "vite": "^8.1.5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "eslint": "^9.39.5",
+    "globals": "^14.0.0",
+    "@eslint/js": "^9.39.5"
   }
 }

@@ -1,5 +1,9 @@
 /**
  * Componente DetailModal - Controle e exibição do modal de detalhes
+ *
+ * @deprecated Este módulo coexiste com `titlePage.js` como fluxo de detalhes
+ * alternativo. O `titlePage.js` é o fluxo oficial para catálogo e pesquisa.
+ * Remover gradualmente quando não houver mais callers em `main.js`.
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
@@ -7,6 +11,7 @@ import { getTierClass, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 import { showConfirm } from './confirmModal.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
+import { flagEmoji, flagUrl } from './titleInfoModal.js';
 
 /**
  * Configura e controla o modal de detalhes
@@ -52,7 +57,8 @@ export function setupDetailModal(elements, callbacks) {
     detailImdbLink,
     detailYoutubeLink,
     detailEpisodesBtn,
-    detailListCheckboxes
+    detailListCheckboxes,
+    detailCountryFlag
   } = elements;
 
   const {
@@ -286,6 +292,31 @@ export function setupDetailModal(elements, callbacks) {
         };
         detailStatusLabel.textContent = statusMap[detailsData.status] || detailsData.status || '--';
 
+        // País de origem com bandeira
+        const originCountry = detailsData.origin_country?.[0] || detailsData.production_countries?.[0]?.iso_3166_1;
+        if (originCountry && detailCountryFlag) {
+          const countryName = detailsData.production_countries?.[0]?.name || originCountry;
+          const flagImg = document.createElement('img');
+          flagImg.src = flagUrl(originCountry);
+          flagImg.alt = originCountry;
+          flagImg.className = 'country-flag-img';
+          flagImg.style.width = '24px';
+          flagImg.style.height = '16px';
+          flagImg.style.objectFit = 'contain';
+          flagImg.onerror = () => {
+            flagImg.textContent = flagEmoji(originCountry);
+            flagImg.style.fontSize = '1.2em';
+          };
+          detailCountryFlag.innerHTML = '';
+          detailCountryFlag.appendChild(flagImg);
+          const countrySpan = document.createElement('span');
+          countrySpan.textContent = countryName;
+          detailCountryFlag.appendChild(countrySpan);
+          detailCountryFlag.style.display = 'flex';
+        } else if (detailCountryFlag) {
+          detailCountryFlag.style.display = 'none';
+        }
+
         const originalName = detailsData.original_name || detailsData.original_title || '';
         detailOriginalTitle.textContent = originalName ? `Título original: ${originalName}` : '--';
 
@@ -363,6 +394,7 @@ export function setupDetailModal(elements, callbacks) {
     detailEndYear.textContent = '--';
     detailStatusLabel.textContent = '--';
     detailOriginalTitle.textContent = '--';
+    if (detailCountryFlag) detailCountryFlag.style.display = 'none';
 
     setProgressPanelVisibility(item.tipo);
 

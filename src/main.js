@@ -5,7 +5,7 @@
 
 import { supabase } from './lib/supabase.js';
 import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { callTMDB, fetchTitleLogo, fetchTvDetailsCached } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
@@ -13,22 +13,32 @@ import { updateStepperValue, setupSteppers } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
+import { setupTitleInfoModal, flagEmoji } from './components/titleInfoModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
+import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
-import { state } from './lib/state.js';
+import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
+import dom from './lib/dom.js';
 if (typeof window !== 'undefined') window.anime = anime;
 
-function persistNavState() {
-  try {
-    localStorage.setItem('activeTab', state.currentTab);
-    if (state.currentListId) localStorage.setItem('activeListId', state.currentListId);
-    else localStorage.removeItem('activeListId');
-  } catch (_) {}
-}
+const $ = (id) => {
+  const found = dom[id];
+  if (found !== undefined) return found;
+  return document.getElementById(id);
+};
+const titlePageEl = $('titlePage');
+const toast = document.getElementById('toast');
+
 function setActiveTab(tab, listId = null) {
+  if (typeof hideTitlePage === 'function' && titlePageEl && titlePageEl.style.display !== 'none') {
+    if (location.hash.startsWith('#/titulo/')) history.pushState(null, '', location.pathname + location.search);
+    hideTitlePage(titlePageEl);
+  }
+  if (titleInfoModal && titleInfoModal.classList.contains('active')) titleInfoModalAPI.close();
+  if ($('relinkModal').classList.contains('active')) closeRelinkModal();
   state.currentTab = tab;
   state.currentListId = listId;
   persistNavState();
@@ -36,8 +46,6 @@ function setActiveTab(tab, listId = null) {
   if (typeof render === 'function') render();
 }
 
-// ========== ADAPTADORES PARA UI HELPERS ==========
-const toast = document.getElementById('toast');
 function showToast(msg, duration = 2800) {
   uiShowToast(toast, msg, duration);
 }
@@ -47,67 +55,95 @@ function showErrorToast(userMessage, error, duration = 3000) {
 }
 
 // ========== ELEMENTOS DOM ==========
-const $ = (id) => document.getElementById(id);
-const authContainer = $('authContainer');
-const authForm = $('authForm');
-const authEmail = $('authEmail');
-const authPassword = $('authPassword');
-const authLoginBtn = $('authLoginBtn');
-const authSignupBtn = $('authSignupBtn');
-const authMessage = $('authMessage');
-const grid = $('grid');
-const gridSection = document.getElementById('gridSection');
-const searchView = document.getElementById('searchView');
-const titlePageEl = document.getElementById('titlePage');
-const pesquisaInput = document.getElementById('pesquisaInput');
-const pesquisaGrid = document.getElementById('pesquisaGrid');
-const pesquisaEmpty = document.getElementById('pesquisaEmpty');
-const pesquisaLoading = document.getElementById('pesquisaLoading');
-const searchInput = $('searchInput');
-const filterStatus = $('filterStatus');
-const filterTier = $('filterTier');
-const sortOrder = $('sortOrder');
-const modalOverlay = $('modalOverlay');
-const modalClose = $('modalClose');
-const modalTitle = $('modalTitle');
-const form = $('form');
-const tipo = $('tipo');
-const statusSelect = $('status');
-const tierForm = $('tierForm');
-const btnSubmit = $('btnSubmit');
-const btnCancel = $('btnCancel');
-const addPanelDelete = $('addPanelDelete');
-const previewImg = $('previewImg');
-const previewImgCard = $('previewImgCard');
-const previewPlaceholder = $('previewPlaceholder');
-const formLoading = $('formLoading');
-const densityToggleBtn = $('densityToggleBtn');
-const densityMenu = $('densityMenu');
-const densityOptions = document.querySelectorAll('.density-option');
-const addListToggle = $('addListToggle');
-const addListCheckboxes = $('addListCheckboxes');
-const addEpisodesBtn = $('addEpisodesBtn');
-const detailListToggle = $('detailListToggle');
-const detailListCheckboxes = $('detailListCheckboxes');
-const statusWrapper = $('statusWrapper');
-const statusToggleBtn = $('statusToggleBtn');
-const statusMenu = $('statusMenu');
-const tierWrapper = $('tierWrapper');
-const tierToggleBtn = $('tierToggleBtn');
-const tierMenu = $('tierMenu');
-const sortWrapper = $('sortWrapper');
-const sortToggleBtn = $('sortToggleBtn');
-const sortMenu = $('sortMenu');
-const filterMenuOptions = document.querySelectorAll('.filter-option');
-const groupToggle = $('groupToggle');
-const logoutBtn = $('logoutBtn');
-const continueSection = $('continueSection');
-const continueGrid = $('continueGrid');
-const homeSection = document.getElementById('homeSection');
-const profileToggle = $('profileToggle');
-const profileDropdown = $('profileDropdown');
-const profileEmail = $('profileEmail');
-const profileEmailFull = $('profileEmailFull');
+const densityToggleBtn = dom.densityToggleBtn;
+const densityMenu = dom.densityMenu;
+const densityOptions = dom.densityOptions;
+const addListToggle = dom.addListToggle;
+const addListCheckboxes = dom.addListCheckboxes;
+const addEpisodesBtn = dom.addEpisodesBtn;
+const detailListToggle = dom.detailListToggle;
+const detailListCheckboxes = dom.detailListCheckboxes;
+const addTemporadaInput = dom.addTemporadaInput;
+const addEpisodioInput = dom.addEpisodioInput;
+const addTemporadaDisplay = dom.addTemporadaDisplay;
+const addEpisodioDisplay = dom.addEpisodioDisplay;
+const addTierBadge = dom.addTierBadge;
+const addTierDropdown = dom.addTierDropdown;
+const addYearDisplay = dom.addYearDisplay;
+const addLogoContainer = dom.addLogoContainer;
+const addLogoImg = dom.addLogoImg;
+const addOriginalTitle = dom.addOriginalTitle;
+const addSinopse = dom.addSinopse;
+const addSinopseLoading = dom.addSinopseLoading;
+const addBlurBg = dom.addBlurBg;
+const addPosterWrap = dom.addPosterWrap;
+const modalTitleText = dom.modalTitleText;
+const addPosterSteppersRow = dom.addPosterSteppersRow;
+const addSeasonMaxEl = dom.addSeasonMax;
+const addSeasonNameEl = dom.addSeasonName;
+const addEpMaxEl = dom.addEpMax;
+const addEpTitleEl = dom.addEpTitle;
+const addEpDateEl = dom.addEpDate;
+const addEpOverviewEl = dom.addEpOverview;
+const addEpLoadingEl = dom.addEpLoading;
+const detailSeasonName = dom.detailSeasonName;
+
+// Filtros da barra de ferramentas (selects ocultos + menus + opções)
+const filterStatus = dom.filterStatus;
+const statusToggleBtn = dom.statusToggleBtn;
+const statusMenu = dom.statusMenu;
+const filterTier = dom.filterTier;
+const tierToggleBtn = dom.tierToggleBtn;
+const tierMenu = dom.tierMenu;
+const sortOrder = dom.sortOrder;
+const sortToggleBtn = dom.sortToggleBtn;
+const sortMenu = dom.sortMenu;
+const filterMenuOptions = dom.filterMenuOptions;
+
+// Demais elementos usados no módulo (bug pré-existente: o bloco acima só
+// extraía parte das chaves de dom.js, então tudo abaixo era ReferenceError).
+const authContainer = dom.authContainer;
+const authForm = dom.authForm;
+const authEmail = dom.authEmail;
+const authPassword = dom.authPassword;
+const authMessage = dom.authMessage;
+const authLoginBtn = dom.authLoginBtn;
+const authSignupBtn = dom.authSignupBtn;
+const logoutBtn = dom.logoutBtn;
+const profileToggle = dom.profileToggle;
+const profileDropdown = dom.profileDropdown;
+const profileEmail = dom.profileEmail;
+const profileEmailFull = dom.profileEmailFull;
+const continueSection = dom.continueSection;
+const gridSection = dom.gridSection;
+const searchView = dom.searchView;
+const statusWrapper = dom.statusWrapper;
+const tierWrapper = dom.tierWrapper;
+const groupToggle = dom.groupToggle;
+const statusSelect = dom.statusSelect;
+const tierForm = dom.tierForm;
+const tipo = dom.tipo;
+const pesquisaGrid = dom.pesquisaGrid;
+const pesquisaEmpty = dom.pesquisaEmpty;
+const pesquisaLoading = dom.pesquisaLoading;
+const previewImg = dom.previewImg;
+const previewPlaceholder = dom.previewPlaceholder;
+const previewImgCard = dom.previewImgCard;
+const form = dom.form;
+const grid = dom.grid;
+const homeSection = dom.homeSection;
+const modalOverlay = dom.modalOverlay;
+const searchInput = dom.searchInput;
+const btnCancel = dom.btnCancel;
+const pesquisaInput = dom.pesquisaInput;
+const formLoading = dom.formLoading;
+const modalTitle = dom.modalTitle;
+const modalClose = dom.modalClose;
+const btnSubmit = dom.btnSubmit;
+const titleInfoModal = dom.titleInfoModal;
+// Não existe no index.html (só há addPanelSave): resolve para null e o
+// guard `if (addPanelDelete)` abaixo trata isso.
+const addPanelDelete = dom.addPanelDelete;
 
 function densityLabelForValue(v) {
   const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
@@ -129,25 +165,6 @@ setTimeout(() => {
 const navbar = document.getElementById('topNavbar');
 const navbarNav = document.getElementById('navbarNav');
 const headerListName = document.getElementById('headerListName');
-
-// ADD MODAL
-const addTemporadaInput = $('addTemporada');
-const addEpisodioInput = $('addEpisodio');
-const addTemporadaDisplay = $('addTemporadaDisplay');
-const addEpisodioDisplay = $('addEpisodioDisplay');
-const addTierBadge = $('addTierBadge');
-const addTierDropdown = $('addTierDropdown');
-const addYearDisplay = $('addYearDisplay');
-const addLogoContainer = document.getElementById('addLogoContainer');
-const addLogoImg = document.getElementById('addLogoImg');
-const addOriginalTitle = $('addOriginalTitle');
-const addSinopse = document.getElementById('addSinopse');
-const addSinopseLoading = document.getElementById('addSinopseLoading');
-const addBlurBg = document.getElementById('addBlurBg');
-const addPosterWrap = document.getElementById('addPosterWrap');
-const modalTitleText = $('modalTitleText');
-const addPosterSteppersRow = $('addPosterSteppersRow');
-
 
 // ========== AUTENTICAÇÃO ==========
 function setAuthUI(showLogin) {
@@ -171,7 +188,7 @@ async function checkSession() {
         profileEmailFull.textContent = user.email;
       }
       // Default to home on fresh login if no persisted tab
-      if (!localStorage.getItem('activeTab')) {
+      if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB)) {
         state.currentTab = 'home';
         state.currentListId = null;
         persistNavState();
@@ -283,7 +300,17 @@ async function addItemToSupabase(item) {
     data_criacao: item.dataCriacao || new Date().toISOString()
   };
   const { data, error } = await supabase.from('items').insert([dbItem]).select();
-  if (error) throw error;
+  if (error) {
+    // 23505 = unique_violation. Com idx_items_user_tmdb_unique o banco vira a
+    // última linha de defesa contra títulos duplicados: o check client-side
+    // não cobre dois dispositivos inserindo o mesmo tmdb_id ao mesmo tempo.
+    if (error.code === '23505') {
+      const dup = new Error('Este título já existe no seu catálogo.');
+      dup.code = '23505';
+      throw dup;
+    }
+    throw error;
+  }
   return { ...data[0], totalEpisodios: data[0].total_episodios, seasonEpisodesMap: data[0].season_episodes_map || {}, dataCriacao: data[0].data_criacao, dataAtualizacao: data[0].data_atualizacao };
 }
 
@@ -503,7 +530,7 @@ function renderNavbar() {
 function initListsSortable() {
   const dropdown = document.getElementById('listsDropdown');
   if (!dropdown || !window.Sortable) return;
-  if (state.listsSortable) { try { state.listsSortable.destroy(); } catch(e){} state.listsSortable = null; }
+  if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch(e){} }
   const handleExists = dropdown.querySelector('.nav-drag-handle');
   if (!handleExists) return;
   state.listsSortable = new window.Sortable(dropdown, {
@@ -769,15 +796,6 @@ const addInputs = {
   tempDisplay: addTemporadaDisplay
 };
 
-// ========== ADD MODAL EPISODE PROGRESS PANEL ==========
-const addSeasonMaxEl = $('addSeasonMax');
-const addSeasonNameEl = $('addSeasonName');
-const addEpMaxEl = $('addEpMax');
-const addEpTitleEl = $('addEpTitle');
-const addEpDateEl = $('addEpDate');
-const addEpOverviewEl = $('addEpOverview');
-const addEpLoadingEl = $('addEpLoading');
-
 let addEpisodeInfoRequestId = 0;
 
 function resetAddProgressPanel() {
@@ -867,10 +885,10 @@ const handleCardClick = (index) => {
 
 // Detail Modal
 const detailInputs = {
-  tempInput: $('detailTemporada'),
-  epInput: $('detailEpisodio'),
-  epDisplay: $('detailEpisodioDisplay'),
-  tempDisplay: $('detailTemporadaDisplay')
+  tempInput: dom.detailTemporadaInput,
+  epInput: dom.detailEpisodioInput,
+  epDisplay: dom.detailEpisodioDisplay,
+  tempDisplay: dom.detailTemporadaDisplay
 };
 
 const detailModalAPI = setupDetailModal({
@@ -911,7 +929,8 @@ const detailModalAPI = setupDetailModal({
   detailEpOverview: $('detailEpOverview'),
   detailEpLoading: $('detailEpLoading'),
   posterSteppersRow: $('posterSteppersRow'),
-  detailSeasonName: $('detailSeasonName')
+  detailSeasonName: $('detailSeasonName'),
+  detailCountryFlag: $('detailCountryFlag')
 }, {
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -945,6 +964,32 @@ const episodesModalAPI = setupEpisodesModal({
   onToast: showToast
 });
 
+// Modal de informações do título
+const titleInfoModalAPI = setupTitleInfoModal({
+  titleInfoModal: $('titleInfoModal'),
+  titleInfoClose: $('titleInfoClose'),
+  titleInfoTitle: $('titleInfoTitle'),
+  titleInfoLoading: $('titleInfoLoading'),
+  titleInfoContent: $('titleInfoContent'),
+  titleInfoLogoWrap: $('titleInfoLogoWrap'),
+  titleInfoLogoImg: $('titleInfoLogoImg')
+}, {
+  onToast: showToast,
+  onResolveTmdbId: async (item) => {
+    try {
+      const searchData = await callTMDB('search/tv', { query: item.nome }, 'pt-BR');
+      const result = searchData.results?.[0];
+      if (result && item.id && !item._isPreview) {
+        item.tmdb_id = result.id;
+        await updateItemInSupabase(item.id, { tmdb_id: result.id });
+      }
+      return result ? result.id : null;
+    } catch {
+      return null;
+    }
+  }
+});
+
 setupTitlePage({
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -960,6 +1005,9 @@ setupTitlePage({
     }
     return episodesModalAPI.open(0, [args[1]].filter(Boolean), args[2], args[3]);
   },
+  onOpenDetails: (item) => titleInfoModalAPI.open(item),
+  onOpenParent: (candidate, allResults) => openTitlePageForSearch(candidate, allResults),
+  onRelinkTitle: (item) => openRelinkModal(item),
   onCreateItem: async (payload) => {
     const created = await addItemToSupabase({
       nome: payload.nome,
@@ -1041,6 +1089,8 @@ async function openAddModalWithTmdbResult(raw) {
   if (addTierBadgeEl) { addTierBadgeEl.textContent = '?'; addTierBadgeEl.className = 'tier-badge-large'; addTierBadgeEl.style.display = 'flex'; }
   const addYearDisplayEl = document.getElementById('addYearDisplay');
   if (addYearDisplayEl) addYearDisplayEl.textContent = year || '--';
+  const addCountryFlagEl = document.getElementById('addCountryFlag');
+  if (addCountryFlagEl) addCountryFlagEl.style.display = 'none';
   state.selectedTmdbId = tmdbId;
   state.selectedMediaType = mediaType;
   state.selectedPosterPath = posterPath;
@@ -1180,8 +1230,36 @@ async function openAddModalWithTmdbResult(raw) {
           addOriginalTitleEl.textContent = originalName;
           addOriginalTitleEl.style.display = '';
         }
+
+        // País de origem com bandeira
+        const addCountryFlagEl = document.getElementById('addCountryFlag');
+        const originCountry = details.origin_country?.[0] || details.production_countries?.[0]?.iso_3166_1;
+        if (originCountry && addCountryFlagEl) {
+          const countryName = details.production_countries?.[0]?.name || originCountry;
+          const flagImg = document.createElement('img');
+          flagImg.src = `https://flagcdn.com/${originCountry.toLowerCase()}.svg`;
+          flagImg.alt = originCountry;
+          flagImg.className = 'country-flag-img';
+          flagImg.style.width = '24px';
+          flagImg.style.height = '16px';
+          flagImg.style.objectFit = 'contain';
+          flagImg.onerror = () => {
+            flagImg.textContent = flagEmoji(originCountry);
+            flagImg.style.fontSize = '1.2em';
+          };
+          addCountryFlagEl.innerHTML = '';
+          addCountryFlagEl.appendChild(flagImg);
+          const countrySpan = document.createElement('span');
+          countrySpan.textContent = countryName;
+          addCountryFlagEl.appendChild(countrySpan);
+          addCountryFlagEl.style.display = 'flex';
+        } else if (addCountryFlagEl) {
+          addCountryFlagEl.style.display = 'none';
+        }
       }
-      const logoUrl = logoUrlParallel;
+      // O logo nunca era buscado aqui: restou a referência `logoUrlParallel`
+      // de um refactor anterior e fetchTitleLogo (importado) não era chamado.
+      const logoUrl = await fetchTitleLogo(tmdbId, mediaType);
       if (logoUrl && addLogoImgEl && addLogoContainerEl) {
         addLogoImgEl.src = logoUrl;
         addLogoImgEl.alt = `Logo de ${displayTitle}`;
@@ -1232,7 +1310,7 @@ async function handleTrendingAdd(trendingItem) {
 }
 
 // — Padrão único: pesquisa e catálogo usam a mesma TitlePage
-function openTitlePageForSearch(raw) {
+function openTitlePageForSearch(raw, allResults = null) {
   const tmdbId = raw.id;
   const existing = state.items.find(it => String(it.tmdb_id) === String(tmdbId));
   if (existing) {
@@ -1260,7 +1338,9 @@ function openTitlePageForSearch(raw) {
     imagem: raw.poster_path ? `https://image.tmdb.org/t/p/w500${raw.poster_path}` : (raw.posterUrl || ''),
     tmdb_id: tmdbId,
     ano: (raw.first_air_date || raw.release_date || raw.date || '').slice(0,4) || null,
-    lists: []
+    lists: [],
+    _parentCandidate: findParentCandidate(raw, allResults) || null,
+    _parentResults: allResults
   };
   history.pushState({ titleId: preview.id }, '', `#/titulo/preview-${tmdbId}`);
   document.getElementById('homeSection').style.display = 'none';
@@ -1271,6 +1351,117 @@ function openTitlePageForSearch(raw) {
   if (mh2) mh2.style.display = 'none';
   showTitlePage(preview, titlePageEl);
 }
+
+// ========== CORRIGIR VÍNCULO DO TÍTULO ==========
+let relinkTimeout = null;
+let relinkItem = null;
+
+function closeRelinkModal() {
+  $('relinkModal').classList.remove('active');
+  unlockScreen();
+  $('relinkResults').innerHTML = '';
+  $('relinkLoading').style.display = 'none';
+  relinkItem = null;
+}
+
+async function relinkSearch(query) {
+  const results = $('relinkResults');
+  const loading = $('relinkLoading');
+  results.innerHTML = '';
+  loading.style.display = 'flex';
+  try {
+    const data = await callTMDB('search/tv', { query }, 'pt-BR');
+    loading.style.display = 'none';
+    const list = sortSearchResults(data.results || [], query);
+    if (!list.length) {
+      results.innerHTML = '<p class="relink-empty">Nenhum resultado encontrado.</p>';
+      return;
+    }
+    const currentId = String(relinkItem?.tmdb_id || '');
+    const frag = document.createDocumentFragment();
+    list.slice(0, 12).forEach(res => {
+      const name = res.name || res.title || '';
+      if (!name) return;
+      const year = (res.first_air_date || res.release_date || '').slice(0, 4);
+      const poster = res.poster_path ? `https://image.tmdb.org/t/p/w92${res.poster_path}` : '';
+      const contTag = getContinuationTag(name);
+      const isCurrent = String(res.id) === currentId;
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = `relink-item${isCurrent ? ' relink-item--current' : ''}`;
+      row.disabled = isCurrent;
+      row.innerHTML = `
+        <span class="relink-thumb">${poster ? `<img src="${escapeHTML(poster)}" alt="" loading="lazy" />` : '<i class="fas fa-film"></i>'}</span>
+        <span class="relink-text">
+          <span class="relink-name">${escapeHTML(name)}</span>
+          <span class="relink-sub">${year ? `<span>${year}</span>` : ''}${contTag ? `<span class="relink-tag">${escapeHTML(contTag)}</span>` : ''}${isCurrent ? '<span class="relink-tag relink-tag--now">atual</span>' : ''}</span>
+        </span>`;
+      row.addEventListener('click', () => applyRelink(res, name));
+      frag.appendChild(row);
+    });
+    results.appendChild(frag);
+  } catch (e) {
+    loading.style.display = 'none';
+    results.innerHTML = '<p class="relink-empty">Erro ao buscar no TMDB.</p>';
+  }
+}
+
+async function applyRelink(res, name) {
+  if (!relinkItem) return;
+  const item = relinkItem;
+  const target = res;
+  const ano = (target.first_air_date || target.release_date || '').slice(0, 4) || item.ano || null;
+  const imagem = target.poster_path ? `https://image.tmdb.org/t/p/w500${target.poster_path}` : item.imagem;
+  let details = null;
+  try { details = await callTMDB(`tv/${target.id}`, {}, 'pt-BR'); } catch {}
+  const seasonEpisodesMap = {};
+  (details?.seasons || []).forEach(s => { if (s.season_number > 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; });
+  try {
+    const saved = await updateItemInSupabase(item.id, {
+      nome: name,
+      tmdb_id: target.id,
+      imagem,
+      ano,
+      totalEpisodios: details?.number_of_episodes || item.totalEpisodios,
+      seasonEpisodesMap: Object.keys(seasonEpisodesMap).length ? seasonEpisodesMap : item.seasonEpisodesMap
+    });
+    const idx = state.items.findIndex(i => String(i.id) === String(item.id));
+    if (idx !== -1) state.items[idx] = saved;
+    Object.assign(item, saved);
+    closeRelinkModal();
+    showTitlePage(item, titlePageEl);
+    showToast('Título corrigido!');
+  } catch (e) {
+    console.error(e);
+    showToast('Não foi possível corrigir o título.', 3000);
+  }
+}
+
+function openRelinkModal(item) {
+  relinkItem = item;
+  const modal = $('relinkModal');
+  const input = $('relinkSearch');
+  modal.classList.add('active');
+  lockScreen();
+  $('relinkResults').innerHTML = '';
+  input.value = item.nome || '';
+  setTimeout(() => input.focus(), 60);
+  relinkSearch(item.nome || '');
+}
+
+function initRelinkModal() {
+  const modal = $('relinkModal');
+  $('relinkClose').addEventListener('click', closeRelinkModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeRelinkModal(); });
+  $('relinkSearch').addEventListener('input', (e) => {
+    clearTimeout(relinkTimeout);
+    const q = e.target.value.trim();
+    if (q.length < 2) { $('relinkResults').innerHTML = ''; $('relinkLoading').style.display = 'none'; return; }
+    relinkTimeout = setTimeout(() => relinkSearch(q), 400);
+  });
+}
+
+initRelinkModal();
 
 // ========== RENDER ==========
 function render() {
@@ -1603,7 +1794,9 @@ async function addItem(e) {
     state.addSeasonLimits = {};
     resetAddProgressPanel();
   } catch (error) {
-    showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
+    // Corrida entre dispositivos estourou o índice único: o título já existe.
+    if (error?.code === '23505') showToast(error.message);
+    else showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
   } finally {
     setLoading(false);
     addItemInFlight = false;
@@ -2073,15 +2266,14 @@ if (addPanelDelete) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if ($('episodesModal').classList.contains('active')) episodesModalAPI.close();
+    else if ($('titleInfoModal').classList.contains('active')) titleInfoModalAPI.close();
+    else if ($('relinkModal').classList.contains('active')) closeRelinkModal();
     else if ($('detailListModal')?.classList.contains('active')) $('detailListModal').classList.remove('active');
     else if ($('addListModal')?.classList.contains('active')) $('addListModal').classList.remove('active');
     else if ($('detailModal').classList.contains('active')) detailModalAPI.close();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
     else if (state.currentTab === 'pesquisa') {
-      state.currentTab = 'all';
-      state.currentListId = null;
-      updateActiveNav();
-      render();
+      setActiveTab('all', null);
     }
     closeListsDropdown();
   }
@@ -2089,6 +2281,32 @@ document.addEventListener('keydown', (e) => {
 
 // ========== PESQUISA TMDB ==========
 let pesquisaTimeout = null;
+let searchEnrichToken = 0;
+
+/**
+ * Enriquece os cards da busca com temporadas/episódios e marca continuações.
+ * Busca os detalhes só dos 6 primeiros resultados, em paralelo e com cache.
+ */
+async function enrichSearchCards(results, grid, token) {
+  const targets = results.slice(0, 6);
+  const queue = [...targets];
+  const workers = Array.from({ length: 3 }, async () => {
+    while (queue.length) {
+      const res = queue.shift();
+      if (token !== searchEnrichToken) return;
+      const card = grid.querySelector(`.pesquisa-card[data-tmdb-id="${res.id}"]`);
+      if (!card) continue;
+      const details = await fetchTvDetailsCached(res.id);
+      if (!details || token !== searchEnrichToken) continue;
+      const parts = [];
+      if (details.number_of_seasons) parts.push(`${details.number_of_seasons} temporada${details.number_of_seasons > 1 ? 's' : ''}`);
+      if (details.number_of_episodes) parts.push(`${details.number_of_episodes} eps`);
+      const meta = card.querySelector('.pesquisa-card-meta');
+      if (meta && parts.length) meta.textContent = parts.join(' · ');
+    }
+  });
+  await Promise.allSettled(workers);
+}
 
 if (pesquisaInput) {
   pesquisaInput.addEventListener('input', () => {
@@ -2112,13 +2330,14 @@ if (pesquisaInput) {
         const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
         pesquisaLoading.style.display = 'none';
 
-        const filteredResults = data.results || [];
+        const filteredResults = sortSearchResults(data.results || [], q);
         if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
           return;
         }
 
+        const token = ++searchEnrichToken;
         const fragment = document.createDocumentFragment();
         filteredResults.forEach(res => {
           const name = res.name || res.title;
@@ -2129,6 +2348,7 @@ if (pesquisaInput) {
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);
           const safePoster = escapeHTML(posterUrl);
+          const contTag = getContinuationTag(name);
 
           const card = document.createElement('div');
           card.className = 'pesquisa-card';
@@ -2143,15 +2363,17 @@ if (pesquisaInput) {
           card.innerHTML = `
             <div class="pesquisa-card-img">
               ${safePoster ? `<img src="${safePoster}" alt="${safeName}" loading="lazy" />` : `<i class="fas fa-film"></i>`}
+              ${contTag ? `<span class="pesquisa-card-tag">${escapeHTML(contTag)}</span>` : ''}
             </div>
             <div class="pesquisa-card-body">
               <span class="badge">${mediaType}</span>
               <h3 title="${safeName}">${safeName}</h3>
               ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
+              <span class="pesquisa-card-meta"></span>
             </div>
           `;
 
-          const openPreview = () => openTitlePageForSearch(res);
+          const openPreview = () => openTitlePageForSearch(res, filteredResults);
 
           card.addEventListener('click', openPreview);
           card.addEventListener('keydown', (e) => {
@@ -2162,6 +2384,7 @@ if (pesquisaInput) {
         });
 
         pesquisaGrid.appendChild(fragment);
+        enrichSearchCards(filteredResults, pesquisaGrid, token);
 
         if (typeof anime !== 'undefined') {
           const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');

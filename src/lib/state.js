@@ -3,14 +3,21 @@
  * Centraliza variáveis antes espalhadas em main.js
  */
 
+export const STORAGE_KEYS = {
+  ACTIVE_TAB: 'activeTab',
+  ACTIVE_LIST_ID: 'activeListId',
+  GRID_DENSITY: 'gridDensity',
+  GROUPING_ACTIVE: 'groupingActive'
+};
+
 export const state = {
   items: [],
   editingIndex: null,
   currentTab: (() => {
-    const v = localStorage.getItem('activeTab') || 'home';
+    const v = localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB) || 'home';
     return ['home','all','planejado','pesquisa','list'].includes(v) ? v : 'home';
   })(),
-  currentListId: localStorage.getItem('activeListId') || null,
+  currentListId: localStorage.getItem(STORAGE_KEYS.ACTIVE_LIST_ID) || null,
   currentUser: null,
   userLists: [],
   listsSortable: null,
@@ -21,17 +28,17 @@ export const state = {
   selectedAno: null,
   selectedName: '',
   existingItemForSearch: null,
-  gridDensity: parseInt(localStorage.getItem('gridDensity')) || 8,
-  groupingActive: localStorage.getItem('groupingActive') === 'true' || false,
+  gridDensity: parseInt(localStorage.getItem(STORAGE_KEYS.GRID_DENSITY)) || 8,
+  groupingActive: (localStorage.getItem(STORAGE_KEYS.GROUPING_ACTIVE)) === 'true',
   addSeasonLimits: {},
   addEpisodeInfoRequestId: 0,
 };
 
 export function persistNavState() {
   try {
-    localStorage.setItem('activeTab', state.currentTab);
-    if (state.currentListId) localStorage.setItem('activeListId', state.currentListId);
-    else localStorage.removeItem('activeListId');
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, state.currentTab);
+    if (state.currentListId) localStorage.setItem(STORAGE_KEYS.ACTIVE_LIST_ID, state.currentListId);
+    else localStorage.removeItem(STORAGE_KEYS.ACTIVE_LIST_ID);
   } catch (_) {}
 }
 

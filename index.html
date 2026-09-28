@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>datmovie · Catálogo</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://image.tmdb.org https://placehold.co https://flagcdn.com https://assets.fanart.tv; connect-src 'self' https://*.supabase.co https://pt.wikipedia.org; base-uri 'self'; form-action 'self';" />
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
@@ -15,7 +15,8 @@
   <script type="importmap">
   {
     "imports": {
-      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm",
+      "sortablejs": "https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
     }
   }
   </script>
@@ -233,6 +234,7 @@
             <i class="fas fa-pen"></i> <span id="modalTitleText">Adicionar título</span>
           </h2>
           <div id="addOriginalTitle" class="dm-original-title" style="display:none;"></div>
+          <div id="addCountryFlag" class="dm-country-flag" style="display:none;"></div>
         </div>
         <div class="detail-header-right">
           <span class="detail-meta-top">
@@ -387,11 +389,12 @@
             <i class="fas fa-info-circle"></i> <span id="detailTitleText">Detalhes</span>
           </h2>
           <div id="detailOriginalTitle" class="dm-original-title">--</div>
+          <div id="detailCountryFlag" class="dm-country-flag" style="display:none;"></div>
         </div>
         <div class="detail-header-right">
           <span class="detail-meta-top">
             <span><i class="fas fa-calendar-alt"></i> <span id="detailStartYear">--</span> — <span id="detailEndYear">--</span></span>
-            <span class="detail-status"><span id="detailStatusLabel">--</span></span>
+            <span class="detail-status" id="detailStatusLabel">--</span>
           </span>
         </div>
         <button class="modal-close" id="detailClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
@@ -509,6 +512,43 @@
     </div>
   </div>
 
+  <!-- MODAL DE INFORMAÇÕES DO TÍTULO -->
+  <div class="modal-overlay" id="titleInfoModal" role="dialog" aria-modal="true" aria-labelledby="titleInfoTitle">
+    <div class="modal modal-info">
+      <div class="modal-header ti-header">
+        <h2 id="titleInfoTitle" class="ti-sr-only"><i class="fas fa-circle-info"></i> <span id="titleInfoTitleText">Detalhes</span></h2>
+        <div id="titleInfoLogoWrap" class="ti-header-logo" style="display: none;">
+          <img id="titleInfoLogoImg" alt="" />
+        </div>
+        <button class="modal-close" id="titleInfoClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="ti-sep"></div>
+      <div class="modal-body">
+        <div id="titleInfoLoading" class="form-loading"><i class="fas fa-spinner fa-spin"></i> Carregando detalhes...</div>
+        <div id="titleInfoContent" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CORRIGIR VÍNCULO DO TÍTULO -->
+  <div class="modal-overlay" id="relinkModal" role="dialog" aria-modal="true" aria-labelledby="relinkTitle">
+    <div class="modal modal-relink">
+      <div class="modal-header">
+        <h2 id="relinkTitle"><i class="fas fa-link"></i> Corrigir título</h2>
+        <button class="modal-close" id="relinkClose" aria-label="Fechar"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="relink-hint">Vincule o item ao título certo do TMDB. Seu progresso, status, tier e listas são mantidos.</p>
+        <div class="relink-search-row">
+          <i class="fas fa-search"></i>
+          <input type="text" id="relinkSearch" placeholder="Buscar no TMDB..." autocomplete="off" />
+        </div>
+        <div id="relinkLoading" class="form-loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>
+        <div id="relinkResults" class="relink-results"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- CONFIRM MODAL -->
   <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
     <div class="modal modal-confirm">
@@ -529,7 +569,6 @@
   <!-- TOAST -->
   <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
