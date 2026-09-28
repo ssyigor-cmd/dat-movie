@@ -232,8 +232,12 @@ CREATE POLICY "Permitir excluir relacionamentos dos próprios itens"
 Se você já possui dados na tabela `items` e quer adicionar o sistema de listas, execute a migração:
 
 ```bash
+SUPABASE_URL=https://seu-projeto.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key \
 npm run migrate
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` é uma credencial administrativa: use-a somente no terminal/CI seguro e nunca a coloque em `.env` com prefixo `VITE_` ou no frontend.
 
 Ou execute manualmente o script SQL em `supabase/migrations/migrate_existing_data.sql`.
 
@@ -248,10 +252,14 @@ supabase link --project-ref seu-project-ref
 
 # Deploy das funções
 supabase functions deploy clever-endpoint
+supabase functions deploy fanart-logo
 
-# Configurar chaves de API (se necessário)
+# Configurar chaves de API
 supabase secrets set TMDB_API_KEY=sua-chave-tmdb
+supabase secrets set FANART_API_KEY=sua-chave-fanart
 ```
+
+`clever-endpoint` exige sessão JWT e aceita somente os endpoints de TV usados pelo aplicativo. `fanart-logo` é um fallback de logo e não deve receber a chave do Fanart no navegador.
 
 ---
 
