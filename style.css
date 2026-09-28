@@ -3515,6 +3515,36 @@ a:focus-visible,
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ==========================================================================
+   "Títulos para você" — indicações ancoradas em quem fez o que o usuário já
+   curtiu. O card é mais largo que o comum porque a frase precisa caber em duas
+   linhas: ela é a informação, o pôster é só a moldura.
+   ========================================================================== */
+.home-pick-card {
+  flex: 0 0 210px;
+  width: 210px;
+}
+.home-pick-card .home-card-body { gap: 6px; }
+.home-pick-reason {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.home-pick-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--bg-secondary);
+  align-self: flex-start;
+  margin-top: 1px;
+}
 .home-card-epname {
   font-size: 0.62rem;
   color: var(--text-secondary);

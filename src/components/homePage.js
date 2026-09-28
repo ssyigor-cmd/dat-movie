@@ -6,6 +6,7 @@ import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
 import { getTrendingToSuggest, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getTitlesByYear, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem, pickVariety } from '../lib/trendingApi.js';
 import { callTMDB, resolveItemPosterUrl } from '../lib/api.js';
 import { pickWithMix } from '../lib/recommendScoring.js';
+import { getFriendPicks } from '../lib/friendPicks.js';
 import { filterNotInCatalog } from '../lib/catalog.js';
 
 /**
@@ -207,6 +208,15 @@ export function renderHomeBase(container, context) {
         <p>Você ainda não começou nenhum título. Que tal adicionar um?</p>
         <button class="home-empty-btn" id="homeContinueAddBtn"><i class="fas fa-plus"></i> Adicionar título</button>
       </div>
+    </section>
+
+    <section class="home-section" id="homePicksSection" aria-label="Títulos para você" style="display:none;">
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-user-friends"></i> Títulos para você</h2>
+        <button type="button" id="homePicksRefresh" class="home-refresh-btn" title="Atualizar indicações" aria-label="Atualizar indicações"><i class="fas fa-rotate"></i></button>
+      </div>
+      <div class="home-h-scroll" id="homePicksGrid"></div>
+      <div class="home-skeleton" id="homePicksSkeleton">${skeletonHTML()}</div>
     </section>
 
 <section class="home-section home-section--panel" id="homeRouletteSection" aria-label="Roleta">
@@ -577,6 +587,87 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
   }
 }
 
+/**
+ * Card de indicação: a mesma anatomia do card da home, mais a frase que
+ * justifica a indicação e o rosto de quem fez.
+ *
+ * A frase é uma linha de verdade, não um rótulo — por isso ela é o elemento de
+ * maior peso do card, e o subtítulo da data cede lugar a ela.
+ * @param {Object} pick - Item devolvido por `getFriendPicks`.
+ * @param {Function} onClick - Callback de abertura.
+ * @returns {HTMLElement} Card.
+ */
+function createPickCard(pick, onClick) {
+  const card = document.createElement('div');
+  card.className = 'home-card home-pick-card';
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('role', 'button');
+  card.setAttribute('aria-label', pick.title);
+  const title = escapeHTML(pick.title);
+  card.innerHTML = `
+    <div class="home-card-img">
+      ${pick.posterUrl ? `<img src="${escapeHTML(pick.posterUrl)}" alt="${title}" loading="lazy" />` : '<i class="fas fa-film"></i>'}
+    </div>
+    <div class="home-card-body">
+      <h3 title="${title}">${title}</h3>
+      <p class="home-pick-reason">${escapeHTML(pick.reason)}</p>
+      ${pick.person?.profileUrl ? `<img class="home-pick-avatar" src="${escapeHTML(pick.person.profileUrl)}" alt="" loading="lazy" />` : ''}
+    </div>
+  `;
+  if (onClick) {
+    card.addEventListener('click', onClick);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } });
+  }
+  return card;
+}
+
+/**
+ * Carrega "Títulos para você".
+ *
+ * A seção se esconde em três casos, e nos três a resposta é a mesma: não há
+ * âncora forte no catálogo, a API falhou, ou nenhum candidato tem criador em
+ * comum verificado. Preferimos não mostrar a mostrar indicação sem lastro — é a
+ * diferença entre "um amigo indicou" e "o app escolheu".
+ * @param {Element} container - Container da home.
+ * @param {Array} items - Catálogo do usuário.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @returns {Promise<void>}
+ */
+export async function loadAndRenderFriendPicks(container, items, onAddFromTrending) {
+  const section = container.querySelector('#homePicksSection');
+  const grid = container.querySelector('#homePicksGrid');
+  const skel = container.querySelector('#homePicksSkeleton');
+  if (!section || !grid || !skel) return;
+
+  setupSectionRefresh(section, () => {
+    bumpSeed('picks');
+    loadAndRenderFriendPicks(container, items, onAddFromTrending);
+  }, 'Atualizar indicações');
+
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+
+  try {
+    const picks = await getFriendPicks(items, { anchorIndex: getVariety('picks').seed });
+    skel.style.display = 'none';
+    if (!picks || picks.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    grid.style.display = '';
+    grid.innerHTML = '';
+    picks.forEach((pick) => {
+      grid.appendChild(createPickCard(pick, () => onAddFromTrending && onAddFromTrending(pick)));
+    });
+    animateCards(grid);
+  } catch (e) {
+    skel.style.display = 'none';
+    section.style.display = 'none';
+    console.warn('Erro ao buscar indicações:', e);
+  }
+}
+
 export async function loadAndRenderRecommendations(container, items, onCardClick, onAddFromTrending) {
   const section = container.querySelector('#homeRecommendSection');
   const grid = container.querySelector('#homeRecommendGrid');
@@ -741,7 +832,6 @@ export async function loadAndRenderCalendar(container, items, onCardClick) {
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';
-  if (hint) hint.style.display = 'none';
   try {
     const week = await getCalendarWeek(items);
     skel.style.display = 'none';
@@ -1059,6 +1149,7 @@ export async function renderHome(container, context) {
   renderHomeFavorites(container, items, context.onCardClick);
   // Novas seções
   loadAndRenderCalendar(container, items, context.onCardClick);
+  loadAndRenderFriendPicks(container, items, context.onAddFromTrending);
   setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
