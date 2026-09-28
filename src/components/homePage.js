@@ -230,6 +230,14 @@ export function renderHomeBase(container, context) {
       <div class="home-error" id="homeAffinityError" style="display:none;"></div>
     </section>
 
+
+    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
+      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
+      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
+      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
+      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+    </section>
+
 <section class="home-section" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
@@ -237,13 +245,6 @@ export function renderHomeBase(container, context) {
       </div>
       <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
-    </section>
-
-    <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
-      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
-      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
-      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
     </section>
 
     
