@@ -2,8 +2,10 @@
   "name": "dat-movie",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "test": "vitest run",
+    "dev": "node node_modules/vite/bin/vite.js",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "preview": "node node_modules/vite/bin/vite.js preview",
+    "test": "node node_modules/vitest/vitest.mjs run",
     "migrate": "node scripts/migrate-data.js"
   },
   "dependencies": {
