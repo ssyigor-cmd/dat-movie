@@ -13,7 +13,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 22 é o mínimo: @supabase/supabase-js v2.111 usa WebSocket global no
+          # createClient (que roda no import de src/lib/supabase.js) e o Node 20
+          # não tem — a suíte morria no import com "native WebSocket not found".
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
