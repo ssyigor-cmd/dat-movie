@@ -274,12 +274,32 @@ export function renderHomeBase(container, context) {
     </section>
 
     <section class="home-categories" id="homeCategories" aria-label="Categorias"></section>
+
+    <div class="home-foot">
+      <button type="button" id="homeBackToTop" class="home-backtop">
+        <i class="fas fa-arrow-up"></i> Voltar ao topo
+      </button>
+    </div>
   `;
 
   // Bind add button
   const addBtn = container.querySelector('#homeContinueAddBtn');
   if (addBtn && context.onOpenAddModal) {
     addBtn.addEventListener('click', context.onOpenAddModal);
+  }
+
+  // Voltar ao topo. Quem rola a pagina e o .main-content (tem overflow-y:auto),
+  // nao a janela — por isso o alvo do scroll tem que ser ele.
+  const backToTop = container.querySelector('#homeBackToTop');
+  if (backToTop) {
+    backToTop.addEventListener('click', () => {
+      const scroller = container.closest('.main-content') || document.scrollingElement;
+      if (scroller && typeof scroller.scrollTo === 'function') {
+        scroller.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
   }
 }
 
