@@ -135,7 +135,8 @@ export const dom = {
   confirmOk: $('confirmOk'),
   // Toast & Form
   toast: document.getElementById('toast'),
-  form: $('form'),
+  // NOTA: 'form' já é declarado acima (grupo Auth/Form) — a duplicata aqui era
+  // um no-op silencioso. ESLint (no-dupe-keys) pegou isso.
 };
 
 export default dom;
