@@ -3686,7 +3686,12 @@ a:focus-visible,
 
 /* — C) Main — */
 .tp-main { display:flex; gap:12px; border:1px solid var(--border); border-radius:18px; padding:12px; background:transparent; align-items:stretch; }
-.tp-poster-col { flex:0 0 342px; max-width:362px; display:flex; flex-direction:column; }
+/* 357px e a largura que faz um poster 2/3 terminar na MESMA linha do painel
+   de episodio (357 * 3/2 = 535,5 ~= altura da coluna de conteudo). Abaixo
+   disso sobrava faixa vazia embaixo do card; acima, o card ultrapassava.
+   A sidebar foi encolhida (26px de botao, gaps menores) porque ela era o
+   elemento mais alto e criava a faixa sozinha. */
+.tp-poster-col { flex:0 0 357px; max-width:377px; display:flex; flex-direction:column; }
 .tp-content-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .tp-frame { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--bg-secondary); box-shadow:var(--shadow); }
 
@@ -3747,7 +3752,17 @@ a:focus-visible,
 .title-page .dm-btn-danger:hover { background: rgba(239,68,68,0.22); transform: translateY(-1px); }
 .tp-side-hud .dm-status-btn,
 .tp-side-hud .dm-action-btn,
-.tp-side-hud .dm-btn { width: 100%; min-height: 36px; }
+.tp-side-hud .dm-btn { width: 100%; min-height: 26px; padding: 3px 5px; font-size: 0.64rem; }
+/* A sidebar é o elemento mais alto da linha e, sozinha, criava a faixa vazia
+   embaixo do conteúdo. Encolhida, ela para de impor a altura da linha: agora
+   quem manda é a coluna de conteúdo, e as bases ficam alinhadas. */
+.tp-side-hud { gap: 8px; }
+.title-page .tp-side-card { padding: 6px 8px; gap: 5px; }
+/* Painel de episódio mais baixo, para a coluna direita terminar na mesma linha
+   do card vertical. */
+.title-page .tp-season-block,
+.title-page .tp-episode-block,
+.title-page .tp-synopsis-block { padding: 8px; gap: 8px; }
 /* Títulos padronizados */
 .tp-hud-top #titleName,
 .tp-genres-block #titleGenres,
