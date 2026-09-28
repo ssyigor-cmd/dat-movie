@@ -1681,7 +1681,10 @@ async function addItem(e) {
           const tvData = await callTMDB(`tv/${result.id}`, {}, 'pt-BR');
           state.cachedShowDetails = { totalEpisodes: tvData.number_of_episodes || 0, seasons: tvData.seasons || [] };
         } else {
-          state.cachedShowDetails = { totalEpisodes: 1, seasons: [{ season_number: 1, episode_count: 1 }] };
+          // NÃO usar 1 aqui. Salvar total 1 faz calcularProgresso devolver
+          // 100% para qualquer episodio, sem nenhum aviso. Deixa 0 para o
+          // guard abaixo recusar a gravacao com mensagem clara.
+          state.cachedShowDetails = { totalEpisodes: 0, seasons: [] };
         }
       }
     }
@@ -1697,12 +1700,15 @@ async function addItem(e) {
         ano = parseInt(state.cachedShowDetails.release_date.substring(0,4));
       }
     } else {
-      totalEp = 1;
-      seasonEpisodesMap = { 1: 1 };
+      // Mantém totalEp em 0 de propósito. Antes aqui virava 1, e o guard
+      // logo abaixo (que existe exatamente para isso) nunca disparava —
+      // resultado: título salvo com 1 episódio e barra em 100%.
+      totalEp = 0;
+      seasonEpisodesMap = {};
     }
 
     if (totalEp === 0) {
-      showToast('Não foi possível obter o total de episódios. Tente novamente.');
+      showToast('Não foi possível obter o total de episódios. Verifique a conexão e tente de novo.', 4000);
       setLoading(false);
       addItemInFlight = false;
       return;
