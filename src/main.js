@@ -18,7 +18,7 @@ import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
-import { buildFallbackQueries } from './lib/fuzzySearch.js';
+import { buildFallbackQueries, sortByRelevance } from './lib/fuzzySearch.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
 import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
@@ -2337,8 +2337,12 @@ if (pesquisaInput) {
         if (filteredResults.length === 0) {
           for (const alt of buildFallbackQueries(q)) {
             const retry = await callTMDB('search/tv', { query: alt }, 'pt-BR');
-            const achou = sortSearchResults(retry.results || [], q);
-            if (achou.length > 0) { filteredResults = achou; break; }
+            if (!retry.results || retry.results.length === 0) continue;
+            // Reordena pela query ORIGINAL (com o erro de digitação), não
+            // pela alternativa. Buscando "banks" o TMDb devolve vários
+            // títulos; sem isso, o que o usuário queria não viria primeiro.
+            filteredResults = sortByRelevance(q, retry.results, (r) => r.name || r.title || '');
+            break;
           }
         }
 

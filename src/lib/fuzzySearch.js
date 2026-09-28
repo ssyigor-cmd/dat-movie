@@ -157,6 +157,24 @@ export function matchesQuery(query, text) {
 const STOPWORDS = new Set(['the', 'o', 'a', 'os', 'as', 'de', 'da', 'do', 'e']);
 
 /**
+ * Ordena resultados por semelhança com a consulta original.
+ * Usado no fallback da busca do TMDb: quando a query original não acha
+ * nada e tentamos "banks", o TMDb devolve vários títulos. Sem reordenar, o
+ * usuário teria que caçar o que queria no meio da lista — aqui o título que
+ * a query original pretendia vai para o topo.
+ * @param {string} query - Consulta original, com o erro de digitação.
+ * @param {Array} items - Resultados a ordenar.
+ * @param {(item:any)=>string} getName - Extrai o nome do resultado.
+ * @returns {Array} Cópia ordenada por relevância (estável em empate).
+ */
+export function sortByRelevance(query, items, getName) {
+  return (Array.isArray(items) ? items : [])
+    .map((item, i) => ({ item, i, score: matchScore(query, getName(item)) }))
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .map(({ item }) => item);
+}
+
+/**
  * Queries alternativas para tentar quando a busca do TMDb volta vazia.
  * O TMDb tem índice em pt-BR e en-US, então uma grafia que não bate de
  * primeira (acento, artigo inicial, palavra trocada) costuma funcionar

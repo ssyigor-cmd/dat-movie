@@ -6,6 +6,7 @@ import {
   matchScore,
   matchesQuery,
   buildFallbackQueries,
+  sortByRelevance,
 } from '../src/lib/fuzzySearch.js';
 
 describe('normalizeForSearch', () => {
@@ -116,6 +117,32 @@ describe('matchScore — ordenação', () => {
     const completo = matchScore(q, 'Harry Potter e a Pedra filosofal');
     const parcial = matchScore(q, 'Harry');
     expect(completo).toBeGreaterThan(parcial);
+  });
+});
+
+describe('sortByRelevance', () => {
+  // Simula o fallback da busca do TMDb: a query original não acha nada, tenta
+  // "banks", e o TMDb devolve vários títulos. O pretendido tem de ir ao topo.
+  const resultadosTMDb = [
+    { name: 'Silverpoint' },
+    { name: 'The Banks' },
+    { name: 'Outer Banks' },
+    { name: 'Banks' },
+  ];
+  const nome = (r) => r.name || r.title || '';
+
+  it('coloca o título pretendido no topo mesmo vindo do fallback', () => {
+    const out = sortByRelevance('auter banks', resultadosTMDb, nome);
+    expect(out[0].name).toBe('Outer Banks');
+  });
+  it('não depende da ordem em que o TMDb devolveu', () => {
+    const embaralhado = [...resultadosTMDb].reverse();
+    const out = sortByRelevance('auter banks', embaralhado, nome);
+    expect(out[0].name).toBe('Outer Banks');
+  });
+  it('aceita lista vazia ou inválida', () => {
+    expect(sortByRelevance('x', [], nome)).toEqual([]);
+    expect(sortByRelevance('x', null, nome)).toEqual([]);
   });
 });
 
