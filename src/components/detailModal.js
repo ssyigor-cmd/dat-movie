@@ -1,5 +1,9 @@
 /**
  * Componente DetailModal - Controle e exibição do modal de detalhes
+ *
+ * @deprecated Este módulo coexiste com `titlePage.js` como fluxo de detalhes
+ * alternativo. O `titlePage.js` é o fluxo oficial para catálogo e pesquisa.
+ * Remover gradualmente quando não houver mais callers em `main.js`.
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';

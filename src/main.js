@@ -20,18 +20,19 @@ import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
-import { state } from './lib/state.js';
+import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
+import dom from './lib/dom.js';
 if (typeof window !== 'undefined') window.anime = anime;
 
-function persistNavState() {
-  try {
-    localStorage.setItem('activeTab', state.currentTab);
-    if (state.currentListId) localStorage.setItem('activeListId', state.currentListId);
-    else localStorage.removeItem('activeListId');
-  } catch (_) {}
-}
+const $ = (id) => {
+  const found = dom[id];
+  if (found !== undefined) return found;
+  return document.getElementById(id);
+};
+const titlePageEl = $('titlePage');
+const toast = document.getElementById('toast');
+
 function setActiveTab(tab, listId = null) {
-  // Sai da página de título ao trocar de aba (evita card aberto sobre a nova tela)
   if (typeof hideTitlePage === 'function' && titlePageEl && titlePageEl.style.display !== 'none') {
     if (location.hash.startsWith('#/titulo/')) history.pushState(null, '', location.pathname + location.search);
     hideTitlePage(titlePageEl);
@@ -45,8 +46,6 @@ function setActiveTab(tab, listId = null) {
   if (typeof render === 'function') render();
 }
 
-// ========== ADAPTADORES PARA UI HELPERS ==========
-const toast = document.getElementById('toast');
 function showToast(msg, duration = 2800) {
   uiShowToast(toast, msg, duration);
 }
@@ -56,68 +55,87 @@ function showErrorToast(userMessage, error, duration = 3000) {
 }
 
 // ========== ELEMENTOS DOM ==========
-const $ = (id) => document.getElementById(id);
-const authContainer = $('authContainer');
-const authForm = $('authForm');
-const authEmail = $('authEmail');
-const authPassword = $('authPassword');
-const authLoginBtn = $('authLoginBtn');
-const authSignupBtn = $('authSignupBtn');
-const authMessage = $('authMessage');
-const grid = $('grid');
-const gridSection = document.getElementById('gridSection');
-const searchView = document.getElementById('searchView');
-const titlePageEl = document.getElementById('titlePage');
-const pesquisaInput = document.getElementById('pesquisaInput');
-const pesquisaGrid = document.getElementById('pesquisaGrid');
-const pesquisaEmpty = document.getElementById('pesquisaEmpty');
-const pesquisaLoading = document.getElementById('pesquisaLoading');
-const searchInput = $('searchInput');
-const filterStatus = $('filterStatus');
-const filterTier = $('filterTier');
-const sortOrder = $('sortOrder');
-const modalOverlay = $('modalOverlay');
-const titleInfoModal = $('titleInfoModal');
-const modalClose = $('modalClose');
-const modalTitle = $('modalTitle');
-const form = $('form');
-const tipo = $('tipo');
-const statusSelect = $('status');
-const tierForm = $('tierForm');
-const btnSubmit = $('btnSubmit');
-const btnCancel = $('btnCancel');
-const addPanelDelete = $('addPanelDelete');
-const previewImg = $('previewImg');
-const previewImgCard = $('previewImgCard');
-const previewPlaceholder = $('previewPlaceholder');
-const formLoading = $('formLoading');
-const densityToggleBtn = $('densityToggleBtn');
-const densityMenu = $('densityMenu');
-const densityOptions = document.querySelectorAll('.density-option');
-const addListToggle = $('addListToggle');
-const addListCheckboxes = $('addListCheckboxes');
-const addEpisodesBtn = $('addEpisodesBtn');
-const detailListToggle = $('detailListToggle');
-const detailListCheckboxes = $('detailListCheckboxes');
-const statusWrapper = $('statusWrapper');
-const statusToggleBtn = $('statusToggleBtn');
-const statusMenu = $('statusMenu');
-const tierWrapper = $('tierWrapper');
-const tierToggleBtn = $('tierToggleBtn');
-const tierMenu = $('tierMenu');
-const sortWrapper = $('sortWrapper');
-const sortToggleBtn = $('sortToggleBtn');
-const sortMenu = $('sortMenu');
-const filterMenuOptions = document.querySelectorAll('.filter-option');
-const groupToggle = $('groupToggle');
-const logoutBtn = $('logoutBtn');
-const continueSection = $('continueSection');
-const continueGrid = $('continueGrid');
-const homeSection = document.getElementById('homeSection');
-const profileToggle = $('profileToggle');
-const profileDropdown = $('profileDropdown');
-const profileEmail = $('profileEmail');
-const profileEmailFull = $('profileEmailFull');
+const densityToggleBtn = dom.densityToggleBtn;
+const densityMenu = dom.densityMenu;
+const densityOptions = dom.densityOptions;
+const addListToggle = dom.addListToggle;
+const addListCheckboxes = dom.addListCheckboxes;
+const addEpisodesBtn = dom.addEpisodesBtn;
+const detailListToggle = dom.detailListToggle;
+const detailListCheckboxes = dom.detailListCheckboxes;
+const addTemporadaInput = dom.addTemporadaInput;
+const addEpisodioInput = dom.addEpisodioInput;
+const addTemporadaDisplay = dom.addTemporadaDisplay;
+const addEpisodioDisplay = dom.addEpisodioDisplay;
+const addTierBadge = dom.addTierBadge;
+const addTierDropdown = dom.addTierDropdown;
+const addYearDisplay = dom.addYearDisplay;
+const addLogoContainer = dom.addLogoContainer;
+const addLogoImg = dom.addLogoImg;
+const addOriginalTitle = dom.addOriginalTitle;
+const addSinopse = dom.addSinopse;
+const addSinopseLoading = dom.addSinopseLoading;
+const addBlurBg = dom.addBlurBg;
+const addPosterWrap = dom.addPosterWrap;
+const modalTitleText = dom.modalTitleText;
+const addPosterSteppersRow = dom.addPosterSteppersRow;
+const addSeasonMaxEl = dom.addSeasonMax;
+const addSeasonNameEl = dom.addSeasonName;
+const addEpMaxEl = dom.addEpMax;
+const addEpTitleEl = dom.addEpTitle;
+const addEpDateEl = dom.addEpDate;
+const addEpOverviewEl = dom.addEpOverview;
+const addEpLoadingEl = dom.addEpLoading;
+const detailSeasonName = dom.detailSeasonName;
+
+// Filtros da barra de ferramentas (selects ocultos + menus + opções)
+const filterStatus = dom.filterStatus;
+const statusToggleBtn = dom.statusToggleBtn;
+const statusMenu = dom.statusMenu;
+const filterTier = dom.filterTier;
+const tierToggleBtn = dom.tierToggleBtn;
+const tierMenu = dom.tierMenu;
+const sortOrder = dom.sortOrder;
+const sortToggleBtn = dom.sortToggleBtn;
+const sortMenu = dom.sortMenu;
+const filterMenuOptions = dom.filterMenuOptions;
+
+// Demais elementos usados no módulo (bug pré-existente: o bloco acima só
+// extraía parte das chaves de dom.js, então tudo abaixo era ReferenceError).
+const authContainer = dom.authContainer;
+const authForm = dom.authForm;
+const authEmail = dom.authEmail;
+const authPassword = dom.authPassword;
+const authMessage = dom.authMessage;
+const authLoginBtn = dom.authLoginBtn;
+const authSignupBtn = dom.authSignupBtn;
+const logoutBtn = dom.logoutBtn;
+const profileToggle = dom.profileToggle;
+const profileDropdown = dom.profileDropdown;
+const profileEmail = dom.profileEmail;
+const profileEmailFull = dom.profileEmailFull;
+const continueSection = dom.continueSection;
+const gridSection = dom.gridSection;
+const searchView = dom.searchView;
+const statusWrapper = dom.statusWrapper;
+const tierWrapper = dom.tierWrapper;
+const groupToggle = dom.groupToggle;
+const statusSelect = dom.statusSelect;
+const tierForm = dom.tierForm;
+const tipo = dom.tipo;
+const pesquisaGrid = dom.pesquisaGrid;
+const pesquisaEmpty = dom.pesquisaEmpty;
+const pesquisaLoading = dom.pesquisaLoading;
+const previewImg = dom.previewImg;
+const previewPlaceholder = dom.previewPlaceholder;
+const formLoading = dom.formLoading;
+const modalTitle = dom.modalTitle;
+const modalClose = dom.modalClose;
+const btnSubmit = dom.btnSubmit;
+const titleInfoModal = dom.titleInfoModal;
+// Não existe no index.html (só há addPanelSave): resolve para null e o
+// guard `if (addPanelDelete)` abaixo trata isso.
+const addPanelDelete = dom.addPanelDelete;
 
 function densityLabelForValue(v) {
   const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
@@ -139,25 +157,6 @@ setTimeout(() => {
 const navbar = document.getElementById('topNavbar');
 const navbarNav = document.getElementById('navbarNav');
 const headerListName = document.getElementById('headerListName');
-
-// ADD MODAL
-const addTemporadaInput = $('addTemporada');
-const addEpisodioInput = $('addEpisodio');
-const addTemporadaDisplay = $('addTemporadaDisplay');
-const addEpisodioDisplay = $('addEpisodioDisplay');
-const addTierBadge = $('addTierBadge');
-const addTierDropdown = $('addTierDropdown');
-const addYearDisplay = $('addYearDisplay');
-const addLogoContainer = document.getElementById('addLogoContainer');
-const addLogoImg = document.getElementById('addLogoImg');
-const addOriginalTitle = $('addOriginalTitle');
-const addSinopse = document.getElementById('addSinopse');
-const addSinopseLoading = document.getElementById('addSinopseLoading');
-const addBlurBg = document.getElementById('addBlurBg');
-const addPosterWrap = document.getElementById('addPosterWrap');
-const modalTitleText = $('modalTitleText');
-const addPosterSteppersRow = $('addPosterSteppersRow');
-
 
 // ========== AUTENTICAÇÃO ==========
 function setAuthUI(showLogin) {
@@ -181,7 +180,7 @@ async function checkSession() {
         profileEmailFull.textContent = user.email;
       }
       // Default to home on fresh login if no persisted tab
-      if (!localStorage.getItem('activeTab')) {
+      if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB)) {
         state.currentTab = 'home';
         state.currentListId = null;
         persistNavState();
@@ -293,7 +292,17 @@ async function addItemToSupabase(item) {
     data_criacao: item.dataCriacao || new Date().toISOString()
   };
   const { data, error } = await supabase.from('items').insert([dbItem]).select();
-  if (error) throw error;
+  if (error) {
+    // 23505 = unique_violation. Com idx_items_user_tmdb_unique o banco vira a
+    // última linha de defesa contra títulos duplicados: o check client-side
+    // não cobre dois dispositivos inserindo o mesmo tmdb_id ao mesmo tempo.
+    if (error.code === '23505') {
+      const dup = new Error('Este título já existe no seu catálogo.');
+      dup.code = '23505';
+      throw dup;
+    }
+    throw error;
+  }
   return { ...data[0], totalEpisodios: data[0].total_episodios, seasonEpisodesMap: data[0].season_episodes_map || {}, dataCriacao: data[0].data_criacao, dataAtualizacao: data[0].data_atualizacao };
 }
 
@@ -513,7 +522,7 @@ function renderNavbar() {
 function initListsSortable() {
   const dropdown = document.getElementById('listsDropdown');
   if (!dropdown || !window.Sortable) return;
-  if (state.listsSortable) { try { state.listsSortable.destroy(); } catch(e){} state.listsSortable = null; }
+  if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch(e){} }
   const handleExists = dropdown.querySelector('.nav-drag-handle');
   if (!handleExists) return;
   state.listsSortable = new window.Sortable(dropdown, {
@@ -779,15 +788,6 @@ const addInputs = {
   tempDisplay: addTemporadaDisplay
 };
 
-// ========== ADD MODAL EPISODE PROGRESS PANEL ==========
-const addSeasonMaxEl = $('addSeasonMax');
-const addSeasonNameEl = $('addSeasonName');
-const addEpMaxEl = $('addEpMax');
-const addEpTitleEl = $('addEpTitle');
-const addEpDateEl = $('addEpDate');
-const addEpOverviewEl = $('addEpOverview');
-const addEpLoadingEl = $('addEpLoading');
-
 let addEpisodeInfoRequestId = 0;
 
 function resetAddProgressPanel() {
@@ -877,10 +877,10 @@ const handleCardClick = (index) => {
 
 // Detail Modal
 const detailInputs = {
-  tempInput: $('detailTemporada'),
-  epInput: $('detailEpisodio'),
-  epDisplay: $('detailEpisodioDisplay'),
-  tempDisplay: $('detailTemporadaDisplay')
+  tempInput: dom.detailTemporadaInput,
+  epInput: dom.detailEpisodioInput,
+  epDisplay: dom.detailEpisodioDisplay,
+  tempDisplay: dom.detailTemporadaDisplay
 };
 
 const detailModalAPI = setupDetailModal({
@@ -1249,7 +1249,9 @@ async function openAddModalWithTmdbResult(raw) {
           addCountryFlagEl.style.display = 'none';
         }
       }
-      const logoUrl = logoUrlParallel;
+      // O logo nunca era buscado aqui: restou a referência `logoUrlParallel`
+      // de um refactor anterior e fetchTitleLogo (importado) não era chamado.
+      const logoUrl = await fetchTitleLogo(tmdbId, mediaType);
       if (logoUrl && addLogoImgEl && addLogoContainerEl) {
         addLogoImgEl.src = logoUrl;
         addLogoImgEl.alt = `Logo de ${displayTitle}`;
@@ -1784,7 +1786,9 @@ async function addItem(e) {
     state.addSeasonLimits = {};
     resetAddProgressPanel();
   } catch (error) {
-    showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
+    // Corrida entre dispositivos estourou o índice único: o título já existe.
+    if (error?.code === '23505') showToast(error.message);
+    else showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
   } finally {
     setLoading(false);
     addItemInFlight = false;

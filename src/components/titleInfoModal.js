@@ -169,7 +169,7 @@ async function fetchWikipediaCuriosities(query) {
  */
 function row(label, value, opts = {}) {
   if (!value) return '';
-  return `<div class="ti-row"><span class="ti-label">${escapeHTML(label)}</span><span class="ti-value">${escapeHTML(value)}${opts.suffix || ''}</span></div>`;
+  return `<div class="ti-row"><span class="ti-label">${escapeHTML(label)}</span><span class="ti-value">${opts.prefix || ''}${escapeHTML(value)}${opts.suffix || ''}</span></div>`;
 }
 
 /**
@@ -297,16 +297,6 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       if (details.original_name && details.original_name !== details.name) {
         html += `<div class="ti-original">${escapeHTML(details.original_name)}</div>`;
       }
-      const badges = [];
-      if (statusPt) {
-        badges.push(`<span class="ti-badge ti-badge--status ${status.tone}"><i class="fas ${status.icon}" aria-hidden="true"></i> ${escapeHTML(statusPt)}</span>`);
-      }
-      // Bandeira e idioma no topo: é a informação que se olha primeiro para
-      // decidir se vale entrar no título.
-      if (flagImg) badges.push(`<span class="ti-badge ti-badge--flag">${escapeHTML(countryText)} ${flagImg}</span>`);
-      if (langText) badges.push(`<span class="ti-badge"><i class="fas fa-language" aria-hidden="true"></i> ${escapeHTML(langText)}</span>`);
-      if (genres.length) badges.push(`<span class="ti-badge">${escapeHTML(genres.join(' · '))}</span>`);
-      if (badges.length) html += `<div class="ti-badges">${badges.join('')}</div>`;
       html += `</div>`;
       html += `</div>`;
 
@@ -326,12 +316,8 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         row('Gênero', genres.join(', ')),
         row('Tipo', typePt),
         row('Duração', runtime),
-        row('Idioma original', langText, {
-          suffix: `<i class="fas fa-language ti-mark" aria-hidden="true"></i>`
-        }),
-        row('Status', statusPt, {
-          suffix: `<i class="fas ${status.icon} ti-mark ${status.tone}" aria-hidden="true"></i>`
-        }),
+row('Idioma original', langText),
+        row('Status', statusPt),
         row('Temporadas', details.number_of_seasons ? String(details.number_of_seasons) : ''),
         row('Episódios', details.number_of_episodes ? String(details.number_of_episodes) : ''),
         row('IMDb', details.imdb_id ? details.imdb_id : '')
