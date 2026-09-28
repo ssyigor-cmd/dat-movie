@@ -13,6 +13,7 @@ import { getTierClass, formatDateBR, calcularProgresso } from '../lib/catalog.js
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
 import { resolveSeasonPosterUrl, shouldUseSeasonArt } from '../lib/seasonArt.js';
+import { createAutoRotate } from '../lib/autoRotate.js';
 
 // ================================================================
 // 1) ESTADO & CALLBACKS
@@ -29,6 +30,24 @@ let onOpenDetails = null;
 let onOpenParent = null;
 let onRelinkTitle = null;
 let onCreateItem = null;
+
+/** Intervalo da rotação automática das imagens horizontais. */
+const BACKDROP_AUTO_MS = 15000;
+
+/**
+ * Rotação automática, no escopo do módulo porque `hideTitlePage` precisa
+ * encerrá-la. Se ficasse no closure do render, sair da página do título
+ * deixaria o intervalo rodando e as imagens continuariam trocando sozinhas,
+ * sem ninguém vendo.
+ */
+let backdropRotate = null;
+
+function stopBackdropAutoRotate() {
+  if (backdropRotate) {
+    backdropRotate.stop();
+    backdropRotate = null;
+  }
+}
 
 /**
  * @param {Object} callbacks
@@ -358,6 +377,37 @@ function renderTitlePage(item, container) {
   const backdropPrev = container.querySelector('#tpBackdropPrev');
   const backdropNext = container.querySelector('#tpBackdropNext');
   const backdropCounter = container.querySelector('#tpBackdropCounter');
+
+  /**
+   * Avança as horizontais sozinho a cada 15s.
+   *
+   * Regras que evitam o comportamento irritante:
+   * - só roda com 2+ imagens (com uma só, as setas nem aparecem);
+   * - não conta o tempo com a aba em segundo plano, para não trocar de
+   *   imagem a esmo e gastar banda quando ninguém está olhando;
+   * - reinicia a contagem a cada navegação manual, então quem clica na seta
+   *   sempre tem os 15s inteiros pela frente, em vez de ver a troca
+   *   acontecer de inmediato.
+   */
+  function startBackdropAutoRotate() {
+    stopBackdropAutoRotate();
+    if (backdropImages.length <= 1) return;
+    backdropRotate = createAutoRotate({
+      intervalMs: BACKDROP_AUTO_MS,
+      // Aba em segundo plano não conta tempo: evita trocar imagem a esmo e
+      // gastar banda com ninguém olhando.
+      shouldRun: () => !document.hidden,
+      onTick: () => showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length)),
+    });
+    backdropRotate.start();
+  }
+
+  /** Navegação vinda do usuário: troca a imagem e zera a contagem. */
+  function navegarPara(idx) {
+    showBackdropAt(idx);
+    startBackdropAutoRotate();
+  }
+
   function refreshBackdropControls() {
     const hasMany = backdropImages.length > 1;
     if (backdropPrev) backdropPrev.style.display = hasMany ? 'inline-flex' : 'none';
@@ -378,13 +428,13 @@ function renderTitlePage(item, container) {
     if (backdropPh) backdropPh.style.display = 'none';
     refreshBackdropControls();
   }
-  if (backdropPrev) backdropPrev.addEventListener('click', (e) => { e.stopPropagation(); showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length)); });
-  if (backdropNext) backdropNext.addEventListener('click', (e) => { e.stopPropagation(); showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length)); });
+  if (backdropPrev) backdropPrev.addEventListener('click', (e) => { e.stopPropagation(); navegarPara(prevImage(currentBackdropIndex, backdropImages.length)); });
+  if (backdropNext) backdropNext.addEventListener('click', (e) => { e.stopPropagation(); navegarPara(nextImage(currentBackdropIndex, backdropImages.length)); });
   // teclado ←→ e swipe
   container.addEventListener('keydown', (e) => {
     if (backdropImages.length <= 1) return;
-    if (e.key === 'ArrowLeft') showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length));
-    if (e.key === 'ArrowRight') showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length));
+    if (e.key === 'ArrowLeft') navegarPara(prevImage(currentBackdropIndex, backdropImages.length));
+    if (e.key === 'ArrowRight') navegarPara(nextImage(currentBackdropIndex, backdropImages.length));
   });
   container.setAttribute('tabindex', '0');
   let touchStartX = null;
@@ -394,8 +444,8 @@ function renderTitlePage(item, container) {
       if (touchStartX === null) return;
       const dx = e.changedTouches[0].clientX - touchStartX;
       if (Math.abs(dx) > 40 && backdropImages.length > 1) {
-        if (dx > 0) showBackdropAt(prevImage(currentBackdropIndex, backdropImages.length));
-        else showBackdropAt(nextImage(currentBackdropIndex, backdropImages.length));
+        if (dx > 0) navegarPara(prevImage(currentBackdropIndex, backdropImages.length));
+        else navegarPara(nextImage(currentBackdropIndex, backdropImages.length));
       }
       touchStartX = null;
     });
@@ -683,6 +733,8 @@ function renderTitlePage(item, container) {
           showBackdropAt(0);
         }
       }
+      // As imagens chegaram: agora a rotação automática pode começar.
+      startBackdropAutoRotate();
       const posterCard = container.querySelector('#titlePosterImgCard');
       const posterPh = container.querySelector('#titlePosterPlaceholder');
       // Arte da temporada em acompanhamento tem prioridade sobre a arte "vigente" da série,
@@ -741,12 +793,16 @@ function renderTitlePage(item, container) {
 // 5) API PÚBLICA
 // ================================================================
 export function showTitlePage(item, container) {
+  // Trocar de título tem que derrubar o timer do anterior, senão o intervalo
+  // antigo continua vivo e acabamos com dois timers competindo.
+  stopBackdropAutoRotate();
   container.style.display = 'block';
   renderTitlePage(item, container);
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0);
 }
 
 export function hideTitlePage(container) {
+  stopBackdropAutoRotate();
   container.style.display = 'none';
   container.innerHTML = '';
   currentItem = null;
