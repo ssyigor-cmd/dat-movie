@@ -141,9 +141,9 @@ function renderTitlePage(item, container) {
       <div class="tp-main" style="flex:1;">
         <!-- C1) Poster vertical -->
         <div class="tp-poster-col" style="flex:0 0 380px; max-width:400px; display:flex; flex-direction:column;">
-          <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; flex:1; min-height:0;">
-              <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:100%; height:100%; object-fit:contain; object-position:center; display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
-            <div id="titlePosterPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-image"></i>&nbsp; Imagem vertical</div>
+          <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex:0 1 auto; align-self:flex-start; width:100%; min-height:0;">
+              <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:100%; height:auto; object-fit:contain; object-position:center; display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
+            <div id="titlePosterPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; min-height:180px; color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-image"></i>&nbsp; Imagem vertical</div>
           </div>
         </div>
 
