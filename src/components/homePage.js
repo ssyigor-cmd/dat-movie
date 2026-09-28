@@ -589,10 +589,14 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 
 /**
  * Card de indicação: a mesma anatomia do card da home, mais a frase que
- * justifica a indicação e o rosto de quem fez.
+ * justifica a indicação.
  *
  * A frase é uma linha de verdade, não um rótulo — por isso ela é o elemento de
  * maior peso do card, e o subtítulo da data cede lugar a ela.
+ *
+ * Havia aqui uma miniatura com o rosto do criador, para ligar a frase a uma
+ * pessoa. Saiu a pedido do usuário: 22px não chegam a dizer nada, e o nome já
+ * está na frase. SoBRAVA o furo quando o TMDb não tem foto do criador.
  * @param {Object} pick - Item devolvido por `getFriendPicks`.
  * @param {Function} onClick - Callback de abertura.
  * @returns {HTMLElement} Card.
@@ -611,7 +615,6 @@ function createPickCard(pick, onClick) {
     <div class="home-card-body">
       <h3 title="${title}">${title}</h3>
       <p class="home-pick-reason">${escapeHTML(pick.reason)}</p>
-      ${pick.person?.profileUrl ? `<img class="home-pick-avatar" src="${escapeHTML(pick.person.profileUrl)}" alt="" loading="lazy" />` : ''}
     </div>
   `;
   if (onClick) {

@@ -5,7 +5,6 @@ import {
   extractCreators,
   findSharedCreator,
   buildReason,
-  creatorProfileUrl,
   isPickableCandidate,
   getFriendPicks,
   MIN_ANCHOR_SCORE,
@@ -40,7 +39,6 @@ function credits(crew) {
       name: c.name,
       original_name: c.name,
       known_for_department: 'Writing',
-      profile_path: c.profilePath ?? null,
       department: 'Writing',
       total_episode_count: 12,
       ...(c.jobs
@@ -146,7 +144,6 @@ describe('extractCreators', () => {
     const out = extractCreators(real);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ personId: '66633', name: 'Vince Gilligan', verb: 'criou', rank: 3 });
-    expect(out[0].profilePath).toBe('/vg.jpg');
   });
 
   it('escolhe a função mais forte entre as várias da mesma pessoa', () => {
@@ -279,14 +276,6 @@ describe('buildReason', () => {
   });
 });
 
-describe('creatorProfileUrl', () => {
-  it('monta a URL do TMDB e preserva URL absoluta', () => {
-    expect(creatorProfileUrl('/abc.jpg')).toBe('https://image.tmdb.org/t/p/w185/abc.jpg');
-    expect(creatorProfileUrl('https://x/y.jpg')).toBe('https://x/y.jpg');
-    expect(creatorProfileUrl(null)).toBe('');
-  });
-});
-
 describe('isPickableCandidate', () => {
   it('aceita um título normal', () => {
     expect(isPickableCandidate(raw())).toBe(true);
@@ -337,7 +326,6 @@ describe('getFriendPicks', () => {
     expect(out).toHaveLength(1);
     expect(out[0].title).toBe('Candidato');
     expect(out[0].reason).toBe('Vince dirigiu Título. E dirigiu isto aqui.');
-    expect(out[0].person.name).toBe('Vince');
     expect(out[0].anchor.nome).toBe('Título');
   });
 

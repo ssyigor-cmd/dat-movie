@@ -3536,15 +3536,6 @@ a:focus-visible,
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.home-pick-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-pill);
-  object-fit: cover;
-  background: var(--bg-secondary);
-  align-self: flex-start;
-  margin-top: 1px;
-}
 .home-card-epname {
   font-size: 0.62rem;
   color: var(--text-secondary);

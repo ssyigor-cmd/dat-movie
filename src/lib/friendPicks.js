@@ -198,7 +198,7 @@ export function pickAnchors(catalogItems, limit = ANCHOR_LIMIT) {
  * Uma pessoa pode ter várias funções na mesma série (diretor e roteirista); fica
  * só a de maior peso, para o cartão não citar o mesmo nome duas vezes.
  * @param {Object} credits - Payload de `tv/{id}/aggregate_credits`.
- * @returns {Array<{personId:string, name:string, verb:string, rank:number, profilePath:string|null}>}
+ * @returns {Array<{personId:string, name:string, verb:string, rank:number}>}
  */
 export function extractCreators(credits) {
   const crew = Array.isArray(credits?.crew) ? credits.crew : [];
@@ -238,7 +238,7 @@ export function extractCreators(credits) {
  * Acha o criador que aparece nos dois lados (âncora e candidato).
  * @param {Array} anchorCreators - Criadores da âncora.
  * @param {Array} pickCreators - Criadores do candidato.
- * @returns {Object|null} `{ personId, name, anchorVerb, pickVerb, profilePath }`.
+ * @returns {Object|null} `{ personId, name, anchorVerb, pickVerb, rank }`.
  */
 export function findSharedCreator(anchorCreators, pickCreators) {
   if (!Array.isArray(anchorCreators) || !Array.isArray(pickCreators)) return null;
@@ -258,7 +258,6 @@ export function findSharedCreator(anchorCreators, pickCreators) {
       name: a.name,
       anchorVerb: a.verb,
       pickVerb: p.verb,
-      profilePath: p.profilePath || a.profilePath || null,
       rank
     };
   }
@@ -277,13 +276,6 @@ export function findSharedCreator(anchorCreators, pickCreators) {
 export function buildReason({ personName, anchorVerb, pickVerb, anchorTitle }) {
   if (!personName || !anchorTitle) return '';
   return `${personName} ${anchorVerb} ${anchorTitle}. E ${pickVerb} isto aqui.`;
-}
-
-/** URL do rosto do criador, quando o TMDb devolve. */
-export function creatorProfileUrl(profilePath) {
-  if (!profilePath) return '';
-  const path = String(profilePath);
-  return path.startsWith('http') ? path : `https://image.tmdb.org/t/p/w185${path}`;
 }
 
 /**
@@ -459,10 +451,6 @@ export async function getFriendPicks(catalogItems, opts = {}) {
       pickVerb: shared.pickVerb,
       anchorTitle: anchor.item.nome
     }),
-    person: {
-      name: shared.name,
-      profileUrl: creatorProfileUrl(shared.profilePath)
-    },
     anchor: {
       id: anchor.item.tmdb_id,
       nome: anchor.item.nome,
