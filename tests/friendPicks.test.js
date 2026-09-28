@@ -9,8 +9,14 @@ import {
   isPickableCandidate,
   getFriendPicks,
   MIN_ANCHOR_SCORE,
-  CREDIT_BUDGET
+  CREDIT_BUDGET,
+  CANDIDATE_PROBE
 } from '../src/lib/friendPicks.js';
+
+// O teste de fronteira fala da posição exata do probe, então lê o valor em vez
+// de repetir o número: mudar CANDIDATE_PROBE não pode quebrar o teste por causa
+// de um literal desatualizado aqui.
+const PROBE = CANDIDATE_PROBE;
 import { cacheClear } from '../src/lib/cache.js';
 
 /**
@@ -395,11 +401,12 @@ describe('getFriendPicks', () => {
   });
 
   it('descarta candidato bloqueado antes de gastar crédito com ele', async () => {
-    const chamadas = { n: 0 };
+    const chamadas = { endpoints: [] };
     const fake = async (endpoint) => {
-      chamadas.n += 1;
+      chamadas.endpoints.push(endpoint);
       if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
       if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+      if (endpoint === 'search/multi') return { results: [] };
       if (endpoint === 'tv/100/recommendations') {
         return { results: [raw({ id: 78670, name: 'Impulse' }), raw()] };
       }
@@ -408,9 +415,11 @@ describe('getFriendPicks', () => {
     const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
     expect(out).toHaveLength(1);
     expect(out[0].id).toBe(900);
-    // 1 crédito da âncora + 1 do candidato escolhido. O bloqueado nunca é
-    // conferido, que é o ponto: o filtro roda antes de gastar chamada.
-    expect(chamadas.n).toBe(3);
+    // Só as chamadas de créditos contam para esta asserção: o bloqueado tem id
+    // na BLOCKED list, então é descartado no filtro e nunca chega a ser
+    // conferido, que é o ponto. 1 crédito da âncora + 1 do escolhido.
+    const creditos = chamadas.endpoints.filter(e => e.endsWith('/aggregate_credits'));
+    expect(creditos).toEqual(['tv/100/aggregate_credits', 'tv/900/aggregate_credits']);
   });
 
   /**
@@ -473,6 +482,154 @@ describe('getFriendPicks', () => {
     const out = await withMock(fake, mod => mod.getFriendPicks(catalog, { limit: 3 }));
     expect(out).toBeNull();
     expect(creditos).toBeLessThanOrEqual(CREDIT_BUDGET);
+  });
+
+  it('usa as obras do próprio criador via search/multi, sem sondar similaridade', async () => {
+    // Caminho 1. O `known_for` da pessoa já é a lista de títulos DELA, então o
+    // vínculo vem confirmado na conferida e não depende de a similaridade
+    // acertar. Aqui o recommendations devolveria ruído de propósito: se a
+    // implementação sondasse por lá, não acharia nada.
+    const chamadas = [];
+    const fake = async (endpoint, params) => {
+      chamadas.push(endpoint);
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 66633, name: 'Vince Gilligan', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/950/aggregate_credits') return credits([{ id: 66633, name: 'Vince Gilligan', jobs: ['Director'] }]);
+      if (endpoint === 'search/multi') {
+        expect(params.query).toBe('Vince Gilligan');
+        return { results: [
+          { id: 66633, name: 'Vince Gilligan', media_type: 'person', known_for: [
+            { id: 950, name: 'Pluribus', media_type: 'tv', poster_path: '/p.jpg', first_air_date: '2025-11-07', original_language: 'en', overview: '', vote_average: 8, popularity: 500 },
+            { id: 951, name: 'Filme dele', media_type: 'movie', poster_path: '/q.jpg' }
+          ] }
+        ] };
+      }
+      if (endpoint.endsWith('/recommendations') || endpoint.endsWith('/similar')) {
+        return { results: Array.from({ length: 10 }, (_, i) => raw({ id: 800 + i })) };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe(950);
+    expect(out[0].reason).toBe('Vince Gilligan criou Título. E dirigiu isto aqui.');
+    // O caminho 1 resolveu, então nem chegou a sondar similaridade.
+    expect(chamadas.filter(e => e.endsWith('/recommendations'))).toHaveLength(0);
+  });
+
+  it('ignora homônimo: só casa o person com o id certo', async () => {
+    // Mesmo nome, pessoa diferente. Se casasse por texto, a frase seria uma
+    // mentira — e é exatamente o tipo de erro que a feature não pode ter.
+    const fake = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 66633, name: 'Vince Gilligan', jobs: ['Creator'] }]);
+      if (endpoint === 'search/multi') {
+        return { results: [
+          { id: 99999, name: 'Vince Gilligan', media_type: 'person', known_for: [
+            { id: 960, name: 'Obra do homônimo', media_type: 'tv', poster_path: '/p.jpg', first_air_date: '2020-01-01', original_language: 'en', overview: '', vote_average: 7, popularity: 300 }
+          ] }
+        ] };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    // Nenhum vínculo: a seção se esconde em vez de indicar o homônimo.
+    expect(out).toBeNull();
+  });
+
+  it('cai para similaridade quando a pessoa não vem no search/multi', async () => {
+    // O `known_for` é o atalho, não a garantia. Se a busca não trouxer a
+    // pessoa, o caminho antigo tem de continuar funcionando sozinho.
+    const fake = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'search/multi') return { results: [] };
+      if (endpoint === 'tv/100/recommendations') return { results: [raw()] };
+      if (endpoint === 'tv/100/similar') return { results: [] };
+      return { results: [] };
+    };
+    const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe(900);
+  });
+
+  it('não confia no known_for sem confirmar o crédito do candidato', async () => {
+    // O `known_for` do TMDb é uma lista declarativa e pode estar desatualizada
+    // ou trazer título que a pessoa não dirigiu. A conferida por id é o que
+    // garante que a frase não está mentindo.
+    const fake = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 66633, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/970/aggregate_credits') return credits([{ id: 777, name: 'Outra Pessoa', jobs: ['Director'] }]);
+      if (endpoint === 'search/multi') {
+        return { results: [{ id: 66633, name: 'Vince', media_type: 'person', known_for: [
+          { id: 970, name: 'Título sem ele', media_type: 'tv', poster_path: '/p.jpg', first_air_date: '2020-01-01', original_language: 'en', overview: '', vote_average: 7, popularity: 300 }
+        ] }] };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(out).toBeNull();
+  });
+
+  it('junta recommendations e similar, e não repete título entre os dois', async () => {
+    // As duas listas se sobrepõem em parte. A repetição custaria uma chamada de
+    // créditos inteira para reavaliar o mesmo título, que é o recurso mais caro
+    // da seção.
+    const chamadas = [];
+    const fake = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') { chamadas.push(900); return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]); }
+      if (endpoint === 'tv/901/aggregate_credits') { chamadas.push(901); return credits([{ id: 2, name: 'Outra', jobs: ['Director'] }]); }
+      if (endpoint === 'tv/100/recommendations') return { results: [raw({ id: 900 }), raw({ id: 901 })] };
+      if (endpoint === 'tv/100/similar') return { results: [raw({ id: 900 }), raw({ id: 902 })] };
+      return { results: [] };
+    };
+    const out = await withMock(fake, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(out).toHaveLength(1);
+    // 900 veio nas duas listas e foi conferido uma vez só. 901 é o candidato
+    // seguinte, e não tem vínculo — daí sair 1 card mesmo com 3 candidatos.
+    expect(chamadas.filter(c => c === 900)).toHaveLength(1);
+  });
+
+  it('acha o vínculo na última posição do probe, e não além dela', async () => {
+    // Regressão do sintoma reportado: o creator em comum estava entre os
+    // primeiros candidatos, e a seção vinha com 1 card só.
+    //
+    // Esta é a fronteira honesta do custo. O TMDb devolve 20 candidatos por
+    // recommendations, mas `aggregate_credits` traz o elenco inteiro: conferir
+    // os 20 pagaria 20 chamadas pesadas para no máximo 3 cards. Então o probe
+    // corta em CANDIDATE_PROBE, e o que salva a quantidade é ANCHOR_LIMIT --
+    // mais âncoras, cada uma com sua rolagem nova de candidatos.
+    const dentro = 900 + PROBE - 1;   // última posição conferida
+    const fora = 900 + PROBE;         // primeira posição NÃO conferida
+
+    // Só o último do probe tem criador em comum.
+    const comVinculoNaFronteira = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === `tv/${dentro}/aggregate_credits`) return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/100/recommendations') {
+        return { results: Array.from({ length: PROBE + 1 }, (_, i) => raw({ id: 900 + i })) };
+      }
+      if (endpoint === 'tv/100/similar') return { results: [] };
+      return { results: [] };
+    };
+    const achou = await withMock(comVinculoNaFronteira, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(achou).toHaveLength(1);
+    expect(achou[0].id).toBe(dentro);
+
+    // Mesmo arranjo, mas o vinculo está UMA posição além: deixa de ser conferido
+    // e a seção se esconde. Não é defeito da ancora nem do endpoint, é o teto de
+    // custo, e é intencional. O teste documenta esse limite para ninguem
+    // descobrir depois que lista curta é bug.
+    const soForaDaFronteira = async (endpoint) => {
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === `tv/${fora}/aggregate_credits`) return credits([{ id: 1, name: 'Vince', jobs: ['Creator'] }]);
+      if (endpoint === 'tv/100/recommendations') {
+        return { results: Array.from({ length: PROBE + 1 }, (_, i) => raw({ id: 900 + i })) };
+      }
+      if (endpoint === 'tv/100/similar') return { results: [] };
+      return { results: [] };
+    };
+    const semVinculo = await withMock(soForaDaFronteira, mod => mod.getFriendPicks([item()], { limit: 1 }));
+    expect(semVinculo).toBeNull();
   });
 
   it('reaproveita os créditos do cache em vez de buscar de novo', async () => {

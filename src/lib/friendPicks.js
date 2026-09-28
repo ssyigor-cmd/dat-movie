@@ -36,14 +36,38 @@ import {
 /** Cards exibidos. Curado e pequeno de propósito: é indicação, não vitrine. */
 export const PICK_COUNT = 3;
 
-/** Quantos títulos do usuário são usados como âncora, na pior ordem possível. */
-export const ANCHOR_LIMIT = 3;
+/**
+ * Quantos títulos do usuário viram âncora.
+ *
+ * São 5 para preencher 3 cards, e não 3, porque o que limita a quantidade não
+ * é falta de âncora e sim a chance de o candidato ter criador em comum: com 3
+ * âncoras a seção viabilizava só 3 tentativas independentes, e qualquer uma que
+ * não achasse vínculo deixava o card vazio. Âncora extra é uma rolagem nova na
+ * sorte; sondar mais fundo na mesma âncora não é, porque o creators em comum se
+ * esgota rápido.
+ */
+export const ANCHOR_LIMIT = 5;
+
+/**
+ * Quantos criadores de uma âncora têm as obras consultadas antes de desistir.
+ *
+ * Só os primeiros da lista (ordenada por função) entram: normalmente é um
+ * criador ou roteirista, e o resto já é o mesmo time de sempre.
+ */
+export const CREATOR_WORK_PROBE = 2;
 
 /** Quantos candidatos de uma âncora têm os créditos conferidos atrás de um criador em comum. */
-export const CANDIDATE_PROBE = 4;
+export const CANDIDATE_PROBE = 3;
 
-/** Teto de chamadas a `aggregate_credits` por montagem da seção. */
-export const CREDIT_BUDGET = 16;
+/**
+ * Teto de chamadas a `aggregate_credits` por montagem da seção.
+ *
+ * É o que limita o custo de verdade: cada chamada traz o elenco inteiro da
+ * série. 22 dá 5 âncoras + 17 candidatos, e o que sobra é cortado — sempre
+ * pela âncora mais fraca, que é a ordem correta, já que a pontuação do anchor
+ * é o que garante a qualidade da frase.
+ */
+export const CREDIT_BUDGET = 22;
 
 /** Abaixo deste score o título não serve de âncora, e a seção não aparece. */
 export const MIN_ANCHOR_SCORE = 30;
@@ -326,20 +350,74 @@ async function fetchCreators(tmdbId, ctx) {
   return creators;
 }
 
-/** Candidatos de uma âncora: similaridade do TMDb, já filtrados. */
-async function fetchCandidates(anchorTmdbId, catalogItems) {
+/**
+ * Candidatos de uma âncora: similaridade do TMDb, já filtrados.
+ *
+ * Junta `recommendations` E `similar` em vez de usar o segundo só como
+ * fallback de erro. As duas chamadas são baratas (uma lista, sem elenco), e o
+ * `recommendations` do TMDb é justamente onde um título que divide o criador
+ * com a âncora mais vezes aparece em posição baixa: sondar só os 4 primeiros
+ * achados era a razão de a seção vir com 1 card só.
+ * @param {number|string} anchorTmdbId - ID da âncora.
+ * @param {Array} catalogItems - Catálogo do usuário.
+ * @returns {Promise<Array>} Candidatos filtrados, sem repetição.
+ */
+/**
+ * As séries de TV em que essa pessoa é conhecida, via `search/multi`.
+ *
+ * É o atalho que resolve a taxa de acerto. O caminho antigo semeava por
+ * similaridade e depois conferia o `aggregate_credits` de cada candidato: das ~40
+ * sugestões do TMDb, o criador em comum aparecia em uma minoria -- e gastar uma
+ * chamada de elenco inteiro para descobrir isso é caro. Aqui a lista JÁ vem da
+ * pessoa, e a verificação por id continua valendo: o `known_for` só vai para a
+ * lista e o `aggregate_credits` ainda confirma o vínculo. Se a pessoa não
+ * aparecer no resultado (ou vier sem `known_for`), devolve [] e o chamador cai
+ * no caminho de similaridade.
+ *
+ * O match é por **id**, nunca por nome: dois homônimos não podem virar
+ * "mesma pessoa" na frase.
+ * @param {Object} creator - Criador da âncora ({ personId, name }).
+ * @returns {Promise<Array>} Títulos de TV atribuídos à pessoa ([] se não achar).
+ */
+async function fetchCreatorWorks(creator) {
+  if (!creator?.personId || !creator?.name) return [];
   let data = null;
   try {
-    data = await callTMDB(`tv/${anchorTmdbId}/recommendations`, { page: 1 }, 'pt-BR');
+    data = await callTMDB('search/multi', { query: creator.name, page: 1 }, 'pt-BR');
   } catch {
-    try {
-      data = await callTMDB(`tv/${anchorTmdbId}/similar`, { page: 1 }, 'pt-BR');
-    } catch {
-      return [];
-    }
+    return [];
   }
   const results = (data && data.results) || [];
-  return filterNotInCatalog(results, catalogItems || []).filter(isPickableCandidate);
+  const person = results.find(
+    r => r && r.media_type === 'person' && String(r.id) === String(creator.personId)
+  );
+  if (!person) return [];
+  const known = Array.isArray(person.known_for) ? person.known_for : [];
+  return known.filter(k => k && k.media_type === 'tv' && k.id);
+}
+
+async function fetchCandidates(anchorTmdbId, catalogItems) {
+  const endpoints = [
+    `tv/${anchorTmdbId}/recommendations`,
+    `tv/${anchorTmdbId}/similar`
+  ];
+  const merged = [];
+  const seen = new Set();
+  for (const endpoint of endpoints) {
+    let data = null;
+    try {
+      data = await callTMDB(endpoint, { page: 1 }, 'pt-BR');
+    } catch {
+      continue;
+    }
+    for (const raw of (data && data.results) || []) {
+      const id = String(raw?.id ?? '');
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      merged.push(raw);
+    }
+  }
+  return filterNotInCatalog(merged, catalogItems || []).filter(isPickableCandidate);
 }
 
 /**
@@ -367,47 +445,89 @@ export async function getFriendPicks(catalogItems, opts = {}) {
   const ctx = { memo: new Map(), budget: { credits: 0 } };
   const used = new Set();
   const picks = [];
+  // "1 card" tem duas causas bem diferentes -- ancora fraca no catalogo, ou
+  // nenhum candidato com criador em comum -- e o usuario nao tem como
+  // distinguir uma da outra na tela. O log separa.
+  const stats = { anchors: anchors.length, tested: 0, hits: 0, credits: 0, works: 0, exhausted: false };
+
+  /** Monta o card a partir do título cru, do criador em comum e da âncora. */
+  const montar = (raw, shared, anchor) => ({
+    ...normalizeTrendingItem(raw),
+    reason: buildReason({
+      personName: shared.name,
+      anchorVerb: shared.anchorVerb,
+      pickVerb: shared.pickVerb,
+      anchorTitle: anchor.item.nome
+    }),
+    person: {
+      name: shared.name,
+      profileUrl: creatorProfileUrl(shared.profilePath)
+    },
+    anchor: {
+      id: anchor.item.tmdb_id,
+      nome: anchor.item.nome,
+      tier: anchor.item.tier || ''
+    }
+  });
+
+  /** Só entra candidato limpo e fora do que já foi indicado. */
+  const aptos = (list) => filterNotInCatalog(list, catalogItems || [])
+    .filter(isPickableCandidate)
+    .filter(c => !used.has(String(c.id)));
 
   for (const anchor of ordered) {
     if (picks.length >= limit) break;
-    if (ctx.budget.credits >= CREDIT_BUDGET) break;
-    const anchorName = anchor.item.nome;
+    if (ctx.budget.credits >= CREDIT_BUDGET) { stats.exhausted = true; break; }
     const anchorCreators = await fetchCreators(anchor.item.tmdb_id, ctx);
     if (anchorCreators.length === 0) continue;
 
-    const candidates = await fetchCandidates(anchor.item.tmdb_id, catalogItems);
-    const probe = candidates
-      .filter(c => !used.has(String(c.id)))
-      .slice(0, CANDIDATE_PROBE);
-    if (probe.length === 0) continue;
-
-    const checked = await mapLimit(probe, 4, raw => fetchCreators(raw.id, ctx));
-
-    for (let i = 0; i < probe.length; i++) {
-      const shared = findSharedCreator(anchorCreators, checked[i] || []);
-      if (!shared) continue;
-      const raw = probe[i];
-      used.add(String(raw.id));
-      picks.push({
-        ...normalizeTrendingItem(raw),
-        reason: buildReason({
-          personName: shared.name,
-          anchorVerb: shared.anchorVerb,
-          pickVerb: shared.pickVerb,
-          anchorTitle: anchorName
-        }),
-        person: {
-          name: shared.name,
-          profileUrl: creatorProfileUrl(shared.profilePath)
-        },
-        anchor: {
-          id: anchor.item.tmdb_id,
-          nome: anchorName,
-          tier: anchor.item.tier || ''
-        }
-      });
-      break;
+    // Caminho 1: as obras do próprio criador. Custa uma request barata de
+    // busca e tem taxa de acerto alta, porque a lista já vem da pessoa.
+    let encontrado = null;
+    for (const creator of anchorCreators.slice(0, CREATOR_WORK_PROBE)) {
+      if (ctx.budget.credits >= CREDIT_BUDGET) break;
+      const obras = aptos(await fetchCreatorWorks(creator));
+      if (obras.length === 0) continue;
+      stats.works += obras.length;
+      for (const raw of obras.slice(0, CANDIDATE_PROBE)) {
+        stats.tested += 1;
+        const pickCreators = await fetchCreators(raw.id, ctx);
+        const shared = findSharedCreator([creator], pickCreators);
+        if (!shared) continue;
+        encontrado = { raw, shared };
+        break;
+      }
+      if (encontrado) break;
     }
+
+    // Caminho 2: similaridade do TMDb, sondando os primeiros candidatos.
+    if (!encontrado) {
+      const probe = aptos(await fetchCandidates(anchor.item.tmdb_id, catalogItems))
+        .slice(0, CANDIDATE_PROBE);
+      stats.tested += probe.length;
+      const checked = await mapLimit(probe, 4, (raw) => fetchCreators(raw.id, ctx));
+      for (let i = 0; i < probe.length; i++) {
+        const shared = findSharedCreator(anchorCreators, checked[i] || []);
+        if (!shared) continue;
+        encontrado = { raw: probe[i], shared };
+        break;
+      }
+    }
+
+    if (!encontrado) continue;
+    stats.hits += 1;
+    used.add(String(encontrado.raw.id));
+    picks.push(montar(encontrado.raw, encontrado.shared, anchor));
+  }
+
+  stats.credits = ctx.budget.credits;
+  if (typeof console !== 'undefined' && console.info) {
+    console.info(
+      `[títulos para você] ${picks.length}/${limit} cards — ` +
+      `âncoras: ${stats.anchors}, candidatos conferidos: ${stats.tested}, ` +
+      `vínculos achados: ${stats.hits}, créditos: ${stats.credits}` +
+      (stats.exhausted ? ' (orçamento estourado)' : '')
+    );
   }
 
   return picks.length > 0 ? picks : null;
