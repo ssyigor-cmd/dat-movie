@@ -43,6 +43,25 @@ class LRUCache {
     return true;
   }
   delete(key) { this.map.delete(key); }
+  /**
+   * Remove apenas as chaves com o prefixo informado.
+   * Usado para invalidar um grupo de entradas (ex.: só as de tendências) sem
+   * derrubar o cache inteiro — logos e detalhes de títulos são caros de
+   * refazer e não têm relação com a invalidação.
+   * @param {string} prefix - Prefixo das chaves a remover.
+   * @returns {number} Quantidade de entradas removidas.
+   */
+  deleteByPrefix(prefix) {
+    let removed = 0;
+    for (const key of [...this.map.keys()]) {
+      if (key.startsWith(prefix)) {
+        this.map.delete(key);
+        removed += 1;
+      }
+    }
+    if (removed > 0) { try { this._persist(); } catch {} }
+    return removed;
+  }
   clear() { this.map.clear(); try { localStorage.removeItem(LS_KEY); } catch {} }
   size() { return this.map.size; }
   _persist() {
@@ -80,4 +99,10 @@ export function cacheGet(key) { return appCache.get(key); }
 export function cacheSet(key, value, ttl) { appCache.set(key, value, ttl); }
 export function cacheHas(key) { return appCache.has(key); }
 export function cacheClear() { appCache.clear(); }
+/**
+ * Invalida somente as entradas cujo prefixo bate, preservando o resto.
+ * @param {string} prefix - Prefixo das chaves a invalidar.
+ * @returns {number} Quantidade de entradas removidas.
+ */
+export function cacheClearPrefix(prefix) { return appCache.deleteByPrefix(prefix); }
 export function createCache(ttl, maxSize) { return new LRUCache(ttl, maxSize); }

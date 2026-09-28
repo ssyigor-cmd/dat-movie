@@ -4,14 +4,22 @@
  */
 import { callTMDB } from './api.js';
 import { filterNotInCatalog as catalogFilterNotInCatalog, calcularProgresso } from './catalog.js';
-import { cacheGet, cacheSet, cacheClear } from './cache.js';
+import { cacheGet, cacheSet, cacheClearPrefix } from './cache.js';
+
+/** Prefixo das chaves de cache geradas por este módulo. */
+const CACHE_PREFIX = 'trending_';
 
 function cacheKey(endpoint, params, lang) {
-  return `trending_${endpoint}|${JSON.stringify(params)}|${lang}`;
+  return `${CACHE_PREFIX}${endpoint}|${JSON.stringify(params)}|${lang}`;
 }
 
+/**
+ * Invalida apenas as entradas de tendências.
+ * Antes usava cacheClear(), que derrubava o cache inteiro — incluindo logos e
+ * detalhes de títulos, que são caros de refazer e nada têm a ver com isto.
+ */
 export function clearTrendingCache() {
-  cacheClear();
+  return cacheClearPrefix(CACHE_PREFIX);
 }
 
 export function _getCacheEntry(key) {

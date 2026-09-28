@@ -24,11 +24,16 @@
   <img src="https://img.shields.io/badge/Vitest-3E8E41?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest Badge" />
 </p>
 
-**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA). A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de sincronização em tempo real via Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster.
+**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA). A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de persistência por usuário no Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster.
 
 ---
 
 ## 🚀 Funcionalidades Principais
+
+> **Nota sobre sincronização:** o catálogo é persistido por usuário no Supabase, mas
+> **não há sincronização em tempo real**. As alterações são gravadas imediatamente e
+> só voltam a aparecer em outros dispositivos quando a página é recarregada. Não existe
+> canal realtime (`supabase.channel` / `postgres_changes`) no código.
 
 - **Autenticação Segura:** Login, cadastro e gerenciamento de sessões com Supabase Auth.
 - **Pesquisa TMDB:** Busca integrada ao TMDb que traz backdrop, sinopse, logo, título original e dados completos de temporadas/episódios.
@@ -114,118 +119,48 @@ Para rodar a aplicação localmente, certifique-se de possuir:
 
 ## 🗄️ Configuração do Supabase
 
-### 1. Banco de Dados (Tabelas)
+### 1. Banco de Dados (Tabelas e políticas RLS)
 
-Abra o **SQL Editor** no painel do seu projeto Supabase e execute as instruções abaixo para criar todas as tabelas necessárias:
+**O schema vive em `supabase/migrations/`, não neste arquivo.** Aqui fica só o
+resumo: copiar SQL do README já gerou divergência entre o que o doc mandava criar
+e o que realmente estava no banco.
 
-```sql
--- Tabela principal de itens do catálogo
-CREATE TABLE items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    nome VARCHAR(255) NOT NULL,
-    tipo VARCHAR(50) NOT NULL DEFAULT 'serie',
-    temporada INTEGER DEFAULT 1,
-    episodio INTEGER DEFAULT 0,
-    total_episodios INTEGER DEFAULT 1,
-    season_episodes_map JSONB DEFAULT '{}'::jsonb,
-    status VARCHAR(50) DEFAULT 'assistindo' CHECK (status IN ('assistindo', 'concluido', 'planejado', 'pausado')),
-    tier VARCHAR(5) CHECK (tier IN ('S+', 'S', 'A', 'B', 'C', 'D')),
-    imagem TEXT,
-    tmdb_id INTEGER,
-    ano INTEGER,
-    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    data_atualizacao TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
+| Ordem | Arquivo | O que faz |
+|---|---|---|
+| 1 | `create_items_table.sql` | Tabela `items`, trigger de `data_atualizacao`, índices |
+| 2 | `create_lists_tables.sql` | Tabelas `user_lists`/`item_lists`, CHECK de `tipo`, políticas RLS |
+| 3 | `add_index_items_user_id.sql` | Índice em `items(user_id)` |
+| 4 | `add_unique_index_items_user_tmdb.sql` | Barra títulos duplicados do mesmo TMDb (⚠️ tem passo de diagnóstico) |
 
--- Tabela de listas do usuário
-CREATE TABLE user_lists (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    nome VARCHAR(100) NOT NULL,
-    is_system BOOLEAN DEFAULT FALSE,
-    ordem INTEGER DEFAULT 0,
-    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(user_id, nome)
-);
+Do zero, rode na ordem da tabela no SQL Editor do painel (ou via CLI, seção 4).
 
--- Tabela de relacionamento N:N entre itens e listas
-CREATE TABLE item_lists (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    item_id UUID NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    list_id UUID NOT NULL REFERENCES user_lists(id) ON DELETE CASCADE,
-    data_adicao TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    UNIQUE(item_id, list_id)
-);
+Resumo do modelo:
 
--- Trigger para atualizar data_atualizacao automaticamente
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.data_atualizacao = timezone('utc'::text, now());
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+- **`items`** — o catálogo. `tier` ∈ {S+, S, A, B, C, D}; `status` ∈ {assistindo, concluido, planejado, pausado}. `tmdb_id` é a âncora com o TMDb.
+- **`user_lists`** — listas do usuário. `is_system` marca as que a UI não pode apagar.
+- **`item_lists`** — junção N:N com `UNIQUE(item_id, list_id)`: um título nunca aparece duas vezes na mesma lista.
 
-CREATE TRIGGER update_items_updated_at
-    BEFORE UPDATE ON items
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-```
+> **Dois detalhes que já causaram bug** — confira ao revisar:
+>
+> 1. `items.tipo` **aceita `NULL`**: o CHECK é `tipo IS NULL OR tipo IN (...)`. `trendingApi.getNewEpisodes` depende disso de propósito — um CHECK `NOT NULL` rejeitaria itens legítimos no insert.
+> 2. A RLS de `item_lists` verifica a **lista** (`user_lists.user_id`), não o item. A versão anterior deste README usava `items.user_id` e dava resultado diferente quando item e lista tinham donos diferentes.
 
-### 2. Políticas RLS (Row Level Security)
+### 2. Impedir títulos duplicados (dedup no banco)
 
-Execute as seguintes instruções para aplicar as políticas de proteção aos dados:
+O `isDuplicateInCatalog` roda **só no cliente**, então não cobre dois
+dispositivos inserindo o mesmo `tmdb_id` ao mesmo tempo. Antes de criar o índice
+único, confira se já existem duplicatas:
 
 ```sql
--- Políticas para items
-ALTER TABLE items ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Permitir que usuários visualizem seus próprios itens"
-    ON items FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários criem seus próprios itens"
-    ON items FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários atualizem seus próprios itens"
-    ON items FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários excluam seus próprios itens"
-    ON items FOR DELETE USING (auth.uid() = user_id);
-
--- Políticas para user_lists
-ALTER TABLE user_lists ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Permitir que usuários vejam suas próprias listas"
-    ON user_lists FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários criem suas próprias listas"
-    ON user_lists FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários atualizem suas próprias listas"
-    ON user_lists FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Permitir que usuários excluam suas próprias listas"
-    ON user_lists FOR DELETE USING (auth.uid() = user_id);
-
--- Políticas para item_lists (acesso indireto via item ou lista do usuário)
-ALTER TABLE item_lists ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Permitir acesso aos relacionamentos dos próprios itens"
-    ON item_lists FOR SELECT USING (
-        EXISTS (SELECT 1 FROM items WHERE items.id = item_lists.item_id AND items.user_id = auth.uid())
-    );
-
-CREATE POLICY "Permitir criar relacionamentos para próprios itens"
-    ON item_lists FOR INSERT WITH CHECK (
-        EXISTS (SELECT 1 FROM items WHERE items.id = item_lists.item_id AND items.user_id = auth.uid())
-    );
-
-CREATE POLICY "Permitir excluir relacionamentos dos próprios itens"
-    ON item_lists FOR DELETE USING (
-        EXISTS (SELECT 1 FROM items WHERE items.id = item_lists.item_id AND items.user_id = auth.uid())
-    );
+SELECT user_id, tmdb_id, COUNT(*) AS ocorrencias, array_agg(nome ORDER BY data_criacao) AS titulos
+FROM items WHERE tmdb_id IS NOT NULL
+GROUP BY user_id, tmdb_id HAVING COUNT(*) > 1 ORDER BY ocorrencias DESC;
 ```
+
+Se a consulta voltar vazia, aplique
+`supabase/migrations/add_unique_index_items_user_tmdb.sql`. Se voltar linhas,
+decida o que fazer com cada duplicata **antes** — o `CREATE UNIQUE INDEX` falha e
+a migration aborta, de propósito, para não apagar dado do usuário em silêncio.
 
 ### 3. Migrando dados existentes
 
@@ -259,7 +194,21 @@ supabase secrets set TMDB_API_KEY=sua-chave-tmdb
 supabase secrets set FANART_API_KEY=sua-chave-fanart
 ```
 
-`clever-endpoint` exige sessão JWT e aceita somente os endpoints de TV usados pelo aplicativo. `fanart-logo` é um fallback de logo e não deve receber a chave do Fanart no navegador.
+Ambas as funções exigem sessão JWT (`verify_jwt = true` em `supabase/config.toml`):
+
+| Função | `verify_jwt` | Papel |
+|---|---|---|
+| `clever-endpoint` | `true` | Proxy do TMDb. Aceita **somente** os endpoints de TV usados pelo app, via allow-list. |
+| `fanart-logo` | `true` | Fallback de logo. Valida `tmdbId` como inteiro positivo antes de montar a URL. |
+
+> **Não reabra `fanart-logo` com `verify_jwt = false`.** Isso a transforma em um proxy
+> público e ilimitado para uma API de terceiro com cota — qualquer pessoa na internet
+> conseguiria gastar a sua cota chamando a função.
+
+A allow-list de endpoints do TMDb vive em `supabase/functions/_shared/allowedEndpoint.ts`
+e é importada **tanto pela Edge Function quanto pelos testes** (`tests/cleverEndpoint.test.js`).
+Editar a regex altera o proxy e a suíte juntos: uma regressão na barreira de segurança
+quebra o build em vez de passar em silêncio. Não copie o padrão para dentro de um `.test.js`.
 
 ---
 
@@ -283,7 +232,12 @@ supabase secrets set FANART_API_KEY=sua-chave-fanart
 │   │   └── supabase.js      # Inicialização do Supabase Client
 │   └── main.js              # Ponto de entrada (bootstrap e eventos globais)
 ├── supabase/
-│   └── migrations/          # Scripts SQL de criação de tabelas e migração
+│   └── migrations/          # Schema do banco — fonte da verdade do DDL e das RLS
+│       ├── create_items_table.sql
+│       ├── create_lists_tables.sql
+│       ├── add_index_items_user_id.sql
+│       ├── add_unique_index_items_user_tmdb.sql
+│       └── migrate_existing_data.sql
 ├── tests/                   # Testes unitários (Vitest)
 │   ├── catalog.test.js
 │   └── imageNavigation.test.js

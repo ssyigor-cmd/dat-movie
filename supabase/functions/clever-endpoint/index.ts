@@ -1,4 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { isAllowedEndpoint } from '../_shared/allowedEndpoint.ts';
+import { readClaims, isAuthenticatedUser, unauthorizedResponse } from '../_shared/auth.ts';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -8,9 +10,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Keep the proxy intentionally narrow: the browser may request only TV/catalog
-// resources used by the application, never an arbitrary URL or TMDb endpoint.
-const ALLOWED_ENDPOINT = /^(?:search\/(?:tv|multi)|discover\/tv|trending\/tv\/(?:day|week)|genre\/tv\/list|tv\/\d+(?:\/(?:images|aggregate_credits|recommendations|similar|season\/\d+))?)$/;
+// A allow-list e o limite de comprimento vivem em ../_shared/allowedEndpoint.ts,
+// compartilhados com os testes para que a barreira de segurança nunca divirja
+// da suíte sem que os testes falhem.
 
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -19,13 +21,13 @@ function json(value: unknown, status = 200) {
   });
 }
 
-function isAllowedEndpoint(endpoint: unknown): endpoint is string {
-  return typeof endpoint === 'string' && endpoint.length <= 120 && ALLOWED_ENDPOINT.test(endpoint);
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
+
+  // verify_jwt=true já barrou token inválido/ausente, mas a anon key é um JWT
+  // válido e é pública (fica no bundle do navegador). Exigimos usuário real.
+  if (!isAuthenticatedUser(readClaims(req))) return unauthorizedResponse(corsHeaders);
 
   const apiKey = Deno.env.get('TMDB_API_KEY');
   if (!apiKey) return json({ error: 'TMDB_API_KEY não configurada.' }, 500);

@@ -9,6 +9,11 @@ build/
 .env.local
 .env.*.local
 
+# Estado local do Supabase CLI.
+# Contém pooler-url e outros dados do projeto — hoje sem senha, mas o
+# `supabase db` autenticado grava credencial real aqui. Nunca versionar.
+supabase/.temp/
+
 # Logs
 *.log
 npm-debug.log*

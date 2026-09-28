@@ -1,5 +1,34 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety } from '../src/lib/trendingApi.js';
+import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety, clearTrendingCache } from '../src/lib/trendingApi.js';
+import { cacheSet, cacheGet, cacheClear } from '../src/lib/cache.js';
+
+describe('clearTrendingCache', () => {
+  it('remove apenas as chaves trending_ e preserva logos e detalhes', () => {
+    cacheClear();
+    cacheSet('trending_search/tv|{}|pt-BR', { results: [] });
+    cacheSet('trending_discover/tv|{"page":1}|pt-BR', { results: [] });
+    cacheSet('tvcache_123', { id: 123, name: 'Detalhe' });
+    cacheSet('logoV2_123_tv', 'https://exemplo/logo.png');
+
+    clearTrendingCache();
+
+    expect(cacheGet('trending_search/tv|{}|pt-BR')).toBeUndefined();
+    expect(cacheGet('trending_discover/tv|{"page":1}|pt-BR')).toBeUndefined();
+    // Estes dois são caros de refazer e não têm relação com tendências.
+    expect(cacheGet('tvcache_123')).toEqual({ id: 123, name: 'Detalhe' });
+    expect(cacheGet('logoV2_123_tv')).toBe('https://exemplo/logo.png');
+
+    cacheClear();
+  });
+
+  it('não estoura quando não há entradas de tendência', () => {
+    cacheClear();
+    cacheSet('tvcache_999', { id: 999 });
+    expect(() => clearTrendingCache()).not.toThrow();
+    expect(cacheGet('tvcache_999')).toEqual({ id: 999 });
+    cacheClear();
+  });
+});
 
 describe('isWithin7DaysWindow', () => {
   const now = new Date('2026-09-24T10:00:00');
