@@ -1334,7 +1334,7 @@ function openTitlePageForSearch(raw, allResults = null) {
     episodio: 0,
     totalEpisodios: 1,
     seasonEpisodesMap: {},
-    status: 'planejado',
+    status: 'assistindo',
     tier: null,
     imagem: raw.poster_path ? `https://image.tmdb.org/t/p/w500${raw.poster_path}` : (raw.posterUrl || ''),
     tmdb_id: tmdbId,

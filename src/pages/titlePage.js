@@ -531,7 +531,10 @@ function renderTitlePage(item, container) {
   const addBtn = container.querySelector('#titleAdd');
   if (addBtn) addBtn.addEventListener('click', async () => {
     if (!onCreateItem) { console.warn('onCreateItem não configurado'); return; }
-    const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || 'planejado';
+    // Sem botão ativo, o padrão é "Assistindo" (antes era "Planejado", que
+    // jogava todo título novo na fila de Próximos). Título já salvo tem o
+    // próprio status, então a marcação do item manda no lugar disso.
+    const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || item.status || 'assistindo';
     const newTier = currentTier || null;
     const box = document.getElementById('detailListCheckboxes')?.querySelectorAll('input[type="checkbox"]').length ? document.getElementById('detailListCheckboxes') : document.getElementById('addListCheckboxes');
     const selectedIds = box ? Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
