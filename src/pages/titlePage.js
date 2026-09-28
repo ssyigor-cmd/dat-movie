@@ -133,7 +133,7 @@ function renderTitlePage(item, container) {
           </div>
         </div>
         <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
-          ${item.tier ? `<div class="tier-stamp ${tierClass}" id="tpTierStamp" style="width:22px; height:28px; font-size:0.52rem; cursor:pointer; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">${item.tier}</div>` : `<div class="tier-stamp" id="tpTierStamp" style="width:22px; height:28px; font-size:0.52rem; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">Tier</div>`}
+          ${item.tier ? `<div class="tier-stamp ${tierClass}" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; cursor:pointer; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">${item.tier}</div>` : `<div class="tier-stamp" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">Tier</div>`}
           <div id="tpTierDropdown" style="display:none; position:absolute; top:30px; right:0; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:10px; padding:6px; flex-direction:column; gap:4px; z-index:50; box-shadow:var(--shadow-lg); min-width:80px;">
             <button class="tier-option" data-tier="S+" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S+</button>
             <button class="tier-option" data-tier="S" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S</button>
@@ -291,14 +291,19 @@ function renderTitlePage(item, container) {
       tierStamp.style.position = 'relative';
       tierStamp.style.top = 'auto';
       tierStamp.style.right = 'auto';
-      tierStamp.style.width = '22px';
-      tierStamp.style.height = '28px';
-      tierStamp.style.fontSize = '0.52rem';
+      // Tamanho do selo aqui é maior que o dos cards: este fica no HUD, ao
+      // lado do título, e a 22x28 ficava pequeno demais para ler. O
+      // clip-path do .tier-stamp é em porcentagem, então a fita acompanha o
+      // crescimento sozinha. Aumento de ~36% nos três eixos, mantendo a
+      // proporção do original.
+      tierStamp.style.width = '30px';
+      tierStamp.style.height = '38px';
+      tierStamp.style.fontSize = '0.7rem';
       tierStamp.style.cursor = 'pointer';
       tierStamp.style.display = 'flex';
       tierStamp.style.alignItems = 'flex-start';
       tierStamp.style.justifyContent = 'center';
-      tierStamp.style.padding = '4px 0 6px';
+      tierStamp.style.padding = '6px 0 9px';
       tierStamp.style.flexShrink = '0';
     }
   }
