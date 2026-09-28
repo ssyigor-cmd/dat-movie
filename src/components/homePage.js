@@ -288,16 +288,21 @@ export function renderHomeBase(container, context) {
     addBtn.addEventListener('click', context.onOpenAddModal);
   }
 
-  // Voltar ao topo. Quem rola a pagina e o .main-content (tem overflow-y:auto),
-  // nao a janela — por isso o alvo do scroll tem que ser ele.
+  // Voltar ao topo.
+  // Cuidado: o body usa `min-height:100vh` com display:flex, então o
+  // .main-content CRESCE com o conteúdo e nunca vira scroller — apesar de ter
+  // `overflow-y:auto` no CSS. Na prática quem rola é a janela. Por isso
+  // conferimos se o elemento realmente tem rolagem antes de usá-lo; senão o
+  // scrollTo é um no-op silencioso.
   const backToTop = container.querySelector('#homeBackToTop');
   if (backToTop) {
     backToTop.addEventListener('click', () => {
-      const scroller = container.closest('.main-content') || document.scrollingElement;
-      if (scroller && typeof scroller.scrollTo === 'function') {
-        scroller.scrollTo({ top: 0, behavior: 'smooth' });
+      const opcoes = { top: 0, left: 0, behavior: 'smooth' };
+      const scroller = container.closest('.main-content');
+      if (scroller && scroller.scrollHeight > scroller.clientHeight + 1) {
+        scroller.scrollTo(opcoes);
       } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(opcoes);
       }
     });
   }
