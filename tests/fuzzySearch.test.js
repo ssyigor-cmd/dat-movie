@@ -130,6 +130,20 @@ describe('buildFallbackQueries', () => {
     const out = buildFallbackQueries('senhor dos aneis');
     expect(out).toContain('senhor');
   });
+  it('sugere cada palavra isolada, nao so a mais longa', () => {
+    // Regressão: com "auter banks" as duas palavras tem 5 letras, e o sort
+    // estável escolhia "auter" (a errada). O TMDb não acha "auter", mas
+    // acha "banks" — entao todas precisam entrar na fila.
+    const out = buildFallbackQueries('auter banks');
+    expect(out).toContain('banks');
+    expect(out).toContain('auter');
+  });
+  it('ordena as palavras da mais longa para a mais curta', () => {
+    const out = buildFallbackQueries('senhor dos aneis do rei');
+    const isoladas = out.filter(w => !w.includes(' '));
+    const tam = isoladas.map(w => w.length);
+    expect(tam).toEqual([...tam].sort((a, b) => b - a));
+  });
   it('nunca repete a query original', () => {
     const out = buildFallbackQueries('one piece');
     expect(out).not.toContain('one piece');

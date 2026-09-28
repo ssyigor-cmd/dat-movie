@@ -183,10 +183,12 @@ export function buildFallbackQueries(query) {
   const semArtigo = words.filter((w) => !STOPWORDS.has(w));
   if (semArtigo.length && semArtigo.length !== words.length) push(semArtigo.join(' '));
 
-  // 3. só a palavra mais longa — "senhor dos aneis" x "senhor"
+  // 3. cada palavra isolada, da mais longa para a mais curta. Serve quando o
+  //    erro está numa palavra só: em "auter banks", tentar só a mais longa
+  //    pegava "auter" (a errada) e o TMDb não achava nada. Tentando todas,
+  //    "banks" entra na fila e o título aparece.
   if (words.length > 1) {
-    const maior = words.slice().sort((a, b) => b.length - a.length)[0];
-    push(maior);
+    for (const w of words.slice().sort((a, b) => b.length - a.length)) push(w);
   }
 
   return out;
