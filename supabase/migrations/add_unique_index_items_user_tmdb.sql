@@ -1,5 +1,9 @@
 -- Impede títulos duplicados do mesmo TMDb por usuário.
 --
+-- STATUS: APLICADA no projeto glgsidiqteygquolgfvu em 2026-09-28.
+-- O diagnóstico (passo 1) não retornou nenhuma linha — não havia duplicata.
+-- É idempotente, então reaplicar em outro ambiente continua seguro.
+--
 -- Contexto: a checagem `isDuplicateInCatalog` roda SÓ no cliente, o que não
 -- cobre dois dispositivos (ou duas abas) inserindo o mesmo tmdb_id ao mesmo
 -- tempo. O índice torna o banco a última linha de defesa.
