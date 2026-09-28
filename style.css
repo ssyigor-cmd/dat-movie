@@ -3639,6 +3639,22 @@ a:focus-visible,
 .home-backtop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .home-backtop i { font-size: 0.75rem; }
 
+/* ── Destaques do ano (campo de ano + carrossel) ───────────────── */
+.home-year-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.home-year-row .toolbar-search { min-width: 120px; }
+.home-year-row .toolbar-search input {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.home-year-row .toolbar-search input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+.home-year-row .toolbar-search input.is-invalid:focus {
+  border-color: var(--danger);
+}
+
 .home-affinity-hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; }
 .home-calendar-hint { font-size: 0.8rem; color: var(--text-muted); margin: -4px 0 2px; }
 .home-affinity-search { position: relative; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }

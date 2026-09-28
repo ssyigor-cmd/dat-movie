@@ -377,6 +377,40 @@ export async function getTitlesByGenre(genreId, catalogItems = [], limit = null,
   }
 }
 
+/**
+ * Títulos mais relevantes de um ano, via `discover/tv?first_air_date_year`.
+ *
+ * Ordena por popularidade pelo mesmo motivo de `getTitlesByGenre`: nota alta
+ * com pouca popularidade vira "nada a ver". O ano vai como parâmetro do
+ * discover, não como filtro local — filtrar no cliente traria o que a API
+ * devolve inteiro, sem limite de popularidade.
+ *
+ * @param {number|string} year - Ano (ex.: 2020).
+ * @param {Array} catalogItems - Catálogo do usuário, para não repetir título.
+ * @param {number} [limit] - Quantos devolver. Default: largura da tela.
+ * @param {Object} [opts] - { sortBy } para trocar a ordenação.
+ * @returns {Promise<Array>} Itítulos normalizados.
+ */
+export async function getTitlesByYear(year, catalogItems = [], limit = null, opts = {}) {
+  const lim = limit ?? getFullWidthCount();
+  const ano = String(year ?? '').trim();
+  if (!/^\d{4}$/.test(ano)) throw new Error('Ano inválido.');
+  const sort = opts.sortBy || 'popularity.desc';
+  try {
+    const found = await collectFiltered(
+      'discover/tv',
+      { first_air_date_year: ano, sort_by: sort },
+      'pt-BR',
+      catalogItems || [],
+      poolSizeFor(lim)
+    );
+    return found.slice(0, lim).map(normalizeTrendingItem);
+  } catch (e) {
+    console.warn('Erro ao buscar títulos do ano', ano, e);
+    throw e;
+  }
+}
+
 export async function getAffinityRecommendations(selectedTmdbIds, catalogItems, limit = null) {
   const lim = limit ?? getFullWidthCount();
   if (!Array.isArray(selectedTmdbIds) || selectedTmdbIds.length === 0 || selectedTmdbIds.length > 4) return null;

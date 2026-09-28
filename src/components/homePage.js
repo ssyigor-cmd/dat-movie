@@ -3,7 +3,7 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem, pickVariety } from '../lib/trendingApi.js';
+import { getTrendingToSuggest, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getTitlesByYear, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem, pickVariety } from '../lib/trendingApi.js';
 import { callTMDB, resolveItemPosterUrl } from '../lib/api.js';
 import { pickWithMix } from '../lib/recommendScoring.js';
 import { filterNotInCatalog } from '../lib/catalog.js';
@@ -247,7 +247,21 @@ export function renderHomeBase(container, context) {
 
 
     
-    <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
+        <section class="home-section home-section--panel" id="homeYearSection" aria-label="Destaques do ano" style="display:none;">
+      <h2 class="home-section-title" id="homeYearTitle"><i class="fas fa-calendar-alt"></i> Destaques do ano</h2>
+      <div class="home-year-row">
+        <div class="toolbar-search" style="flex:0 0 150px;">
+          <i class="fas fa-calendar-alt"></i>
+          <input type="text" id="homeYearInput" inputmode="numeric" maxlength="4" placeholder="2020" aria-label="Ano para buscar destaques" />
+        </div>
+        <button type="button" id="homeYearSearch" class="home-empty-btn"><i class="fas fa-magnifying-glass"></i> Buscar ano</button>
+      </div>
+      <div class="home-h-scroll" id="homeYearGrid"></div>
+      <div class="home-skeleton" id="homeYearSkeleton" style="display:none;">${skeletonHTML()}</div>
+      <div class="home-error" id="homeYearError" style="display:none;"></div>
+    </section>
+
+<section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
       <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
       <div class="home-h-scroll" id="homeAbandonedGrid"></div>
     </section>
@@ -419,6 +433,102 @@ export function renderHomeFavorites(container, items, onCardClick) {
 /**
  * Carrega e renderiza Em Alta (trending)
  */
+/**
+ * Carrega os títulos mais relevantes de um ano escolhido pelo usuário.
+ *
+ * O ano vai como `discover/tv?first_air_date_year` — filtrar no cliente
+ * traria o que a API devolve inteiro, sem limite de relevância. O padrão de
+ * painel com controle + carrossel é o mesmo da seção de afinidade.
+ *
+ * @param {Element} container - Container da home.
+ * @param {Array} items - Catálogo do usuário.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {number} [ano] - Ano a carregar. Default: ano atual.
+ * @returns {Promise<void>}
+ */
+export async function loadAndRenderByYear(container, items, onAddFromTrending, ano) {
+  const section = container.querySelector('#homeYearSection');
+  const grid = container.querySelector('#homeYearGrid');
+  const skel = container.querySelector('#homeYearSkeleton');
+  const errEl = container.querySelector('#homeYearError');
+  const titulo = container.querySelector('#homeYearTitle');
+  if (!section || !grid || !skel) return;
+
+  const anoAtual = String(ano ?? new Date().getFullYear());
+  if (titulo) {
+    const icone = '<i class="fas fa-calendar-alt"></i>';
+    titulo.innerHTML = `${icone} Destaques de ${escapeHTML(anoAtual)}`;
+  }
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+  if (errEl) errEl.style.display = 'none';
+
+  try {
+    const achados = await getTitlesByYear(anoAtual, items, getFullWidthCount());
+    skel.style.display = 'none';
+    if (!achados || achados.length === 0) {
+      if (errEl) {
+        errEl.style.display = 'block';
+        errEl.textContent = `Nenhum título encontrado para ${anoAtual}.`;
+      }
+      return;
+    }
+    grid.style.display = '';
+    grid.innerHTML = '';
+    achados.forEach((t) => {
+      const card = createHomeCard({
+        posterUrl: t.posterUrl,
+        title: t.title,
+        subtitle: t.date ? formatAirDate(t.date) : 'Série',
+        onClick: () => onAddFromTrending && onAddFromTrending(t)
+      });
+      grid.appendChild(card);
+    });
+    animateCards(grid);
+  } catch (e) {
+    skel.style.display = 'none';
+    if (errEl) {
+      errEl.style.display = 'block';
+      errEl.textContent = 'Não foi possível buscar os títulos deste ano.';
+    }
+    console.warn('Erro ao buscar por ano:', e);
+  }
+}
+
+/**
+ * Liga o campo de ano: valida, busca e renderiza.
+ */
+function setupYearPicker(container, items, onAddFromTrending) {
+  const input = container.querySelector('#homeYearInput');
+  const btn = container.querySelector('#homeYearSearch');
+  if (!input || !btn) return;
+
+  async function buscar() {
+    const ano = input.value.trim();
+    if (!/^\d{4}$/.test(ano)) {
+      input.classList.add('is-invalid');
+      input.focus();
+      return;
+    }
+    input.classList.remove('is-invalid');
+    btn.disabled = true;
+    try {
+      await loadAndRenderByYear(container, items, onAddFromTrending, ano);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', buscar);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); buscar(); }
+  });
+  input.addEventListener('input', () => input.classList.remove('is-invalid'));
+  // Sem setupSectionRefresh aqui: o controle desta seção é o campo de ano,
+  // não um "atualizar" que voltaria para o ano corrente por baixo dos panos.
+}
+
 export async function loadAndRenderTrending(container, items, onAddFromTrending) {
   const section = container.querySelector('#homeTrendingSection');
   const grid = container.querySelector('#homeTrendingGrid');
@@ -951,6 +1061,8 @@ export async function renderHome(container, context) {
   setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
+  setupYearPicker(container, items, context.onAddFromTrending);
+  loadAndRenderByYear(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
   loadAndRenderTrending(container, items, context.onAddFromTrending);
   loadAndRenderRecommendations(container, items, context.onCardClick, context.onAddFromTrending);

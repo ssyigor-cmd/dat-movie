@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety, clearTrendingCache } from '../src/lib/trendingApi.js';
+import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety, clearTrendingCache, getTitlesByYear } from '../src/lib/trendingApi.js';
 import { cacheSet, cacheGet, cacheClear } from '../src/lib/cache.js';
 
 describe('clearTrendingCache', () => {
@@ -361,5 +361,78 @@ describe('getCalendarWeek', () => {
     try { week = await mod.getCalendarWeek([{ tmdb_id: 1, status: 'planejado', tipo: 'serie' }]); }
     finally { vi.doUnmock('../src/lib/api.js'); vi.resetModules(); }
     expect(week).toEqual([]);
+  });
+});
+
+describe('getTitlesByYear', () => {
+  // withMock precisa ser local: as outras cópias do helper são escopadas
+  // dentro dos respectivos describe e não vazam para cá.
+  async function withMock(callTMDB, fn) {
+    vi.resetModules();
+    vi.doMock('../src/lib/api.js', () => ({ callTMDB }));
+    const mod = await import('../src/lib/trendingApi.js');
+    try { return await fn(mod); } finally { vi.doUnmock('../src/lib/api.js'); vi.resetModules(); }
+  }
+
+  it('rejeita ano fora de 4 dígitos antes de chamar a API', async () => {
+    await withMock(() => { throw new Error('nao deveria chamar'); }, async (mod) => {
+      await expect(mod.getTitlesByYear('20a2', [], 5)).rejects.toThrow('Ano inválido');
+      await expect(mod.getTitlesByYear('', [], 5)).rejects.toThrow('Ano inválido');
+      await expect(mod.getTitlesByYear(null, [], 5)).rejects.toThrow('Ano inválido');
+    });
+  });
+
+  it('manda o ano para o discover/tv e ordena por popularidade', async () => {
+    let capturado = null;
+    const fake = async (endpoint, params) => {
+      if (endpoint === 'discover/tv') { capturado = params; return { results: [] }; }
+      return { results: [] };
+    };
+    await withMock(fake, async (mod) => { await mod.getTitlesByYear('2020', [], 5); });
+    expect(capturado).toBeTruthy();
+    expect(capturado.first_air_date_year).toBe('2020');
+    expect(capturado.sort_by).toBe('popularity.desc');
+  });
+
+  it('normaliza os itens como os demais carrosséis', async () => {
+    const fake = async (endpoint, params) => {
+      if (endpoint === 'discover/tv') {
+        return { results: [
+          { id: 1, name: 'Título Um', first_air_date: '2020-03-10', poster_path: '/a.jpg', vote_average: 8 },
+          { id: 2, name: 'Título Dois', first_air_date: '2020-09-01', poster_path: '/b.jpg', vote_average: 7 },
+        ] };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, (mod) => mod.getTitlesByYear('2020', [], 5));
+    expect(out.length).toBe(2);
+    expect(out[0].title).toBe('Título Um');
+    expect(out[0].mediaType).toBe('tv');
+    expect(out[0].posterUrl).toContain('/a.jpg');
+  });
+
+  it('não repete título que já está no catálogo', async () => {
+    const fake = async (endpoint, params) => {
+      if (endpoint === 'discover/tv') {
+        return { results: [
+          { id: 100, name: 'Já Tenho', poster_path: '/a.jpg' },
+          { id: 200, name: 'Novinho', poster_path: '/b.jpg' },
+        ] };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, (mod) => mod.getTitlesByYear('2020', [{ tmdb_id: 100 }], 5));
+    expect(out.map(t => t.title)).toEqual(['Novinho']);
+  });
+
+  it('respeita o limite pedido', async () => {
+    const fake = async (endpoint) => {
+      if (endpoint === 'discover/tv') {
+        return { results: Array.from({ length: 20 }, (_, i) => ({ id: i + 1, name: 'T' + i, poster_path: '/p.jpg' })) };
+      }
+      return { results: [] };
+    };
+    const out = await withMock(fake, (mod) => mod.getTitlesByYear('2020', [], 3));
+    expect(out.length).toBeLessThanOrEqual(3);
   });
 });
