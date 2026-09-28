@@ -5,7 +5,7 @@
 
 import { supabase } from './lib/supabase.js';
 import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { callTMDB, fetchTitleLogo, fetchTvDetailsCached } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
@@ -13,9 +13,11 @@ import { updateStepperValue, setupSteppers } from './lib/stepper.js';
 import { renderContinueWatching, createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
+import { setupTitleInfoModal, flagEmoji } from './components/titleInfoModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
+import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
 import anime from 'animejs';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
 import { state } from './lib/state.js';
@@ -29,6 +31,13 @@ function persistNavState() {
   } catch (_) {}
 }
 function setActiveTab(tab, listId = null) {
+  // Sai da página de título ao trocar de aba (evita card aberto sobre a nova tela)
+  if (typeof hideTitlePage === 'function' && titlePageEl && titlePageEl.style.display !== 'none') {
+    if (location.hash.startsWith('#/titulo/')) history.pushState(null, '', location.pathname + location.search);
+    hideTitlePage(titlePageEl);
+  }
+  if (titleInfoModal && titleInfoModal.classList.contains('active')) titleInfoModalAPI.close();
+  if ($('relinkModal').classList.contains('active')) closeRelinkModal();
   state.currentTab = tab;
   state.currentListId = listId;
   persistNavState();
@@ -68,6 +77,7 @@ const filterStatus = $('filterStatus');
 const filterTier = $('filterTier');
 const sortOrder = $('sortOrder');
 const modalOverlay = $('modalOverlay');
+const titleInfoModal = $('titleInfoModal');
 const modalClose = $('modalClose');
 const modalTitle = $('modalTitle');
 const form = $('form');
@@ -911,7 +921,8 @@ const detailModalAPI = setupDetailModal({
   detailEpOverview: $('detailEpOverview'),
   detailEpLoading: $('detailEpLoading'),
   posterSteppersRow: $('posterSteppersRow'),
-  detailSeasonName: $('detailSeasonName')
+  detailSeasonName: $('detailSeasonName'),
+  detailCountryFlag: $('detailCountryFlag')
 }, {
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -945,6 +956,32 @@ const episodesModalAPI = setupEpisodesModal({
   onToast: showToast
 });
 
+// Modal de informações do título
+const titleInfoModalAPI = setupTitleInfoModal({
+  titleInfoModal: $('titleInfoModal'),
+  titleInfoClose: $('titleInfoClose'),
+  titleInfoTitle: $('titleInfoTitle'),
+  titleInfoLoading: $('titleInfoLoading'),
+  titleInfoContent: $('titleInfoContent'),
+  titleInfoLogoWrap: $('titleInfoLogoWrap'),
+  titleInfoLogoImg: $('titleInfoLogoImg')
+}, {
+  onToast: showToast,
+  onResolveTmdbId: async (item) => {
+    try {
+      const searchData = await callTMDB('search/tv', { query: item.nome }, 'pt-BR');
+      const result = searchData.results?.[0];
+      if (result && item.id && !item._isPreview) {
+        item.tmdb_id = result.id;
+        await updateItemInSupabase(item.id, { tmdb_id: result.id });
+      }
+      return result ? result.id : null;
+    } catch {
+      return null;
+    }
+  }
+});
+
 setupTitlePage({
   onUpdateItem: updateItemInSupabase,
   onDeleteItem: deleteItemFromSupabase,
@@ -960,6 +997,9 @@ setupTitlePage({
     }
     return episodesModalAPI.open(0, [args[1]].filter(Boolean), args[2], args[3]);
   },
+  onOpenDetails: (item) => titleInfoModalAPI.open(item),
+  onOpenParent: (candidate, allResults) => openTitlePageForSearch(candidate, allResults),
+  onRelinkTitle: (item) => openRelinkModal(item),
   onCreateItem: async (payload) => {
     const created = await addItemToSupabase({
       nome: payload.nome,
@@ -1041,6 +1081,8 @@ async function openAddModalWithTmdbResult(raw) {
   if (addTierBadgeEl) { addTierBadgeEl.textContent = '?'; addTierBadgeEl.className = 'tier-badge-large'; addTierBadgeEl.style.display = 'flex'; }
   const addYearDisplayEl = document.getElementById('addYearDisplay');
   if (addYearDisplayEl) addYearDisplayEl.textContent = year || '--';
+  const addCountryFlagEl = document.getElementById('addCountryFlag');
+  if (addCountryFlagEl) addCountryFlagEl.style.display = 'none';
   state.selectedTmdbId = tmdbId;
   state.selectedMediaType = mediaType;
   state.selectedPosterPath = posterPath;
@@ -1180,6 +1222,32 @@ async function openAddModalWithTmdbResult(raw) {
           addOriginalTitleEl.textContent = originalName;
           addOriginalTitleEl.style.display = '';
         }
+
+        // País de origem com bandeira
+        const addCountryFlagEl = document.getElementById('addCountryFlag');
+        const originCountry = details.origin_country?.[0] || details.production_countries?.[0]?.iso_3166_1;
+        if (originCountry && addCountryFlagEl) {
+          const countryName = details.production_countries?.[0]?.name || originCountry;
+          const flagImg = document.createElement('img');
+          flagImg.src = `https://flagcdn.com/${originCountry.toLowerCase()}.svg`;
+          flagImg.alt = originCountry;
+          flagImg.className = 'country-flag-img';
+          flagImg.style.width = '24px';
+          flagImg.style.height = '16px';
+          flagImg.style.objectFit = 'contain';
+          flagImg.onerror = () => {
+            flagImg.textContent = flagEmoji(originCountry);
+            flagImg.style.fontSize = '1.2em';
+          };
+          addCountryFlagEl.innerHTML = '';
+          addCountryFlagEl.appendChild(flagImg);
+          const countrySpan = document.createElement('span');
+          countrySpan.textContent = countryName;
+          addCountryFlagEl.appendChild(countrySpan);
+          addCountryFlagEl.style.display = 'flex';
+        } else if (addCountryFlagEl) {
+          addCountryFlagEl.style.display = 'none';
+        }
       }
       const logoUrl = logoUrlParallel;
       if (logoUrl && addLogoImgEl && addLogoContainerEl) {
@@ -1232,7 +1300,7 @@ async function handleTrendingAdd(trendingItem) {
 }
 
 // — Padrão único: pesquisa e catálogo usam a mesma TitlePage
-function openTitlePageForSearch(raw) {
+function openTitlePageForSearch(raw, allResults = null) {
   const tmdbId = raw.id;
   const existing = state.items.find(it => String(it.tmdb_id) === String(tmdbId));
   if (existing) {
@@ -1260,7 +1328,9 @@ function openTitlePageForSearch(raw) {
     imagem: raw.poster_path ? `https://image.tmdb.org/t/p/w500${raw.poster_path}` : (raw.posterUrl || ''),
     tmdb_id: tmdbId,
     ano: (raw.first_air_date || raw.release_date || raw.date || '').slice(0,4) || null,
-    lists: []
+    lists: [],
+    _parentCandidate: findParentCandidate(raw, allResults) || null,
+    _parentResults: allResults
   };
   history.pushState({ titleId: preview.id }, '', `#/titulo/preview-${tmdbId}`);
   document.getElementById('homeSection').style.display = 'none';
@@ -1271,6 +1341,117 @@ function openTitlePageForSearch(raw) {
   if (mh2) mh2.style.display = 'none';
   showTitlePage(preview, titlePageEl);
 }
+
+// ========== CORRIGIR VÍNCULO DO TÍTULO ==========
+let relinkTimeout = null;
+let relinkItem = null;
+
+function closeRelinkModal() {
+  $('relinkModal').classList.remove('active');
+  unlockScreen();
+  $('relinkResults').innerHTML = '';
+  $('relinkLoading').style.display = 'none';
+  relinkItem = null;
+}
+
+async function relinkSearch(query) {
+  const results = $('relinkResults');
+  const loading = $('relinkLoading');
+  results.innerHTML = '';
+  loading.style.display = 'flex';
+  try {
+    const data = await callTMDB('search/tv', { query }, 'pt-BR');
+    loading.style.display = 'none';
+    const list = sortSearchResults(data.results || [], query);
+    if (!list.length) {
+      results.innerHTML = '<p class="relink-empty">Nenhum resultado encontrado.</p>';
+      return;
+    }
+    const currentId = String(relinkItem?.tmdb_id || '');
+    const frag = document.createDocumentFragment();
+    list.slice(0, 12).forEach(res => {
+      const name = res.name || res.title || '';
+      if (!name) return;
+      const year = (res.first_air_date || res.release_date || '').slice(0, 4);
+      const poster = res.poster_path ? `https://image.tmdb.org/t/p/w92${res.poster_path}` : '';
+      const contTag = getContinuationTag(name);
+      const isCurrent = String(res.id) === currentId;
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = `relink-item${isCurrent ? ' relink-item--current' : ''}`;
+      row.disabled = isCurrent;
+      row.innerHTML = `
+        <span class="relink-thumb">${poster ? `<img src="${escapeHTML(poster)}" alt="" loading="lazy" />` : '<i class="fas fa-film"></i>'}</span>
+        <span class="relink-text">
+          <span class="relink-name">${escapeHTML(name)}</span>
+          <span class="relink-sub">${year ? `<span>${year}</span>` : ''}${contTag ? `<span class="relink-tag">${escapeHTML(contTag)}</span>` : ''}${isCurrent ? '<span class="relink-tag relink-tag--now">atual</span>' : ''}</span>
+        </span>`;
+      row.addEventListener('click', () => applyRelink(res, name));
+      frag.appendChild(row);
+    });
+    results.appendChild(frag);
+  } catch (e) {
+    loading.style.display = 'none';
+    results.innerHTML = '<p class="relink-empty">Erro ao buscar no TMDB.</p>';
+  }
+}
+
+async function applyRelink(res, name) {
+  if (!relinkItem) return;
+  const item = relinkItem;
+  const target = res;
+  const ano = (target.first_air_date || target.release_date || '').slice(0, 4) || item.ano || null;
+  const imagem = target.poster_path ? `https://image.tmdb.org/t/p/w500${target.poster_path}` : item.imagem;
+  let details = null;
+  try { details = await callTMDB(`tv/${target.id}`, {}, 'pt-BR'); } catch {}
+  const seasonEpisodesMap = {};
+  (details?.seasons || []).forEach(s => { if (s.season_number > 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; });
+  try {
+    const saved = await updateItemInSupabase(item.id, {
+      nome: name,
+      tmdb_id: target.id,
+      imagem,
+      ano,
+      totalEpisodios: details?.number_of_episodes || item.totalEpisodios,
+      seasonEpisodesMap: Object.keys(seasonEpisodesMap).length ? seasonEpisodesMap : item.seasonEpisodesMap
+    });
+    const idx = state.items.findIndex(i => String(i.id) === String(item.id));
+    if (idx !== -1) state.items[idx] = saved;
+    Object.assign(item, saved);
+    closeRelinkModal();
+    showTitlePage(item, titlePageEl);
+    showToast('Título corrigido!');
+  } catch (e) {
+    console.error(e);
+    showToast('Não foi possível corrigir o título.', 3000);
+  }
+}
+
+function openRelinkModal(item) {
+  relinkItem = item;
+  const modal = $('relinkModal');
+  const input = $('relinkSearch');
+  modal.classList.add('active');
+  lockScreen();
+  $('relinkResults').innerHTML = '';
+  input.value = item.nome || '';
+  setTimeout(() => input.focus(), 60);
+  relinkSearch(item.nome || '');
+}
+
+function initRelinkModal() {
+  const modal = $('relinkModal');
+  $('relinkClose').addEventListener('click', closeRelinkModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeRelinkModal(); });
+  $('relinkSearch').addEventListener('input', (e) => {
+    clearTimeout(relinkTimeout);
+    const q = e.target.value.trim();
+    if (q.length < 2) { $('relinkResults').innerHTML = ''; $('relinkLoading').style.display = 'none'; return; }
+    relinkTimeout = setTimeout(() => relinkSearch(q), 400);
+  });
+}
+
+initRelinkModal();
 
 // ========== RENDER ==========
 function render() {
@@ -2073,15 +2254,14 @@ if (addPanelDelete) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if ($('episodesModal').classList.contains('active')) episodesModalAPI.close();
+    else if ($('titleInfoModal').classList.contains('active')) titleInfoModalAPI.close();
+    else if ($('relinkModal').classList.contains('active')) closeRelinkModal();
     else if ($('detailListModal')?.classList.contains('active')) $('detailListModal').classList.remove('active');
     else if ($('addListModal')?.classList.contains('active')) $('addListModal').classList.remove('active');
     else if ($('detailModal').classList.contains('active')) detailModalAPI.close();
     else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
     else if (state.currentTab === 'pesquisa') {
-      state.currentTab = 'all';
-      state.currentListId = null;
-      updateActiveNav();
-      render();
+      setActiveTab('all', null);
     }
     closeListsDropdown();
   }
@@ -2089,6 +2269,32 @@ document.addEventListener('keydown', (e) => {
 
 // ========== PESQUISA TMDB ==========
 let pesquisaTimeout = null;
+let searchEnrichToken = 0;
+
+/**
+ * Enriquece os cards da busca com temporadas/episódios e marca continuações.
+ * Busca os detalhes só dos 6 primeiros resultados, em paralelo e com cache.
+ */
+async function enrichSearchCards(results, grid, token) {
+  const targets = results.slice(0, 6);
+  const queue = [...targets];
+  const workers = Array.from({ length: 3 }, async () => {
+    while (queue.length) {
+      const res = queue.shift();
+      if (token !== searchEnrichToken) return;
+      const card = grid.querySelector(`.pesquisa-card[data-tmdb-id="${res.id}"]`);
+      if (!card) continue;
+      const details = await fetchTvDetailsCached(res.id);
+      if (!details || token !== searchEnrichToken) continue;
+      const parts = [];
+      if (details.number_of_seasons) parts.push(`${details.number_of_seasons} temporada${details.number_of_seasons > 1 ? 's' : ''}`);
+      if (details.number_of_episodes) parts.push(`${details.number_of_episodes} eps`);
+      const meta = card.querySelector('.pesquisa-card-meta');
+      if (meta && parts.length) meta.textContent = parts.join(' · ');
+    }
+  });
+  await Promise.allSettled(workers);
+}
 
 if (pesquisaInput) {
   pesquisaInput.addEventListener('input', () => {
@@ -2112,13 +2318,14 @@ if (pesquisaInput) {
         const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
         pesquisaLoading.style.display = 'none';
 
-        const filteredResults = data.results || [];
+        const filteredResults = sortSearchResults(data.results || [], q);
         if (filteredResults.length === 0) {
           pesquisaEmpty.style.display = '';
           pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
           return;
         }
 
+        const token = ++searchEnrichToken;
         const fragment = document.createDocumentFragment();
         filteredResults.forEach(res => {
           const name = res.name || res.title;
@@ -2129,6 +2336,7 @@ if (pesquisaInput) {
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);
           const safePoster = escapeHTML(posterUrl);
+          const contTag = getContinuationTag(name);
 
           const card = document.createElement('div');
           card.className = 'pesquisa-card';
@@ -2143,15 +2351,17 @@ if (pesquisaInput) {
           card.innerHTML = `
             <div class="pesquisa-card-img">
               ${safePoster ? `<img src="${safePoster}" alt="${safeName}" loading="lazy" />` : `<i class="fas fa-film"></i>`}
+              ${contTag ? `<span class="pesquisa-card-tag">${escapeHTML(contTag)}</span>` : ''}
             </div>
             <div class="pesquisa-card-body">
               <span class="badge">${mediaType}</span>
               <h3 title="${safeName}">${safeName}</h3>
               ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
+              <span class="pesquisa-card-meta"></span>
             </div>
           `;
 
-          const openPreview = () => openTitlePageForSearch(res);
+          const openPreview = () => openTitlePageForSearch(res, filteredResults);
 
           card.addEventListener('click', openPreview);
           card.addEventListener('keydown', (e) => {
@@ -2162,6 +2372,7 @@ if (pesquisaInput) {
         });
 
         pesquisaGrid.appendChild(fragment);
+        enrichSearchCards(filteredResults, pesquisaGrid, token);
 
         if (typeof anime !== 'undefined') {
           const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');

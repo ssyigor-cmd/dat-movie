@@ -3,7 +3,7 @@
  */
 
 import { calcularProgresso, getTierClass, escapeHTML, filterItems } from '../lib/catalog.js';
-import { fetchTitleLogo, callTMDB } from '../lib/api.js';
+import { fetchTitleLogo, callTMDB, resolveItemPosterUrl } from '../lib/api.js';
 
 /**
  * Renderiza a seção "Assistindo" com todos os títulos em andamento
@@ -72,6 +72,14 @@ export function createCardElement(item, variant = null, items, onCardClick) {
     </div>
   `;
   
+  // Arte da temporada em acompanhamento tem prioridade sobre a arte da série
+  const cardImg = card.querySelector('.card-img img');
+  if (cardImg && item.tmdb_id) {
+    resolveItemPosterUrl(item, 'w500')
+      .then(url => { if (url && cardImg.src !== url) cardImg.src = url; })
+      .catch(() => {});
+  }
+
   // Pré-carregar logo + detalhes no hover para modal instantâneo
   let logoPreloadTimeout = null;
   card.addEventListener('mouseenter', () => {

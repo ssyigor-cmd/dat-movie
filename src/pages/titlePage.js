@@ -12,6 +12,7 @@ import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { getTierClass, formatDateBR, calcularProgresso } from '../lib/catalog.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
+import { resolveSeasonPosterUrl, shouldUseSeasonArt } from '../lib/seasonArt.js';
 
 // ================================================================
 // 1) ESTADO & CALLBACKS
@@ -24,6 +25,9 @@ let onAddItemToList = null;
 let onRemoveItemFromList = null;
 let onGetUserLists = null;
 let onOpenEpisodes = null;
+let onOpenDetails = null;
+let onOpenParent = null;
+let onRelinkTitle = null;
 let onCreateItem = null;
 
 /**
@@ -35,6 +39,9 @@ let onCreateItem = null;
  * @param {Function} [callbacks.onAddItemToList]
  * @param {Function} [callbacks.onRemoveItemFromList]
  * @param {Function} [callbacks.onOpenEpisodes]
+ * @param {Function} [callbacks.onOpenDetails] - (item) => void
+ * @param {Function} [callbacks.onOpenParent] - (candidate, allResults) => void
+ * @param {Function} [callbacks.onRelinkTitle] - (item) => void
  * @param {Function} [callbacks.onCreateItem] - (itemData) => Promise<item> para preview de pesquisa
  */
 export function setupTitlePage(callbacks) {
@@ -45,6 +52,9 @@ export function setupTitlePage(callbacks) {
   onRemoveItemFromList = callbacks.onRemoveItemFromList || null;
   onGetUserLists = callbacks.onGetUserLists || null;
   onOpenEpisodes = callbacks.onOpenEpisodes || null;
+  onOpenDetails = callbacks.onOpenDetails || null;
+  onOpenParent = callbacks.onOpenParent || null;
+  onRelinkTitle = callbacks.onRelinkTitle || null;
   onCreateItem = callbacks.onCreateItem || null;
 }
 
@@ -78,7 +88,7 @@ function renderTitlePage(item, container) {
   const displayMaxTemp = String(computedMaxTemp).padStart(2, '0');
   const curTempInit = String(item.temporada || 1).padStart(2, '0');
   const curEpInit = String(item.episodio || 0).padStart(2, '0');
-  const maxEpInit = String((seasonMap[item.temporada] || item.totalEpisodios || 1)).padStart(2, '0');
+  const maxEpInit = String((seasonMap[item.temporada] ?? item.totalEpisodios ?? 1) || 1).padStart(2, '0');
 
   // ——— Categorias de layout ———
   // A) HUD Superior: Voltar | Logo+Original | Tier (mesmo design)
@@ -92,11 +102,15 @@ function renderTitlePage(item, container) {
       <div class="tp-hud-top tp-pill" style="position:relative; overflow:visible;">
         <button id="titleBack" class="tp-back-btn--unified" aria-label="Voltar"><i class="fas fa-arrow-left"></i></button>
         <div class="tp-logo-block" id="tpLogoPill">
-          <div id="titleLogoWrap" style="display:none; align-items:center; justify-content:center; max-width:380px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:44px; max-width:340px; object-fit:contain; display:block;" /></div>
-          <div id="titleNameFallback" style="text-align:center; line-height:1.2;">
-            <div id="titleName" style="font-family:var(--font-display); font-weight:700; font-size:0.95rem;">${item.nome}</div>
-            <div id="titleOriginalName" style="font-size:0.68rem; color:var(--text-muted); font-style:italic; margin-top:2px; display:none;"></div>
-            <div id="titleDates" style="font-size:0.62rem; color:rgba(255,255,255,0.35); margin-top:3px; display:none; align-items:center; justify-content:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
+          <div class="tp-logo-main">
+            <div id="titleLogoWrap" style="display:none; align-items:center; justify-content:center; max-width:380px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:44px; max-width:340px; object-fit:contain; display:block;" /></div>
+            <div id="titleNameFallback" style="line-height:1.2;">
+              <div id="titleName" style="font-family:var(--font-display); font-weight:700; font-size:0.95rem;">${item.nome}</div>
+            </div>
+          </div>
+          <div class="tp-meta-group" id="tpMetaGroup" style="display:none;">
+            <div id="titleOriginalName" style="font-size:0.68rem; color:var(--text-muted); font-style:italic; display:none;"></div>
+            <div id="titleDates" style="font-size:0.62rem; color:rgba(255,255,255,0.35); display:none; align-items:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
           </div>
         </div>
         <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
@@ -115,6 +129,13 @@ function renderTitlePage(item, container) {
     </div>
 
     <!-- B) LAYOUT PRINCIPAL + SIDEBAR -->
+    ${item._parentCandidate ? `
+    <div class="tp-parent-hint">
+      <i class="fas fa-code-branch"></i>
+      <span class="tp-parent-hint-text">Parece ser a continuação de <strong>${item._parentCandidate.name || item._parentCandidate.title || ''}</strong></span>
+      <button type="button" id="tpOpenParentBtn" class="tp-parent-hint-btn">Abrir série principal</button>
+      <button type="button" id="tpDismissParentBtn" class="tp-parent-hint-close" aria-label="Fechar aviso"><i class="fas fa-times"></i></button>
+    </div>` : ''}
     <div class="tp-layout">
       <!-- C) MAIN -->
       <div class="tp-main" style="flex:1;">
@@ -123,11 +144,6 @@ function renderTitlePage(item, container) {
           <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; aspect-ratio:2/3; display:flex; align-items:center; justify-content:center; flex:1; min-height:0;">
               <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:100%; height:100%; object-fit:cover; object-position:center; display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
             <div id="titlePosterPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-image"></i>&nbsp; Imagem vertical</div>
-            <div class="poster-top-links" style="position:absolute; top:8px; right:8px; display:flex; gap:4px; z-index:2;">
-              <a id="tpWikiLink" href="#" target="_blank" class="poster-icon-btn" title="Wikipédia" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fab fa-wikipedia-w"></i></a>
-              <a id="tpImdbLink" href="#" target="_blank" class="poster-icon-btn" title="IMDb" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fas fa-star"></i></a>
-              <a id="tpYoutubeLink" href="#" target="_blank" class="poster-icon-btn" title="YouTube" style="display:none; width:22px; height:22px; font-size:0.65rem;"><i class="fab fa-youtube"></i></a>
-            </div>
           </div>
         </div>
 
@@ -151,8 +167,8 @@ function renderTitlePage(item, container) {
                 <span id="titleSeasonMax" style="font-size:1.1rem; color:var(--text-muted);">${displayMaxTemp}</span>
               </div>
               <div style="display:flex; gap:12px;">
-                <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
                 <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+                <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
               </div>
             </div>
             <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
@@ -163,8 +179,8 @@ function renderTitlePage(item, container) {
                 <span id="titleEpMax" style="font-size:1.1rem; color:var(--text-muted);">${maxEpInit}</span>
               </div>
               <div style="display:flex; gap:12px;">
-                <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
                 <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">+</button>
+                <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
               </div>
             </div>
             <div class="tp-synopsis-block" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; text-align:left; position:relative; overflow:hidden;">
@@ -196,6 +212,7 @@ function renderTitlePage(item, container) {
           <div class="tp-side-card-head"><i class="fas fa-layer-group"></i> Coleções</div>
           <button id="tpListBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-layer-group"></i> Listas</button>
           <button id="tpEpisodesBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-film"></i> Episódios</button>
+          <button id="tpDetailsBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-circle-info"></i> Detalhes</button>
         </div>
         <!-- D3) Categoria: Ações -->
         <div class="tp-side-card tp-side-card--actions">
@@ -205,6 +222,7 @@ function renderTitlePage(item, container) {
           <button id="titleCancel" class="dm-btn" style="width:100%; justify-content:center; border:1px solid var(--border); background:var(--bg-surface);"><i class="fas fa-times"></i> Cancelar</button>
           ` : `
           <button id="titleSave" class="dm-btn dm-btn-primary" style="width:100%; justify-content:center;"><i class="fas fa-save"></i> Salvar</button>
+          <button id="tpRelinkBtn" class="dm-btn" style="width:100%; justify-content:center; border:1px solid var(--border); background:var(--bg-surface);"><i class="fas fa-link"></i> Corrigir título</button>
           <button id="titleDelete" class="dm-btn dm-btn-danger" style="width:100%; justify-content:center;"><i class="fas fa-trash"></i> Remover</button>
           `}
         </div>
@@ -295,10 +313,41 @@ function renderTitlePage(item, container) {
   const epLoadingEl = container.querySelector('#titleEpLoading');
   let seasonLimits = { maxTemp: computedMaxTemp, maxEpByTemp: seasonMap };
 
+  // Limite único de episódios por temporada — display e clamp usam a MESMA fonte
+  function episodeLimitFor(temp) {
+    const map = seasonLimits.maxEpByTemp || {};
+    if (Object.prototype.hasOwnProperty.call(map, temp)) {
+      const n = Number(map[temp]);
+      return Number.isFinite(n) ? Math.max(0, n) : 0;
+    }
+    const total = Number(item.totalEpisodios) || 0;
+    if (total > 0) return temp <= 1 ? total : Math.max(1, total);
+    return temp <= 1 ? 1 : 0;
+  }
+
+  const stepperBtns = Array.from(container.querySelectorAll('.poster-stepper-btn'));
+
+  function stepperState(btn) {
+    if (btn.dataset.target === 'titleTemporada') return { min: 1, max: seasonLimits.maxTemp || 1, value: curTemp };
+    const max = episodeLimitFor(curTemp);
+    return { min: 0, max, value: curEp };
+  }
+
+  function updateStepperButtons() {
+    stepperBtns.forEach(btn => {
+      const { min, max, value } = stepperState(btn);
+      const step = parseInt(btn.dataset.step, 10) || 1;
+      const blocked = step > 0 ? value >= max : value <= min;
+      btn.disabled = blocked;
+      btn.style.opacity = blocked ? '0.3' : '';
+      btn.style.cursor = blocked ? 'not-allowed' : 'pointer';
+    });
+  }
+
   function updateEpMax() {
-    const maxEp = seasonLimits.maxEpByTemp?.[curTemp] ?? (item.totalEpisodios || 1);
-    if (epMaxEl) epMaxEl.textContent = String(maxEp).padStart(2,'0');
+    if (epMaxEl) epMaxEl.textContent = String(episodeLimitFor(curTemp)).padStart(2,'0');
     if (seasonMaxEl) seasonMaxEl.textContent = String(seasonLimits.maxTemp || 1).padStart(2,'0');
+    updateStepperButtons();
   }
 
   // — Backdrop carrossel (várias horizontais com setas, sem repetidas)
@@ -391,25 +440,60 @@ function renderTitlePage(item, container) {
     }
   }
 
-  container.querySelectorAll('.poster-stepper-btn').forEach(b => {
-    b.addEventListener('click', () => {
-      const target = b.dataset.target;
-      const step = parseInt(b.dataset.step,10) || 1;
-      if (target === 'titleTemporada') {
-        const newTemp = Math.max(1, Math.min(seasonLimits.maxTemp || 99, curTemp + step));
-        if (newTemp === curTemp) return;
-        curTemp = newTemp;
-        temporadaDisplay.textContent = String(curTemp).padStart(2,'0');
-        const maxEp = seasonLimits.maxEpByTemp?.[curTemp] || 1;
-        if (curEp > maxEp) { curEp = maxEp; episodioDisplay.textContent = String(curEp).padStart(2,'0'); }
-        updateEpMax(); syncEpisodePanel();
-      } else {
-        const maxEp = seasonLimits.maxEpByTemp?.[curTemp] || 1;
-        const newEp = Math.max(0, Math.min(maxEp, curEp + step));
-        if (newEp === curEp) return;
-        curEp = newEp; episodioDisplay.textContent = String(curEp).padStart(2,'0'); syncEpisodePanel();
-      }
+  function applyStep(btn) {
+    const step = parseInt(btn.dataset.step, 10) || 1;
+    if (btn.dataset.target === 'titleTemporada') {
+      const maxTemp = seasonLimits.maxTemp || 1;
+      const newTemp = Math.max(1, Math.min(maxTemp, curTemp + step));
+      if (newTemp === curTemp) return;
+      curTemp = newTemp;
+      temporadaDisplay.textContent = String(curTemp).padStart(2,'0');
+      // Regra: ao mudar de temporada o episódio volta para 0
+      curEp = 0;
+      const maxEp = episodeLimitFor(curTemp);
+      if (curEp > maxEp) curEp = maxEp;
+      episodioDisplay.textContent = String(curEp).padStart(2,'0');
+      updateEpMax(); syncEpisodePanel();
+    } else {
+      const maxEp = episodeLimitFor(curTemp);
+      const newEp = Math.max(0, Math.min(maxEp, curEp + step));
+      if (newEp === curEp) return;
+      curEp = newEp;
+      episodioDisplay.textContent = String(curEp).padStart(2,'0');
+      updateStepperButtons();
+      syncEpisodePanel();
+    }
+  }
+
+  // clique-e-segure: 300ms até o primeiro repeat, depois a cada 100ms
+  let holdTimer = null;
+  let holdInterval = null;
+  let holdFired = false;
+  function stopHold() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+  }
+  function startHold(btn) {
+    stopHold();
+    holdFired = false;
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      applyStep(btn);
+      holdFired = true;
+      holdInterval = setInterval(() => applyStep(btn), 100);
+    }, 300);
+  }
+
+  stepperBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (holdFired) { holdFired = false; return; }
+      applyStep(btn);
     });
+    btn.addEventListener('mousedown', () => startHold(btn));
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(btn); }, { passive: false });
+    btn.addEventListener('mouseup', stopHold);
+    btn.addEventListener('mouseleave', stopHold);
+    btn.addEventListener('touchend', stopHold);
   });
 
   // — Salvar / Remover / Adicionar (com listas)
@@ -512,6 +596,20 @@ function renderTitlePage(item, container) {
     modal.classList.add('active');
   });
   if (tpEpisodesBtn) tpEpisodesBtn.addEventListener('click', () => { if (onOpenEpisodes) onOpenEpisodes(null, item, curTemp, curEp); });
+  const tpDetailsBtn = container.querySelector('#tpDetailsBtn');
+  if (tpDetailsBtn) tpDetailsBtn.addEventListener('click', () => { if (onOpenDetails) onOpenDetails(item); });
+  const tpRelinkBtn = container.querySelector('#tpRelinkBtn');
+  if (tpRelinkBtn) tpRelinkBtn.addEventListener('click', () => { if (onRelinkTitle) onRelinkTitle(item); });
+
+  // — Aviso de continuação (sugere a série principal)
+  const tpOpenParentBtn = container.querySelector('#tpOpenParentBtn');
+  const tpDismissParentBtn = container.querySelector('#tpDismissParentBtn');
+  if (tpOpenParentBtn) tpOpenParentBtn.addEventListener('click', () => {
+    if (onOpenParent && item._parentCandidate) onOpenParent(item._parentCandidate, item._parentResults || null);
+  });
+  if (tpDismissParentBtn) tpDismissParentBtn.addEventListener('click', () => {
+    tpDismissParentBtn.closest('.tp-parent-hint')?.remove();
+  });
   // fechar modais de listas (detail e add)
   ['detailListModal','addListModal'].forEach(id => {
     const m = document.getElementById(id);
@@ -520,13 +618,7 @@ function renderTitlePage(item, container) {
     if (m) m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
   });
 
-  // — Links externos
-  const wikiLink = container.querySelector('#tpWikiLink');
-  const imdbLink = container.querySelector('#tpImdbLink');
-  const ytLink = container.querySelector('#tpYoutubeLink');
-  if (wikiLink) { wikiLink.href = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g,'_')}`; wikiLink.style.display = 'inline-flex'; }
-  if (imdbLink) { imdbLink.href = `https://www.imdb.com/find?q=${encodeURIComponent(item.nome)}`; imdbLink.style.display = 'inline-flex'; }
-  if (ytLink) { ytLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`; ytLink.style.display = 'inline-flex'; }
+  // — Links externos ficam no modal de Detalhes
 
   updateEpMax(); syncEpisodePanel();
 
@@ -550,8 +642,11 @@ function renderTitlePage(item, container) {
         seasons.forEach(s=>{ map[s.season_number]= s.episode_count || 0; });
         seasonLimits = { maxTemp: maxTempReal, maxEpByTemp: map };
         if (seasonMaxEl) seasonMaxEl.textContent = String(maxTempReal).padStart(2,'0');
-        updateEpMax();
         if (curTemp > maxTempReal) { curTemp = maxTempReal; temporadaDisplay.textContent = String(curTemp).padStart(2,'0'); }
+        const maxEpReal = episodeLimitFor(curTemp);
+        if (curEp > maxEpReal) { curEp = maxEpReal; }
+        episodioDisplay.textContent = String(curEp).padStart(2,'0');
+        updateEpMax();
         syncEpisodePanel();
       }
       // — Backdrops múltiplos com setas (sem repetidas via dedupe)
@@ -587,8 +682,14 @@ function renderTitlePage(item, container) {
       }
       const posterCard = container.querySelector('#titlePosterImgCard');
       const posterPh = container.querySelector('#titlePosterPlaceholder');
-      if (posterCard && details.poster_path) {
-        posterCard.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`;
+      // Arte da temporada em acompanhamento tem prioridade sobre a arte "vigente" da série,
+      // mas só para séries com mais de 1 temporada e itens não concluídos
+      const useSeasonArt = shouldUseSeasonArt({ ...item, temporada: curTemp }, details.number_of_seasons);
+      const seasonPosterUrl = useSeasonArt ? resolveSeasonPosterUrl(details, { ...item, temporada: curTemp }) : null;
+      const posterUrl = seasonPosterUrl
+        || (details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : null);
+      if (posterCard && posterUrl) {
+        posterCard.src = posterUrl;
         posterCard.style.display = 'block';
         if (posterPh) posterPh.style.display = 'none';
       }
@@ -596,6 +697,7 @@ function renderTitlePage(item, container) {
       const logoImg = container.querySelector('#titleLogoImg');
       const titleName = container.querySelector('#titleName');
       const titleOriginalName = container.querySelector('#titleOriginalName');
+      const titleMetaGroup = container.querySelector('#tpMetaGroup');
       const originalName = details.original_name || details.original_title || '';
       if (titleOriginalName) {
         if (originalName && originalName !== item.nome) { titleOriginalName.textContent = originalName; titleOriginalName.style.display = 'block'; }
@@ -619,26 +721,13 @@ function renderTitlePage(item, container) {
         titleEndDate.textContent = endYear;
         if (titleStatusLabel) titleStatusLabel.textContent = statusText;
         titleDates.style.display = 'flex';
+        if (titleMetaGroup) titleMetaGroup.style.display = 'flex';
       }
-      const wikiLink2 = container.querySelector('#tpWikiLink');
-      const imdbLink2 = container.querySelector('#tpImdbLink');
-      const ytLink2 = container.querySelector('#tpYoutubeLink');
-      if (wikiLink2) { wikiLink2.href = `https://pt.wikipedia.org/wiki/${encodeURIComponent(item.nome).replace(/%20/g,'_')}`; wikiLink2.style.display = 'inline-flex'; }
-      if (imdbLink2) {
-        let imdbHref = `https://www.imdb.com/find?q=${encodeURIComponent(item.nome)}`;
-        if (details.imdb_id) imdbHref = `https://www.imdb.com/title/${details.imdb_id}/`;
-        imdbLink2.href = imdbHref; imdbLink2.style.display = 'inline-flex';
-      }
-      if (ytLink2) { ytLink2.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.nome + ' trailer')}`; ytLink2.style.display = 'inline-flex'; }
       try {
         const logo = await fetchTitleLogo(item.tmdb_id, 'tv').catch(()=>null);
         if (logo && logoImg && logoWrap) {
           logoImg.src = logo; logoWrap.style.display = 'flex';
           if (titleName) titleName.style.display = 'none';
-          if (titleOriginalName && originalName && originalName !== item.nome) {
-            const fallback = container.querySelector('#titleNameFallback');
-            if (fallback && !fallback.contains(titleOriginalName)) fallback.appendChild(titleOriginalName);
-          }
         } else { if (logoWrap) logoWrap.style.display = 'none'; if (titleName) titleName.style.display = 'block'; }
       } catch {}
     } catch {}
