@@ -149,9 +149,9 @@ function renderTitlePage(item, container) {
 
         <!-- C2) Conteúdo direita -->
         <div class="tp-content-col" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px;">
-        <div class="tp-frame tp-backdrop-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; flex:1; aspect-ratio:16/9;">
-            <img id="titleBackdrop" src="" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;" />
-            <div id="titleBackdropPlaceholder" style="position:relative; z-index:1; color:var(--text-muted); font-size:0.85rem; display:flex; align-items:center; justify-content:center; width:100%; height:100%;">Imagem horizontal</div>
+        <div class="tp-frame tp-backdrop-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; flex:0 1 auto; align-self:flex-start; width:fit-content; max-width:100%;">
+            <img id="titleBackdrop" src="" alt="" style="position:relative; width:100%; height:auto; object-fit:contain; object-position:center; display:none;" />
+            <div id="titleBackdropPlaceholder" style="position:relative; z-index:1; color:var(--text-muted); font-size:0.85rem; display:flex; align-items:center; justify-content:center; width:100%; min-height:180px;">Imagem horizontal</div>
             <button id="tpBackdropPrev" class="poster-icon-btn" aria-label="Imagem anterior" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); display:none; z-index:3; width:28px; height:28px;"><i class="fas fa-chevron-left"></i></button>
             <button id="tpBackdropNext" class="poster-icon-btn" aria-label="Próxima imagem" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); display:none; z-index:3; width:28px; height:28px;"><i class="fas fa-chevron-right"></i></button>
             <div id="tpBackdropCounter" style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.55); color:#fff; padding:2px 8px; border-radius:999px; font-size:0.65rem; display:none; z-index:3; backdrop-filter:blur(4px);"></div>
