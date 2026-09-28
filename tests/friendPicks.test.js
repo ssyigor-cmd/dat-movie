@@ -13,9 +13,35 @@ import {
 } from '../src/lib/friendPicks.js';
 import { cacheClear } from '../src/lib/cache.js';
 
-/** Monta um `aggregate_credits` mínimo. */
+/**
+ * Monta um `aggregate_credits` no formato REAL da API.
+ *
+ * O campo é `jobs` (array), não `job` (singular) — o singular é do
+ * `movie/{id}/credits`. Os fixtures deste arquivo foram escritos com `job`
+ * durante a implementação e os 39 testes passaram: o harness reproduzia um
+ * payload que a API não devolve. O helper aceita os dois para que essa
+ * diferença continue visível nos testes em vez de implícita.
+ * @param {Array} crew - Entradas. Use `{ id, name, jobs: ['Creator'] }` ou `{ id, name, jobs: ['Creator'] }`.
+ * @returns {Object} Payload.
+ */
 function credits(crew) {
-  return { id: 1, cast: [], crew };
+  return {
+    id: 1,
+    cast: [],
+    crew: crew.map((c) => ({
+      adult: false,
+      id: c.id,
+      name: c.name,
+      original_name: c.name,
+      known_for_department: 'Writing',
+      profile_path: c.profilePath ?? null,
+      department: 'Writing',
+      total_episode_count: 12,
+      ...(c.jobs
+        ? { jobs: c.jobs.map((job) => ({ credit_id: 'x', job, episode_count: 12 })) }
+        : { job: c.job })
+    }))
+  };
 }
 
 /** Cria um catálogo com um item. */
@@ -90,19 +116,67 @@ describe('pickAnchors', () => {
 });
 
 describe('extractCreators', () => {
+  it('lê o array `jobs`, que é o formato real do aggregate_credits', () => {
+    // Regressão que derrubou a seção inteira: o payload real traz `jobs`
+    // (array). Ler `entry.job` devolvia undefined em 100% das entradas, a
+    // lista de criadores saía vazia e a home escondia "Títulos para você" sem
+    // registrar erro nenhum. Os 39 testes passaram porque o fixture usava o
+    // `job` singular, que existe no credits de filme e NÃO neste endpoint.
+    const real = {
+      id: 1396,
+      cast: [{ id: 1, name: 'Elenco', roles: [{ character: 'X' }] }],
+      crew: [
+        {
+          id: 66633, name: 'Vince Gilligan', known_for_department: 'Writing',
+          department: 'Writing', profile_path: '/vg.jpg', total_episode_count: 62,
+          jobs: [{ credit_id: 'a', job: 'Creator', episode_count: 62 }]
+        },
+        {
+          id: 66634, name: 'Alguem', department: 'Art', total_episode_count: 62,
+          jobs: [{ credit_id: 'b', job: 'Art Direction', episode_count: 62 }]
+        }
+      ]
+    };
+    const out = extractCreators(real);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ personId: '66633', name: 'Vince Gilligan', verb: 'criou', rank: 3 });
+    expect(out[0].profilePath).toBe('/vg.jpg');
+  });
+
+  it('escolhe a função mais forte entre as várias da mesma pessoa', () => {
+    const out = extractCreators(credits([
+      { id: 1, name: 'Multi', jobs: ['Writer', 'Director', 'Story'] }
+    ]));
+    expect(out).toHaveLength(1);
+    expect(out[0].verb).toBe('dirigiu');
+  });
+
+  it('ignora função de arte mesmo vinda no array de jobs', () => {
+    const out = extractCreators(credits([{ id: 1, name: 'Arte', jobs: ['Art Direction', 'Production Design'] }]));
+    expect(out).toEqual([]);
+  });
+
+  it('aceita `job` no singular como tolerância ao outro formato', () => {
+    // Formato de movie/{id}/credits. Manter vivo evita que a mesma lógica
+    // precise ser reescrita se a feature passar a ler o endpoint de filme.
+    const out = extractCreators(credits([{ id: 1, name: 'Dir', job: 'Director' }]));
+    expect(out).toHaveLength(1);
+    expect(out[0].verb).toBe('dirigiu');
+  });
+
   it('fica com diretor, criador e roteirista', () => {
     const out = extractCreators(credits([
-      { id: 1, name: 'Dir', job: 'Director' },
-      { id: 2, name: 'Esc', job: 'Writer' },
-      { id: 3, name: 'Prod', job: 'Executive Producer' }
+      { id: 1, name: 'Dir', jobs: ['Director'] },
+      { id: 2, name: 'Esc', jobs: ['Writer'] },
+      { id: 3, name: 'Prod', jobs: ['Executive Producer'] }
     ]));
     expect(out.map(c => c.name)).toEqual(['Dir', 'Esc']);
   });
 
   it('não deixa o mesmo nome duas vezes quando a pessoa tem várias funções', () => {
     const out = extractCreators(credits([
-      { id: 1, name: 'Vince', job: 'Writer' },
-      { id: 1, name: 'Vince', job: 'Director' }
+      { id: 1, name: 'Vince', jobs: ['Writer'] },
+      { id: 1, name: 'Vince', jobs: ['Director'] }
     ]));
     expect(out).toHaveLength(1);
     expect(out[0].verb).toBe('dirigiu');
@@ -110,8 +184,8 @@ describe('extractCreators', () => {
 
   it('ordena pela função que mais identifica a pessoa', () => {
     const out = extractCreators(credits([
-      { id: 2, name: 'Esc', job: 'Writer' },
-      { id: 1, name: 'Dir', job: 'Director' }
+      { id: 2, name: 'Esc', jobs: ['Writer'] },
+      { id: 1, name: 'Dir', jobs: ['Director'] }
     ]));
     expect(out[0].name).toBe('Dir');
   });
@@ -121,10 +195,10 @@ describe('extractCreators', () => {
     // enchia a lista de "o mesmo produtor de X, e fez isto aqui", que é
     // afirmação vazia. Produtor e diretor de fotografia saem.
     const out = extractCreators(credits([
-      { id: 1, name: 'Prod', job: 'Executive Producer' },
-      { id: 2, name: 'Foto', job: 'Director of Photography' },
-      { id: 3, name: 'Fig', job: 'Costume Supervisor' },
-      { id: 4, name: 'Alguem', job: 'Consultant' }
+      { id: 1, name: 'Prod', jobs: ['Executive Producer'] },
+      { id: 2, name: 'Foto', jobs: ['Director of Photography'] },
+      { id: 3, name: 'Fig', jobs: ['Costume Supervisor'] },
+      { id: 4, name: 'Alguem', jobs: ['Consultant'] }
     ]));
     expect(out).toEqual([]);
   });
@@ -132,20 +206,20 @@ describe('extractCreators', () => {
   it('descarta Art Director, que casa com o padrão de diretor', () => {
     // "Art Director" contém "Director": a lista de ruído precisa ser testada
     // antes do padrão, senão a allow-list é furada pela própria variação.
-    const out = extractCreators(credits([{ id: 1, name: 'Arte', job: 'Art Director' }]));
+    const out = extractCreators(credits([{ id: 1, name: 'Arte', jobs: ['Art Director'] }]));
     expect(out).toEqual([]);
   });
 
   it('aceita variante de função que indica a mesma autoria', () => {
     const out = extractCreators(credits([
-      { id: 1, name: 'CoDir', job: 'Co-Director' },
-      { id: 2, name: 'CoLead', job: 'Lead Writer' }
+      { id: 1, name: 'CoDir', jobs: ['Co-Director'] },
+      { id: 2, name: 'CoLead', jobs: ['Lead Writer'] }
     ]));
     expect(out.map(c => [c.name, c.verb])).toEqual([['CoDir', 'dirigiu'], ['CoLead', 'roteirizou']]);
   });
 
   it('ignora entrada sem id ou sem nome e payload vazio', () => {
-    expect(extractCreators(credits([{ job: 'Director' }, { id: 3, job: 'Director' }]))).toEqual([]);
+    expect(extractCreators(credits([{ jobs: ['Director'] }, { id: 3, jobs: ['Director'] }]))).toEqual([]);
     expect(extractCreators(null)).toEqual([]);
     expect(extractCreators({ crew: null })).toEqual([]);
   });
@@ -245,8 +319,8 @@ describe('getFriendPicks', () => {
 
   /** Âncora 100 com o criador 1; candidato 900 com o mesmo criador. */
   const fakeVerificado = async (endpoint) => {
-    if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
-    if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
+    if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+    if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
     if (endpoint === 'tv/100/recommendations') return { results: [raw()] };
     if (endpoint === 'tv/100/similar') return { results: [] };
     return { results: [] };
@@ -265,8 +339,8 @@ describe('getFriendPicks', () => {
     // Este é o teste que segura a promessa da feature: sem vínculo verificado,
     // a seção se esconde em vez de virar catálogo.
     const fake = async (endpoint) => {
-      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
-      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 42, name: 'Outra Pessoa', job: 'Director' }]);
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 42, name: 'Outra Pessoa', jobs: ['Director'] }]);
       if (endpoint === 'tv/100/recommendations') return { results: [raw()] };
       return { results: [] };
     };
@@ -298,8 +372,8 @@ describe('getFriendPicks', () => {
 
   it('nunca indica título que já está no catálogo', async () => {
     const fake = async (endpoint) => {
-      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
-      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
       if (endpoint === 'tv/100/recommendations') return { results: [raw()] };
       return { results: [] };
     };
@@ -309,8 +383,8 @@ describe('getFriendPicks', () => {
 
   it('cai para /similar quando /recommendations falha', async () => {
     const fake = async (endpoint) => {
-      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
-      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
       if (endpoint === 'tv/100/recommendations') throw new Error('indisponível');
       if (endpoint === 'tv/100/similar') return { results: [raw()] };
       return { results: [] };
@@ -324,8 +398,8 @@ describe('getFriendPicks', () => {
     const chamadas = { n: 0 };
     const fake = async (endpoint) => {
       chamadas.n += 1;
-      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
-      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', job: 'Director' }]);
+      if (endpoint === 'tv/100/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
+      if (endpoint === 'tv/900/aggregate_credits') return credits([{ id: 1, name: 'Vince', jobs: ['Director'] }]);
       if (endpoint === 'tv/100/recommendations') {
         return { results: [raw({ id: 78670, name: 'Impulse' }), raw()] };
       }
@@ -350,7 +424,7 @@ describe('getFriendPicks', () => {
     if (m) {
       const id = Number(m[1]);
       const dono = id >= 5000 ? id - 5000 : id;
-      return credits([{ id: dono, name: 'P' + dono, job: 'Director' }]);
+      return credits([{ id: dono, name: 'P' + dono, jobs: ['Director'] }]);
     }
     const r = /^tv\/(\d+)\/recommendations$/.exec(endpoint);
     if (r) return { results: [raw({ id: Number(r[1]) + 5000 })] };
@@ -388,7 +462,7 @@ describe('getFriendPicks', () => {
       if (endpoint.endsWith('/aggregate_credits')) {
         creditos += 1;
         // Criador sempre distinto: nada ever verifica, então o teto é quem corta.
-        return credits([{ id: creditos, name: 'P' + creditos, job: 'Director' }]);
+        return credits([{ id: creditos, name: 'P' + creditos, jobs: ['Director'] }]);
       }
       if (endpoint.endsWith('/recommendations')) {
         return { results: Array.from({ length: 10 }, (_, i) => raw({ id: 5000 + i })) };

@@ -172,17 +172,29 @@ export function extractCreators(credits) {
   const byPerson = new Map();
   for (const entry of crew) {
     if (!entry || !entry.id || !entry.name) continue;
-    const role = classifyRole(entry.job);
+    // Atenção ao formato: `aggregate_credits` devolve **`jobs`, um array**, porque
+    // a mesma pessoa pode ter várias funções na série. O `job` no singular é o
+    // formato de `movie/{id}/credits`, e aqui ele simplesmente não existe —
+    // ler `entry.job` num payload real devolve `undefined` sempre, e a seção
+    // some sem erro nenhum no console. `job` fica só como tolerância.
+    const jobs = Array.isArray(entry.jobs) && entry.jobs.length > 0
+      ? entry.jobs.map(j => j && j.job).filter(Boolean)
+      : (entry.job ? [entry.job] : []);
+    let best = null;
+    for (const job of jobs) {
+      const role = classifyRole(job);
+      if (role && (!best || role.rank > best.rank)) best = role;
+    }
     // Função de figurino, produção ou mixagem não entra: ver `classifyRole`.
-    if (!role) continue;
+    if (!best) continue;
     const personId = String(entry.id);
     const current = byPerson.get(personId);
-    if (current && current.rank >= role.rank) continue;
+    if (current && current.rank >= best.rank) continue;
     byPerson.set(personId, {
       personId,
       name: entry.name,
-      verb: role.verb,
-      rank: role.rank,
+      verb: best.verb,
+      rank: best.rank,
       profilePath: entry.profile_path || null
     });
   }
