@@ -213,7 +213,7 @@ export function renderHomeBase(container, context) {
          respondem "o que eu assisto agora?". Antes ficavam quase no fim da tela,
          soterradas entre os carrosséis. -->
 
-    <section class="home-section" id="homeAffinitySection" aria-label="Descoberta por afinidade">
+    <section class="home-section home-section--panel" id="homeAffinitySection" aria-label="Descoberta por afinidade">
       <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
       <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
       <div class="home-affinity-search">
@@ -238,10 +238,10 @@ export function renderHomeBase(container, context) {
       <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
     </section>
 
-<section class="home-section" id="homeRouletteSection" aria-label="Roleta">
+<section class="home-section home-section--panel" id="homeRouletteSection" aria-label="Roleta">
       <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
-        <button id="homeRouletteBtn" class="home-empty-btn" style="padding:12px 32px; font-size:1rem;"><i class="fas fa-dice"></i> Sortear título novo</button>
+        <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear título novo</button>
       </div>
       <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
