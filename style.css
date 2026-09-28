@@ -3763,7 +3763,10 @@ a:focus-visible,
    botões de cada um. Antes Status usava 8px e Coleções/Ações 5px, o que
    deixava os blocos desiguais. */
 .tp-side-hud { gap: 8px; }
-.title-page .tp-side-card { padding: 6px 8px; gap: 8px; }
+/* Os três cartões dividem a altura da sidebar em partes iguais, e a sidebar
+   ocupa toda a altura do bloco das imagens. Antes eles ficavam com a altura
+   do conteúdo e sobrava vazio no fim. */
+.title-page .tp-side-card { padding: 6px 8px; gap: 8px; flex: 1 1 0; }
 .title-page .tp-side-card .tp-status-col { gap: 8px; }
 /* Painel de episódio mais baixo, para a coluna direita terminar na mesma linha
    do card vertical. */
