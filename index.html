@@ -10,7 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script type="importmap">
   {
@@ -25,25 +25,56 @@
 <body>
 
   <!-- TELA DE LOGIN -->
-  <div id="authContainer" role="dialog" aria-label="Login">
+  <div id="authContainer" role="dialog" aria-labelledby="authTitle">
     <div class="auth-box">
       <div class="auth-logo">
         <img src="/assets/logo/stacked-dark.svg" alt="datmovie" class="auth-logo-img" />
       </div>
-      <form id="authForm">
+      <h2 id="authTitle">Entrar</h2>
+      <p class="auth-subtitle" id="authSubtitle">Acesse sua biblioteca para continuar de onde parou.</p>
+      <form id="authForm" novalidate>
+        <div class="auth-group" data-auth-only="signup" hidden>
+          <label for="authName">Nome</label>
+          <input type="text" id="authName" placeholder="Como quer ser chamado" autocomplete="name"
+                 aria-describedby="authNameError" />
+          <span class="field-error" id="authNameError" role="alert"></span>
+        </div>
         <div class="auth-group">
           <label for="authEmail">Email</label>
-          <input type="email" id="authEmail" placeholder="seu@email.com" required />
+          <input type="email" id="authEmail" placeholder="seu@email.com" autocomplete="email"
+                 aria-describedby="authEmailError" />
+          <span class="field-error" id="authEmailError" role="alert"></span>
         </div>
         <div class="auth-group">
           <label for="authPassword">Senha</label>
-          <input type="password" id="authPassword" placeholder="••••••••" required />
+          <div class="auth-field">
+            <input type="password" id="authPassword" placeholder="••••••••"
+                   autocomplete="current-password" aria-describedby="authPasswordError" />
+            <button type="button" class="auth-reveal" id="authRevealBtn"
+                    aria-label="Mostrar senha" aria-pressed="false">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <div class="auth-strength" id="authStrength" data-auth-only="signup" hidden>
+            <div class="auth-strength-bar"><span id="authStrengthFill"></span></div>
+            <span class="auth-strength-label" id="authStrengthLabel"></span>
+          </div>
+          <span class="field-error" id="authPasswordError" role="alert"></span>
+        </div>
+        <div class="auth-group" data-auth-only="signup" hidden>
+          <label for="authPasswordConfirm">Repetir senha</label>
+          <input type="password" id="authPasswordConfirm" placeholder="••••••••"
+                 autocomplete="new-password" aria-describedby="authPasswordConfirmError" />
+          <span class="field-error" id="authPasswordConfirmError" role="alert"></span>
         </div>
         <div class="auth-actions">
-          <button type="submit" id="authLoginBtn">Entrar</button>
-          <button type="button" id="authSignupBtn" class="secondary">Cadastrar</button>
+          <button type="submit" id="authSubmitBtn">Entrar</button>
         </div>
         <div id="authMessage" aria-live="polite"></div>
+        <p class="auth-switch">
+          <span id="authSwitchText">Ainda não tem conta?</span>
+          <button type="button" id="authSwitchBtn">Cadastrar</button>
+        </p>
       </form>
     </div>
   </div>
@@ -89,13 +120,45 @@
 
       <!-- Profile menu -->
       <div class="navbar-profile">
-        <button class="nav-item" id="profileToggle">
+        <button class="nav-item" id="profileToggle" aria-haspopup="true" aria-expanded="false">
           <i class="fas fa-user-circle"></i>
-          <span id="profileEmail">Carregando...</span>
+          <span id="profileName">Carregando...</span>
           <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.6rem;"></i>
         </button>
         <div class="profile-dropdown" id="profileDropdown">
-          <div class="profile-info"><i class="fas fa-envelope"></i> <span id="profileEmailFull">---</span></div>
+          <div class="profile-head">
+            <span class="profile-avatar" id="profileAvatar" aria-hidden="true">--</span>
+            <div class="profile-head-text">
+              <span class="profile-head-name" id="profileHeadName">Carregando...</span>
+              <span class="profile-head-mail" id="profileEmailFull">---</span>
+            </div>
+          </div>
+          <div class="profile-name">
+            <div class="profile-name-view" id="profileNameView">
+              <span class="profile-name-view-text" id="profileNameViewText">---</span>
+              <button type="button" class="profile-name-edit-btn" id="profileNameEdit" aria-label="Editar nome de exibição" title="Editar nome">
+                <i class="fas fa-pen"></i>
+              </button>
+            </div>
+            <div class="profile-name-row" id="profileNameRow" hidden>
+              <label class="sr-only" for="profileNameInput">Nome de exibição</label>
+              <input type="text" id="profileNameInput" placeholder="Seu nome" maxlength="40"
+                     autocomplete="off" spellcheck="false" aria-describedby="profileNameHint" />
+              <button type="button" id="profileNameSave" aria-label="Salvar nome" disabled>
+                <i class="fas fa-check"></i>
+              </button>
+              <button type="button" class="profile-name-cancel-btn" id="profileNameCancel" aria-label="Cancelar edição do nome" title="Cancelar">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+          <span class="field-error" id="profileNameError" role="alert"></span>
+          <p class="profile-name-hint" id="profileNameHint">O nome de exibição substitui seu email no app. Você só entra em edição quando pede.</p>
+          <div class="profile-info"><i class="fas fa-calendar"></i> <span id="profileSince">Membro desde ---</span></div>
+          <label class="profile-pref" for="showProgressBar">
+            <input type="checkbox" id="showProgressBar" />
+            <span class="profile-pref-text">Mostrar barra de progresso</span>
+          </label>
           <hr />
           <button id="logoutBtn" class="nav-item" style="width:100%;"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
         </div>
@@ -107,11 +170,6 @@
   <main class="main-content" id="mainContent">
     <section id="homeSection" class="home-section-container" style="display:none;" aria-label="Página inicial"></section>
     <section id="titlePage" class="title-page" style="display:none;" aria-live="polite"></section>
-
-    <section class="continue-section" id="continueSection" style="display:none;">
-      <h2 class="section-heading"><i class="fas fa-play"></i> Assistindo</h2>
-      <div id="continueGrid" class="continue-grid"></div>
-    </section>
 
     <header class="main-header">
       <div class="header-info">

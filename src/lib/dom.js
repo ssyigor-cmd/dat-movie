@@ -10,10 +10,17 @@ export const dom = {
   // Auth
   authContainer: $('authContainer'),
   authForm: $('authForm'),
+  authTitle: $('authTitle'),
+  authSubtitle: $('authSubtitle'),
   authEmail: $('authEmail'),
   authPassword: $('authPassword'),
-  authLoginBtn: $('authLoginBtn'),
-  authSignupBtn: $('authSignupBtn'),
+  authName: $('authName'),
+  authPasswordConfirm: $('authPasswordConfirm'),
+  authRevealBtn: $('authRevealBtn'),
+  authStrength: $('authStrength'),
+  authSubmitBtn: $('authSubmitBtn'),
+  authSwitchBtn: $('authSwitchBtn'),
+  authSwitchText: $('authSwitchText'),
   authMessage: $('authMessage'),
 
 // Grid / Search / Sections
@@ -74,13 +81,23 @@ export const dom = {
 
   // Navbar / Profile
   logoutBtn: $('logoutBtn'),
-  continueSection: $('continueSection'),
-  continueGrid: $('continueGrid'),
   homeSection: document.getElementById('homeSection'),
   profileToggle: $('profileToggle'),
   profileDropdown: $('profileDropdown'),
-  profileEmail: $('profileEmail'),
+  profileName: $('profileName'),
+  profileHeadName: $('profileHeadName'),
   profileEmailFull: $('profileEmailFull'),
+  profileAvatar: $('profileAvatar'),
+  profileNameView: $('profileNameView'),
+  profileNameViewText: $('profileNameViewText'),
+  profileNameEdit: $('profileNameEdit'),
+  profileNameRow: $('profileNameRow'),
+  profileNameInput: $('profileNameInput'),
+  profileNameSave: $('profileNameSave'),
+  profileNameCancel: $('profileNameCancel'),
+  profileNameError: $('profileNameError'),
+  showProgressBar: $('showProgressBar'),
+  profileSince: $('profileSince'),
 
   // Navbar
   navbar: document.getElementById('topNavbar'),

@@ -1,48 +1,108 @@
 /**
- * Componente de Cards - Renderização dos cards da grade e bento "Continuando"
+ * Componente de Cards - o modelo de card do projeto inteiro
+ *
+ * Havia dois cartões completos para o mesmo conteúdo: `card` (Catálogo e
+ * listas) e `home-card` (Home), cada um com raio, hover, `padding`, corpo de
+ * texto, barra de progresso e imagem próprios. Dois modelos para o mesmo item
+ * é a origem de "aqui a fonte é outra": cada tela ajustava o seu e o catálogo
+ * deixava de valer como referência.
+ *
+ * Agora existe um só. A anatomia e a tipografia vivem em `.card` no
+ * `style.css`, e o markup mora aqui — `cardMarkup` é a única função que escreve
+ * a estrutura, chamada tanto por `createCardElement` quanto por `createHomeCard`.
+ * O que muda entre as telas não é o cartão, é a **largura**: o Catálogo usa a
+ * coluna do grid, a Home usa o trilho. Isso é `.card--rail`.
+ *
+ * As exceções ao modelo (`.pesquisa-card`, o cartão da Roleta) mantêm a própria
+ * anatomia porque não têm os mesmos dados — mas não inventam raio, borda,
+ * sombra nem tipografia: saem dos mesmos tokens.
  */
 
-import { calcularProgresso, getTierClass, escapeHTML, filterItems } from '../lib/catalog.js';
+import { calcularProgresso, getTierClass, escapeHTML } from '../lib/catalog.js';
 import { fetchTitleLogo, callTMDB, resolveItemPosterUrl } from '../lib/api.js';
 
 /**
- * Renderiza a seção "Assistindo" com todos os títulos em andamento
- * @param {Array} items - Lista completa de itens
- * @param {string} currentTab - Aba atual
- * @param {string|null} currentListId - ID da lista selecionada
- * @param {HTMLElement} continueSection - Elemento do container do bento
- * @param {HTMLElement} continueGrid - Elemento da grade do bento
- * @param {Function} createCardElement - Função para criar cards
+ * Placeholder do pôster ausente. Um só para o projeto: havia `fa-video` com
+ * `style` inline no Catálogo e `fa-film` com regra CSS na Home, e o mesmo
+ * vão vazio ficava com dois tamanhos e duas opacidades diferentes.
  */
-export function renderContinueWatching(items, currentTab, currentListId, continueSection, continueGrid, createCardElement) {
-  let pool = filterItems(items, { currentTab, currentListId, statusFilter: 'assistindo', tierFilter: 'todos', search: '' });
-  pool.sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
+const IMG_FALLBACK = '<i class="fas fa-film"></i>';
 
-  continueGrid.innerHTML = '';
-  if (!pool.length) { continueSection.style.display = 'none'; return; }
-  continueSection.style.display = '';
-
-  const fragment = document.createDocumentFragment();
-  pool.forEach((item) => {
-    const variant = pool.length === 1 ? 'hero-full' : 'tall';
-    fragment.appendChild(createCardElement(item, variant));
-  });
-  continueGrid.appendChild(fragment);
+/**
+ * Markup único de card: pôster 2/3 → título → linha de metadado → barra de
+ * progresso. Tudo que uma tela não tem simplesmente não vem — a linha de
+ * metadado e a barra são opcionais porque a pesquisa e a Home não têm progresso
+ * para mostrar, e forçá-las a renderizar um trilho vazio seria pior.
+ *
+ * @param {Object} o
+ * @param {string} [o.posterUrl] - URL do pôster; vazio usa o placeholder.
+ * @param {string} [o.titleHtml] - Título já escapado (o Catálogo junta o ano).
+ * @param {string} [o.titleAttr] - Texto do atributo `title`; puro, escapado aqui.
+ * @param {string} [o.metaHtml] - Linha de metadado (`.info`) já montada.
+ * @param {string} [o.extraHtml] - Conteúdo específico da seção, depois da meta.
+ * @param {string} [o.stampHtml] - Selo sobre o pôster (tier).
+ * @param {string} [o.imgAttrs] - Atributos extras no `<img>` do pôster.
+ * @returns {string} HTML do interior do card.
+ */
+export function cardMarkup({ posterUrl = '', titleHtml = '', titleAttr = '', metaHtml = '', extraHtml = '', stampHtml = '', imgAttrs = '' }) {
+  const label = escapeHTML(titleAttr || titleHtml.replace(/<[^>]*>/g, ''));
+  return `
+    <div class="card-img">
+      ${posterUrl ? `<img src="${escapeHTML(posterUrl)}" alt="${label}" loading="lazy" ${imgAttrs} />` : IMG_FALLBACK}
+      ${stampHtml}
+    </div>
+    <div class="card-body">
+      <h3 title="${label}">${titleHtml}</h3>
+      ${metaHtml}
+      ${extraHtml}
+    </div>`;
 }
 
 /**
- * Cria o elemento DOM de um card
+ * Liga o card ao clique e ao teclado. Mesmo par de eventos em todas as telas —
+ * era o Catálogo com `role="listitem"` e a Home com `role="button"`, e a
+ * diferença de papel é que a Home não tem lista por trás.
+ */
+export function attachCardInteraction(card, onActivate) {
+  if (typeof onActivate !== 'function') return;
+  card.addEventListener('click', onActivate);
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(e); }
+  });
+}
+
+/**
+ * Troca o pôster salvo pela arte da temporada quando o TMDb devolve.
+ *
+ * As duas fábricas de card faziam isto: uma buscava a arte da temporada, a
+ * outra resolvia o pôster. Uma função só, e o seletor é `.card-img` porque
+ * agora é a mesma classe nas duas.
+ */
+export function resolveCardPoster(card, item) {
+  const img = card.querySelector('.card-img img');
+  if (!img || !item || !item.tmdb_id) return;
+  resolveItemPosterUrl(item, 'w500')
+    .then((url) => { if (url && img.src !== url) img.src = url; })
+    .catch(() => {});
+}
+
+/**
+ * Cria o elemento DOM de um card do Catálogo e das listas.
+ *
+ * A grade decide a largura (`1fr` da coluna), então este cartão não carrega
+ * nenhuma variante: ele é o modelo. A Home chama `cardMarkup` direto e soma
+ * `.card--rail`.
+ *
  * @param {Object} item - Dados do item
- * @param {string|null} variant - Variante do card (hero, tall, hero-full, etc)
  * @param {Array} items - Lista completa de itens (para buscar índice)
  * @param {Function} onCardClick - Callback quando card é clicado
  * @returns {HTMLElement} Elemento do card
  */
-export function createCardElement(item, variant = null, items, onCardClick) {
+export function createCardElement(item, items, onCardClick) {
   const realIndex = items.indexOf(item);
   const progress = calcularProgresso(item);
   const card = document.createElement('div');
-  card.className = variant ? `card card-${variant}` : 'card';
+  card.className = 'card';
   card.dataset.index = realIndex;
   card.dataset.itemId = item.id;
   card.dataset.tmdbId = item.tmdb_id || '';
@@ -50,42 +110,32 @@ export function createCardElement(item, variant = null, items, onCardClick) {
   card.setAttribute('role', 'listitem');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);
-  const tierClass = item.tier ? getTierClass(item.tier) : '';
-  const tierStampHtml = item.tier ? `<div class="tier-stamp ${tierClass}">${escapeHTML(item.tier)}</div>` : '';
-  const anoDisplay = item.ano ? ` (${item.ano})` : '';
-  const safeNome = escapeHTML(item.nome);
-  const safeImagem = item.imagem ? escapeHTML(item.imagem) : '';
-  card.innerHTML = `
-    <div class="card-img" data-index="${realIndex}">
-      ${safeImagem ? `<img src="${safeImagem}" alt="${safeNome}" loading="lazy" />` : `<i class="fas fa-video" style="font-size:1.8rem; opacity:0.3;"></i>`}
-      ${tierStampHtml}
-    </div>
-    <div class="card-body">
-      <h3 title="${safeNome}${anoDisplay}">${safeNome}${anoDisplay}</h3>
-      <div class="info">
-        <span>T${item.temporada} - Ep ${String(item.episodio).padStart(2, '0')}</span>
-      </div>
+
+  const ano = item.ano ? ` (${item.ano})` : '';
+  card.innerHTML = cardMarkup({
+    posterUrl: item.imagem || '',
+    titleHtml: escapeHTML(item.nome) + ano,
+    titleAttr: `${item.nome}${ano}`,
+    stampHtml: item.tier
+      ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>`
+      : '',
+    imgAttrs: `data-index="${realIndex}"`,
+    metaHtml: `<div class="info"><span>T${item.temporada} - Ep ${String(item.episodio).padStart(2, '0')}</span></div>`,
+    extraHtml: `
       <div class="progress-wrap">
         <div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div>
         <span class="progress-pct">${progress}%</span>
-      </div>
-    </div>
-  `;
-  
-  // Arte da temporada em acompanhamento tem prioridade sobre a arte da série
-  const cardImg = card.querySelector('.card-img img');
-  if (cardImg && item.tmdb_id) {
-    resolveItemPosterUrl(item, 'w500')
-      .then(url => { if (url && cardImg.src !== url) cardImg.src = url; })
-      .catch(() => {});
-  }
+      </div>`
+  });
+
+  resolveCardPoster(card, item);
 
   // Pré-carregar logo + detalhes no hover para modal instantâneo
   let logoPreloadTimeout = null;
   card.addEventListener('mouseenter', () => {
     const tmdbId = card.dataset.tmdbId;
     const mediaType = card.dataset.mediaType;
-    
+
     if (tmdbId && mediaType) {
       clearTimeout(logoPreloadTimeout);
       logoPreloadTimeout = setTimeout(async () => {
@@ -97,34 +147,26 @@ export function createCardElement(item, variant = null, items, onCardClick) {
       }, 200);
     }
   });
-  
+
   card.addEventListener('mouseleave', () => {
     clearTimeout(logoPreloadTimeout);
   });
-  
-  const handleCardClick = () => {
+
+  attachCardInteraction(card, () => {
     const index = parseInt(card.dataset.index);
     const itemId = card.dataset.itemId;
-    
+
     if (items[index] && items[index].id === itemId) {
       onCardClick(index);
     } else {
-      const  foundIndex = items.findIndex(i => i.id === itemId);
+      const foundIndex = items.findIndex(i => i.id === itemId);
       if (foundIndex !== -1) {
         onCardClick(foundIndex);
       } else {
         console.error('Item não encontrado:', itemId);
       }
     }
-  };
-  
-  card.addEventListener('click', handleCardClick);
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick();
-    }
   });
-  
+
   return card;
 }

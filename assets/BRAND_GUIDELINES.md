@@ -24,10 +24,60 @@ assets/
 
 ## Typography
 
-### Font Family
-- **Primary**: Inter (sans-serif)
-- **Weight**: 600 (semibold)
-- **Alternative**: System sans-serif fonts
+Três famílias, três papéis. Inter é a base e descreve, Space Grotesk nomeia,
+e JetBrains Mono fica reservada ao dado técnico que precisa alinhar em coluna.
+
+| Papel | Família | Onde |
+|---|---|---|
+| Texto | **Inter** | corpo, sinopse, botões, inputs, episódios, interface geral |
+| Display | **Space Grotesk** | título de cartão, cabeçalhos, títulos de seção, destaques |
+| Mono | **JetBrains Mono** | número de episódio, data, ano, contagem, porcentagem, código |
+
+```html
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+```
+
+Os ícones são da **Font Awesome 6.5.0**, em CDN e fora do Google Fonts:
+
+```html
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+```
+
+- **Pesos**: as três famílias carregam 400, 500, 600 e 700 (a JetBrains Mono
+  parte de 500; 400 nela não é usado)
+- **Fallbacks**: a base cai nos sans de sistema (`-apple-system`,
+  `BlinkMacSystemFont`, `sans-serif`); o display e o mono caem em `sans-serif`
+  e `monospace`. Tudo que é dimensionado em `ch` ou `em` de fonte muda de
+  métrica se a substituta for de outra largura, então o fallback não é
+  decoração.
+
+`tests/typography.test.js` impede que uma família literal escape dos três
+tokens, que o display se espalhe pela folha, que o mono invada o papel de nomear
+e que um `font-weight` caia fora da faixa do link — nos dois sentidos: nem um
+peso usado sem carregar, nem um carregado sem uso.
+
+### Regra de peso
+
+Nenhum `font-weight` pode ficar fora da faixa carregada. O navegador não avisa
+que está fabricando negrito — ele só engrossa os traços, e o resultado aparece
+como texto ilegível. Foi o que reprovou a Bebas Neue (peso único, 400).
+
+O link original carregava Space Grotesk em 600/700 e JetBrains Mono em 500, e
+nove regras pediam fora disso: `.header-subtitle` e `.epp-season-text` em 400,
+`.stat-label` em 500, e `.episode-number`, `.home-calendar-dnum`,
+`.stat-number`, `.nav-section-label`, `.pesquisa-card-body .badge` e o campo de
+busca da home em 600/700. Nove elementos renderizavam em negrito sintético.
+Resolvido em 28/09/2026, com os pesos somados ao link — o conserto é de uma
+linha, mas o link passa a ser consequência da folha e não herança do design.
+
+### Nota sobre os SVG do logo
+
+Os SVG carregam `<text font-family="Inter, sans-serif">` em vez de contorno em
+`<path>`. Como o logo é carregado por `<img src>`, o SVG é renderizado num
+contexto isolado e **não enxerga a webfont da página**: ele usa a Inter
+instalada no sistema, ou cai no `sans-serif` genérico. Para a marca ficar
+idêntica em qualquer máquina, o texto precisa ser convertido em `<path>` na
+exportação. É o item em aberto desta seção.
 
 ## Logo Usage
 

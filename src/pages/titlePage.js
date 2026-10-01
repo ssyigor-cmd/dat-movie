@@ -124,7 +124,7 @@ function renderTitlePage(item, container) {
           <div class="tp-logo-main">
             <div id="titleLogoWrap" style="display:none; align-items:center; justify-content:center; max-width:380px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:44px; max-width:340px; object-fit:contain; display:block;" /></div>
             <div id="titleNameFallback" style="line-height:1.2;">
-              <div id="titleName" style="font-family:var(--font-display); font-weight:700; font-size:0.95rem;">${item.nome}</div>
+              <div id="titleName" style="font-weight:700; font-size:0.95rem;">${item.nome}</div>
             </div>
           </div>
           <div class="tp-meta-group" id="tpMetaGroup" style="display:none;">
@@ -180,7 +180,7 @@ function renderTitlePage(item, container) {
           <div class="tp-episode-row" style="display:flex; gap:12px; align-items:stretch;">
             <div class="tp-season-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Temporada</span>
-              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+              <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleTemporadaDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curTempInit}</span>
                 <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
                 <span id="titleSeasonMax" style="font-size:1.1rem; color:var(--text-muted);">${displayMaxTemp}</span>
@@ -192,7 +192,7 @@ function renderTitlePage(item, container) {
             </div>
             <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Episódio</span>
-              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+              <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleEpisodioDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curEpInit}</span>
                 <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
                 <span id="titleEpMax" style="font-size:1.1rem; color:var(--text-muted);">${maxEpInit}</span>

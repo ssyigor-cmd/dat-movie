@@ -27,6 +27,7 @@
 
   /* Utilitários */
   --danger: #ef4444;
+  --warning: #fbbf24;
   --success: #34d399;
   --radius: 20px;
   --radius-sm: 14px;
@@ -50,9 +51,19 @@
   --tier-c-ink: #3D1600;
   --tier-d-ink: #430D0D;
 
-  /* Fontes */
-  --font-display: 'Space Grotesk', sans-serif;
+  /* Fontes
+     Três papéis, três fontes:
+     `--font-body` é Inter e carrega corpo de texto, botões, episódios e a
+     interface geral. `--font-display` é Space Grotesk e nomeia títulos,
+     cabeçalho e destaques. `--font-mono` é JetBrains Mono e fica reservado a
+     dado técnico, código e texto que precisa de alinhamento em coluna:
+     número de episódio, data, ano, contagem, porcentagem, código.
+
+     Cada token traz um fallback da mesma largura, porque tudo que é
+     dimensionado em `ch` ou `em` de fonte troca de métrica se a substituta
+     for de outra largura. */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Transições */
@@ -60,7 +71,97 @@
   --transition-fast: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: 0.2s ease;
   --text: #E5E5E5;
-  --accent-glow: rgba(212, 212, 212, 0.15);
+  /* Só a barra de rolagem horizontal da Home. Chamava de `glow` sem nunca ter
+     produzido brilho nenhum; o nome prometia um efeito que não existia. */
+  --scrollbar-thumb: rgba(212, 212, 212, 0.15);
+
+  /* ==============================================================
+     PADRÃO DA HOME
+     --------------------------------------------------------------
+     A home é composta por carrosséis repetidos (cartões, Continuar,
+     Calendário, esqueleto de carregamento) e por painéis de escolha.
+     Sem uma escala única, cada um deles crescia com números próprios e a
+     tela passava a ter quatro ritmos diferentes: a mesma lista de filmes
+     rolava de um jeito em "Em Alta" e de outro em "Continuar
+     Assistindo", e o espaçamento entre seções era 28px + 30px = 58px.
+     Tudo que a home usa de medida está aqui. Se um número novo for
+     necessário, ele entra aqui — não numa regra.
+
+     ESCALA DE ESPAÇO: 8 / 12 / 32
+       - 32px separa SEÇÕES (ritmo vertical da página)
+       - 12px separa BLOCOS dentro de uma seção (título → faixa)
+       - 12px separa ITENS dentro de um carrossel
+       - 8px é o respiro interno de um cartão
+     A coincidência entre 12px nos dois papéis é intencional: um item de
+     carrossel e um bloco de seção ocupam o mesmo degrau da escala porque
+     são o mesmo gesto — "um passo para o próximo".
+     ============================================================== */
+  --home-space-section: 32px;   /* entre seções */
+  --home-space-block: 12px;     /* entre blocos de uma seção */
+  --home-space-item: 12px;      /* entre itens de um carrossel */
+  --home-space-inner: 8px;      /* dentro de um cartão */
+
+  /* Superfícies: três degraus, não dois.
+     Antes cartão e painel eram a mesma cor (#1A1A1A), então um cartão
+     dentro de um painel não se distinguia do fundo. Agora: página →
+     painel → cartão, cada um um degrau acima. */
+  --home-surface-panel: var(--bg-surface);     /* painel, calendário, vazio */
+  --home-surface-card: var(--bg-elevated);     /* cartão, dropdown, toast */
+  --home-surface-well: var(--bg-secondary);    /* buraco: pôster, trilha */
+
+  /* Raios. Antes existiam 5 valores na home (20, 14, 8, 4, 999) com dois
+     literais "8px"/"4px" escritos à mão, um deles dentro de uma string de
+     JS. --radius-xs recolhe os dois. */
+  --radius-xs: 8px;
+
+  /* Cartões. A largura é a única medida que o JS precisa conhecer, porque
+     "quantos cabem na tela" é uma conta de divisão. `getFullWidthCount` e
+     `getPickCount` replicam estes valores — se mudarem aqui, mudam lá. */
+  --home-card-w: 130px;        /* cartão comum, único para todos os trilhos */
+  --home-card-w-sm: 120px;     /* abaixo de 768px */
+  --home-panel-pad: 18px 20px; /* respiro interno dos painéis (roleta, afinidade, ano) */
+  --home-panel-pad-sm: 14px;   /* abaixo de 480px */
+
+  /* Escala de texto da HOME. Antes eram 12 tamanhos ad-hoc, com o subtítulo
+     do cartão em 0.62rem (~10px, abaixo do legível) e o título do cartão em
+     0.78rem num lugar e 0.74rem no calendário.
+
+     O texto do card não mora aqui: quem tem escala própria é o modelo, no
+     bloco CARD, e o `--fs-card` que existia para o título do cartão da home
+     foi embora junto com o segundo modelo. `--fs-meta` continua valendo para
+     o que a home acrescenta ao card (a frase da indicação, o nome do
+     episódio), não para o card em si. */
+  --fs-display: clamp(1.6rem, 4vw, 2.2rem);  /* saudação */
+  --fs-title: 1rem;                           /* título de seção */
+  --fs-body: 0.85rem;                         /* texto corrido, estado vazio */
+  --fs-meta: 0.72rem;                         /* secundário, progresso, episódio */
+  --fs-btn: 0.8rem;                           /* rótulo de botão */
+  --fs-label: 0.72rem;                        /* rótulo maiúsculo com tracking */
+
+  /* Alvos de toque. O botão de atualizar era 20×20px, abaixo do mínimo
+     confortável de dedo; 28px é o piso que adoto aqui. */
+  --tap-icon: 28px;
+  --tap-btn: 36px;
+  --focus-ring: 0 0 0 2px var(--accent);     /* anel de foco, sem offset */
+
+  --z-dropdown: 20;            /* acima do conteúdo, abaixo da navbar (100) */
+
+  /* Padding da página. A navbar é fixa e a folga do `padding-top` é o espaço
+     entre ela e o primeiro conteúdo — é aqui que a home começa, e um valor
+     errado aqui põe texto debaixo da navbar em vez de "descobrir" o problema.
+
+     A navbar tem exatamente duas alturas: 64px com uma linha, e duas linhas
+     abaixo de 700px, porque os controles de ação vão para uma linha inteira
+     (`.navbar-actions { width: 100% }`). Então o `padding-top` acompanha esses
+     dois formatos, e não cada largura. A tabela antiga fazia o inverso: três
+     valores para três faixas arbitrárias, um deles (80px em 480px) menor que
+     a navbar de 89px — o conteúdo passava por baixo dela.
+
+     Medido com o DOM real: 56px de folga em 1440, 55px em 700–481, 55px até
+     360px. Sem sobreposição em nenhuma largura. */
+  --page-pad-x: 32px;
+  --page-pad-top: 120px;   /* navbar 64px + 56 */
+  --page-pad-bottom: 28px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -78,10 +179,53 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
+  font-family: var(--font-display);
 }
 
-.card-body h3 {
-  color: var(--text-primary);
+/* ================================================================
+   PAPEL DE DISPLAY
+   ================================================================
+   A base é a Inter e não se declara em mais lugar nenhum: sinopse, meta,
+   detalhe, botão, badge e input herdam dela, e é isso que resolve a
+   legibilidade. Aqui fica só o que *nomeia* algo, que é onde a Space Grotesk
+   ajuda em vez de atrapalhar — título, cabeçalho, número grande,
+   e o nome da lista na navbar.
+
+   O corte é semântico, não por tamanho. `.epp-season-label` a 0.65rem e
+   `.card-body h3` a 0.85rem são quase do mesmo tamanho, mas um é um rótulo de
+   detalhe e o outro é o nome do filme: o segundo é que vai de display. O que
+   é dado técnico — número de episódio, data, ano, contagem, porcentagem —
+   nem entra aqui: vai para `--font-mono`, porque precisa alinhar em coluna.
+
+   Os `i` não aparecem aqui: são Font Awesome, e a fonte deles não interfere. */
+.card-body h3,
+.pesquisa-card-body h3,
+.home-section-title,
+.group-header h3,
+.season-header h3,
+.header-list-name,
+.header-subtitle,
+.epp-season-val,
+.epp-season-max,
+.epp-max,
+.epp-ep-badge,
+.epp-season-text,
+.epp-episode-title,
+.detail-header-center h2,
+.modal-header h2,
+.auth-box h2,
+.ti-name,
+.home-greeting-title,
+.episode-title,
+.season-toggle,
+#addListModalTitle,
+#detailListModalTitle,
+#titleEpTitle,
+.relink-name,
+.dm-original-title,
+.tier-option,
+.home-affinity-chip {
+  font-family: var(--font-display);
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -187,11 +331,14 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--border);
 }
 .nav-item:hover i { color: var(--accent); }
+/* O estado ativo se distingue por fundo, cor e borda. Antes levava também um
+   haloaccent (`0 2px 10px rgba(var(--accent-rgb), .15)`), que era o único
+   glow de verdade do projeto — brilho em volta de nada, na cor do texto, que
+   só aparecia em item selecionado. */
 .nav-item.active {
   background: var(--accent-soft);
   color: var(--accent);
   border: 1px solid var(--border);
-  box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.15);
 }
 .nav-item.active i { color: var(--accent); }
 
@@ -296,6 +443,191 @@ h1, h2, h3, h4, h5, h6 {
   word-break: break-all;
 }
 .profile-dropdown .profile-info i { color: var(--accent); width: 16px; }
+
+/* Preferência de exibição. Fica acima do separador porque é configuração, não
+   informação da conta: o que vem antes dela é sobre quem você é, e o que vem
+   depois é sair. Checkbox nativo, sem caixa desenhada — `accent-color` já
+   pinta no tema e o teclado e o leitor de tela funcionam sem código extra. */
+.profile-pref {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.profile-pref input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.profile-pref:hover { color: var(--text-primary); }
+.profile-pref input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 3px; }
+.profile-pref-text { min-width: 0; }
+
+/* Cabeçalho: avatar de iniciais + nome e email empilhados. */
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+.profile-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.profile-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.profile-head-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-head-mail {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nome de exibição.
+   O campo nasce travado: o que fica visível é o nome, como texto, e a
+   edição só existe depois de um clique em Alterar. Sem isso, um dropdown que
+   abre já traz um input editável — parece um formulário em andamento para
+   quem só queria sair, e qualquer clique perdido vira alteração não salva. */
+.profile-name { margin-bottom: 4px; }
+
+/* `display` declarado aqui ganha do `display: none` que o atributo `hidden`
+   traz por padrão, então a troca de estado precisa repetir a regra — sem
+   isso, esconder um dos dois lados pelo atributo não faria nada. */
+.profile-name-view {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 4px 4px 10px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+.profile-name-view[hidden] { display: none; }
+.profile-name-view-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-name-view-text.is-empty { color: var(--text-muted); font-style: italic; }
+
+.profile-name-edit-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.profile-name-edit-btn:hover { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.profile-name-edit-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.profile-name-row {
+  display: flex;
+  gap: 6px;
+}
+.profile-name-row[hidden] { display: none; }
+.profile-name-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: var(--font-body);
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.profile-name-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.profile-name-row input.invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.profile-name-row button {
+  flex-shrink: 0;
+  width: 32px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.profile-name-row button:hover:not(:disabled) { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.profile-name-row button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.profile-name-row button:disabled { opacity: 0.4; cursor: default; }
+/* Cancelar é a saída de quem não quer mudar nada: fica neutro, e só ganha
+   destaque no hover, para não competir com o Salvar. */
+.profile-name-row .profile-name-cancel-btn { color: var(--text-muted); }
+.profile-name-row .profile-name-cancel-btn:hover { color: var(--text-primary); background: var(--bg-hover); border-color: var(--border-strong); }
+
+/* O campo sujo avisa antes de perder a alteração: a borda muda e o botão de
+   salvar sai do estado desabilitado. */
+.profile-name-row.is-dirty input { border-color: var(--border-strong); }
+
+.profile-name-hint {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.profile-dropdown .field-error {
+  margin: 0 0 8px;
+  text-align: left;
+}
+.profile-dropdown .field-error:empty { display: none; }
 .profile-dropdown hr {
   border: none;
   border-top: 1px solid var(--border-strong);
@@ -315,22 +647,33 @@ img { max-width: 100%; height: auto; display: block; }
   box-sizing: border-box;
 }
 
-/* Pequenas telas: reduzir padding */
-@media (max-width: 600px) {
-  .main-content { padding: 80px 16px 16px 16px; }
-  .continue-grid { gap: 12px; }
-}
-
 /* ================================================================
    MAIN CONTENT
    ================================================================ */
 .main-content {
   flex: 1;
-  padding: 92px 32px 28px 32px;
+  padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom);
   margin-left: 0;
   max-width: 100%;
   overflow-y: auto;
   transition: padding 0.3s ease;
+}
+
+/* Padding lateral por degrau. Só o `getFullWidthCount`, em trendingApi.js,
+   precisa conhecer estes degraus, para a conta de "quantos cards cabem". */
+@media (max-width: 900px) {
+  :root { --page-pad-x: 16px; --page-pad-bottom: 16px; }
+}
+@media (max-width: 480px) {
+  :root { --page-pad-x: 12px; --page-pad-bottom: 12px; }
+}
+/* Mesma chave de breakpoints da navbar, porque é a navbar que define a altura
+   que precisa ser coberta. 97px e 89px são as alturas medidas com o DOM real. */
+@media (max-width: 700px) {
+  :root { --page-pad-top: 152px; }   /* navbar 97px + 55 */
+}
+@media (max-width: 480px) {
+  :root { --page-pad-top: 144px; }   /* navbar 89px + 55 */
 }
 
 .main-header {
@@ -364,7 +707,6 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 .header-list-name {
-  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -645,7 +987,6 @@ img { max-width: 100%; height: auto; display: block; }
   gap: 2px;
 }
 .detail-header-center h2 {
-  font-family: var(--font-display);
   color: var(--text-primary);
   white-space: normal;
   text-overflow: ellipsis;
@@ -1121,24 +1462,22 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .epp-season-val {
   font-size: 2.8rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #fff;
   line-height: 1;
-  font-family: var(--font-body);
 }
 .epp-season-text {
   font-size: 1.05rem;
-  font-weight: 200;
+  font-weight: 400;
   color: var(--text-muted);
   letter-spacing: 0;
   opacity: 0.6;
 }
 .epp-season-max {
   font-size: 1.4rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-secondary);
   line-height: 1;
-  font-family: var(--font-body);
 }
 .epp-season-name {
   font-size: 0.7rem;
@@ -1217,17 +1556,15 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .epp-ep-badge {
   font-size: 2.8rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #fff;
-  font-family: var(--font-body);
   letter-spacing: 0.02em;
 }
 .epp-max {
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-secondary);
   white-space: nowrap;
-  font-family: var(--font-body);
 }
 .epp-episode-details {
   min-width: 0;
@@ -1523,7 +1860,6 @@ img { max-width: 100%; height: auto; display: block; }
   background: var(--bg-surface);
   border: 1px solid var(--border);
   cursor: pointer;
-  font-family: var(--font-body);
   transition: all 0.2s;
   white-space: nowrap;
 }
@@ -1563,7 +1899,6 @@ img { max-width: 100%; height: auto; display: block; }
   background: var(--bg-surface);
   border: 1px solid var(--border);
   cursor: pointer;
-  font-family: var(--font-body);
   transition: all 0.2s;
   white-space: nowrap;
 }
@@ -1658,7 +1993,6 @@ img { max-width: 100%; height: auto; display: block; }
   min-height: 36px;
   border: none;
   cursor: pointer;
-  font-family: var(--font-body);
 }
 .dm-btn-primary {
   background: var(--accent);
@@ -1685,88 +2019,6 @@ img { max-width: 100%; height: auto; display: block; }
   white-space: nowrap;
 }
 
-/* ================================================================
-   BENTO "CONTINUANDO"
-   ================================================================ */
-.continue-section { margin-bottom: 28px; }
-.section-heading {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-heading i { color: var(--accent); font-size: 0.8rem; }
-
-.continue-grid {
-  display: flex;
-  flex-direction: row;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: visible;
-  padding-bottom: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
-}
-.continue-grid::-webkit-scrollbar { height: 4px; }
-.continue-grid::-webkit-scrollbar-track { background: transparent; }
-.continue-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
-.continue-grid .card {
-  flex-direction: row;
-  align-items: center;
-  padding: 12px 16px;
-  min-height: 100px;
-  gap: 14px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  flex: 0 0 260px;
-  width: 260px;
-}
-.continue-grid .card-img {
-  width: clamp(64px, 12vw, 120px);
-  height: auto;
-  flex-shrink: 0;
-  aspect-ratio: 2/3;
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-.continue-grid .card-img img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 100%;
-  object-fit: contain;
-}
-.continue-grid .card-body {
-  flex: 1;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.continue-grid .card-body .badge {
-  font-size: 0.55rem;
-  padding: 1px 6px;
-}
-.continue-grid .card-body h3 {
-  font-size: 0.9rem;
-  white-space: normal;
-  line-height: 1.3;
-}
-.continue-grid .card-body .info {
-  font-size: 0.65rem;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-}
-.continue-grid .progress-wrap {
-  margin-top: 4px;
-}
-
 .tool-btn {
   padding: 8px 12px;
   border-radius: var(--radius-pill);
@@ -1775,7 +2027,6 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--text-primary);
   font-size: 0.8rem;
   font-weight: 500;
-  font-family: var(--font-body);
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
@@ -1806,7 +2057,7 @@ img { max-width: 100%; height: auto; display: block; }
   background: var(--bg-elevated);
   border-left: 6px solid var(--text-muted);
 }
-.group-header h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+.group-header h3 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin: 0; }
 .group-header .group-count { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); background: var(--bg-secondary); padding: 0 8px; border-radius: var(--radius-pill); }
 .group-header.tier-Splus { border-left-color: var(--tier-splus); }
 .group-header.tier-S { border-left-color: var(--tier-s); }
@@ -1845,7 +2096,6 @@ img { max-width: 100%; height: auto; display: block; }
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.52rem;
   letter-spacing: 0.01em;
@@ -1886,12 +2136,16 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .card-img img { width: auto; max-width: 100%; height: auto; max-height: 100%; object-fit: contain; transition: transform 0.4s ease; }
 .card:hover .card-img img { transform: scale(1.05); }
+/* Vão do pôster ausente. A Home usava 1.4rem e o Catálogo escrevia
+   `font-size:1.8rem; opacity:0.3` por atributo `style` — o mesmo vão vazio
+   com dois tamanhos, e um deles fora da folha. */
+.card-img i { font-size: 1.8rem; opacity: 0.3; }
 .card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
 .card-body .badge {
+  font-family: var(--font-mono);
   display: inline-block;
   background: var(--accent-soft);
   color: var(--accent);
-  font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 500;
   padding: 1px 8px;
@@ -1899,7 +2153,12 @@ img { max-width: 100%; height: auto; display: block; }
   align-self: flex-start;
   margin-bottom: 2px;
 }
-.card-body h3 { font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+.card-body h3 { font-size: 0.85rem; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+/* A linha de metadado é a mesma em toda tela e herda a base do `body`, como
+   todo o resto do texto corrido. Houve um tempo em que ela usava um token
+   `--font-mono` próprio, com a justificativa de alinhar as duas colunas de
+   temporada e episódio; o token foi removido porque a Home herdava a base
+   aqui e o mesmo dado saía com duas fontes conforme a aba. */
 .card-body .info { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; }
 .card-body .info i { color: var(--text-muted); }
 .progress-wrap {
@@ -1928,6 +2187,39 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
+}
+/* Preferência do menu do perfil: a barra de progresso some inteira.
+   O alvo é `.progress-wrap`, o contêiner que agrupa trilha, barra e
+   porcentagem. Esconder só a porcentagem deixaria uma linha fina sem número,
+   que é metade de uma informação.
+
+   A classe vive no `<body>` justamente para valer para os cards já na tela:
+   alternar não re-renderiza nada. */
+body.is-progress-bar-hidden .progress-wrap { display: none; }
+
+/* ---- Variantes: só a largura, nunca o modelo ----
+   Um cartão, três contêineres. O Catálogo e as listas deixam a coluna do
+   grid decidir (`1fr`); a Home usa trilho horizontal, e é isso que estas
+   três regras fazem — fixar a largura e o snap. Raio, borda, superfície,
+   hover, imagem, tipografia e barra de progresso continuam sendo os de
+   `.card`, sem uma linha de override aqui.
+
+   A medida mora em token (`--home-card-w`) porque "quantos cabem na tela" é
+   uma conta de divisão feita no JavaScript, em `getFullWidthCount` e
+   `getPickCount`. O `flex: 0 0 <largura>` é obrigatório: sem ele a largura
+   declarada é só uma sugestão e o flex aperta o cartão até o conteúdo. */
+.card--rail {
+  flex: 0 0 var(--home-card-w);
+  width: var(--home-card-w);
+  scroll-snap-align: start;
+}
+/* O card do calendário usa a largura comum. O `flex` base do trilho é
+   `0 0 var(--home-card-w)`, zerado aqui porque dentro de uma coluna de dia
+   ele viraria altura. */
+.card--calendar {
+  flex: 0 0 auto;
+  width: var(--home-card-w);
+  margin: 0 auto;
 }
 
 /* ================================================================
@@ -1965,7 +2257,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .modal-overlay.active .modal { transform: translateY(0); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-shrink: 0; }
-.modal-header h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.modal-header h2 { font-size: 1.4rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
 #addListModalTitle, #detailListModalTitle { font-size: 1rem; font-weight: 600; }
 .modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .modal-close:hover { color: var(--text-primary); transform: rotate(90deg); }
@@ -1995,8 +2287,7 @@ img { max-width: 100%; height: auto; display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 1.3rem;
   letter-spacing: 0;
   line-height: 1;
@@ -2033,7 +2324,7 @@ img { max-width: 100%; height: auto; display: block; }
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -2152,7 +2443,7 @@ img { max-width: 100%; height: auto; display: block; }
 .modal-overlay.active .modal.modal-relink { transform: translateY(0) scale(1); opacity: 1; }
 .modal.modal-relink .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .modal.modal-relink .modal-header h2 {
-  font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+  font-size: 1rem; font-weight: 700;
   color: var(--text-primary); display: flex; align-items: center; gap: 8px; margin: 0;
 }
 .relink-hint { font-size: 0.7rem; color: var(--text-muted); margin: 0 0 12px; }
@@ -2220,7 +2511,6 @@ img { max-width: 100%; height: auto; display: block; }
   flex-shrink: 0;
 }
 .modal.modal-info .modal-header h2 {
-  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -2232,6 +2522,7 @@ img { max-width: 100%; height: auto; display: block; }
 .modal.modal-info .modal-body { overflow-y: auto; }
 
 .ti-hero { margin-bottom: 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .ti-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .ti-header { position: relative; justify-content: center; margin-bottom: 0; }
 .ti-header .modal-close { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); }
@@ -2239,7 +2530,7 @@ img { max-width: 100%; height: auto; display: block; }
 .ti-header-logo { display: flex; align-items: center; justify-content: center; margin: 0 auto; min-height: 40px; max-width: calc(100% - 56px); }
 .ti-header-logo img { max-height: 40px; max-width: 100%; width: auto; object-fit: contain; }
 .ti-sep { height: 1px; background: var(--border); margin: 14px 0 16px; }
-.ti-name { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+.ti-name { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .ti-original { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: 2px; }
 .ti-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ti-badge {
@@ -2344,7 +2635,6 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--accent);
 }
 .season-header h3 {
-  font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--accent);
@@ -2408,13 +2698,15 @@ img { max-width: 100%; height: auto; display: block; }
 .episode-item:last-child {
   border-bottom: none;
 }
+/* Episódio em andamento. O estado se sustenta sem halo: fundo tingido, borda
+   esquerda de 3px e o número em destaque. O brilho aqui era o mais visível do
+   projeto — 12px de raio em volta de um item de lista. */
 .episode-item.episode-current {
   background: rgba(var(--accent-rgb), 0.18);
   border-left: 3px solid var(--accent);
   border-radius: 6px;
   padding: 8px 10px;
   margin: 2px -10px;
-  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.15);
 }
 .episode-item.episode-current .episode-number {
   color: var(--accent);
@@ -2469,9 +2761,9 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--text-primary);
 }
 .episode-airdate {
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
-  font-family: var(--font-mono);
   margin-left: 8px;
 }
 .episode-overview {
@@ -2498,26 +2790,26 @@ img { max-width: 100%; height: auto; display: block; }
   justify-content: center; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast);
   background: rgb(19, 18, 19); color: var(--text-muted); font-size: 0.9rem; border: none;
 }
-.stepper-btn:hover { 
-  transform: scale(1.1); 
+.stepper-btn:hover {
+  transform: scale(1.1);
   background: var(--bg-elevated-hover);
 }
-.stepper-btn.stepper-up { 
-  background: rgb(19, 18, 19); 
-  color: #22c55e; 
+.stepper-btn.stepper-up {
+  background: rgb(19, 18, 19);
+  color: #22c55e;
   border: none;
 }
-.stepper-btn.stepper-up:hover { 
-  background: var(--bg-elevated-hover); 
+.stepper-btn.stepper-up:hover {
+  background: var(--bg-elevated-hover);
   color: #16a34a;
 }
-.stepper-btn.stepper-down { 
-  background: rgb(19, 18, 19); 
-  color: #ef4444; 
+.stepper-btn.stepper-down {
+  background: rgb(19, 18, 19);
+  color: #ef4444;
   border: none;
 }
-.stepper-btn.stepper-down:hover { 
-  background: var(--bg-elevated-hover); 
+.stepper-btn.stepper-down:hover {
+  background: var(--bg-elevated-hover);
   color: #dc2626;
 }
 
@@ -2567,6 +2859,9 @@ button.secondary:hover { background: var(--bg-hover); color: var(--text-primary)
   margin-top: 4px;
   min-height: 1em;
 }
+/* Sem texto não há span: o `min-height` reserva espaço e o formulário fica com
+   quatro faixas vazias abaixo dos campos. */
+.auth-group .field-error:empty { display: none; }
 .auth-group input.invalid:focus {
   border-color: var(--danger) !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
@@ -2638,7 +2933,6 @@ a:focus-visible,
 }
 
 .auth-box h2 {
-  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 700;
   margin-bottom: 22px;
@@ -2659,6 +2953,104 @@ a:focus-visible,
 .auth-actions { display: flex; gap: 8px; margin-top: 6px; }
 .auth-actions button { flex: 1; justify-content: center; }
 #authMessage { margin-top: 12px; font-size: 0.8rem; color: var(--text-secondary); text-align: center; min-height: 1em; }
+
+/* ---------- MODO ÚNICO: LOGIN / CADASTRO ---------- */
+.auth-box h2,
+.auth-subtitle { text-align: center; }
+.auth-box h2 { margin-bottom: 4px; }
+.auth-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.auth-field { position: relative; display: flex; align-items: center; }
+.auth-field input { padding-right: 42px; }
+.auth-reveal {
+  position: absolute;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  transition: color 0.2s, background 0.2s;
+}
+.auth-reveal:hover { color: var(--text-primary); background: var(--bg-surface); }
+.auth-reveal:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Força da senha: a barra só aparece no cadastro e nunca empurra o layout,
+   porque o wrapper tem altura fixa. */
+.auth-strength {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  height: 14px;
+}
+.auth-strength[hidden] { display: none; }
+.auth-strength-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+.auth-strength-bar span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--text-muted);
+  transition: width 0.25s, background 0.25s;
+}
+.auth-strength[data-level="1"] .auth-strength-bar span { width: 25%; background: var(--danger); }
+.auth-strength[data-level="2"] .auth-strength-bar span { width: 50%; background: var(--warning); }
+.auth-strength[data-level="3"] .auth-strength-bar span { width: 75%; background: var(--accent); }
+.auth-strength[data-level="4"] .auth-strength-bar span { width: 100%; background: var(--success); }
+.auth-strength-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  min-width: 62px;
+  text-align: right;
+}
+.auth-strength[data-level="1"] .auth-strength-label { color: var(--danger); }
+.auth-strength[data-level="2"] .auth-strength-label { color: var(--warning); }
+.auth-strength[data-level="3"] .auth-strength-label,
+.auth-strength[data-level="4"] .auth-strength-label { color: var(--text-secondary); }
+
+.auth-switch {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.auth-switch button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.auth-switch button:hover { color: var(--text-primary); }
+.auth-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+#authMessage.is-error { color: var(--danger); }
+#authMessage.is-success { color: var(--success); }
 
 /* ================================================================
    TOAST, THEME TOGGLE, EMPTY STATE
@@ -2702,7 +3094,6 @@ a:focus-visible,
   .grid-cols-6 { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 900px) {
-  .main-content { padding: 80px 16px 16px 16px; }
   .grid-cols-14, .grid-cols-12, .grid-cols-10, .grid-cols-8, .grid-cols-6 { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -2721,7 +3112,6 @@ a:focus-visible,
   .navbar-nav { order: 2; flex: 1; min-width: 0; }
   .navbar-lists { order: 2; }
   .navbar-brand { order: 1; margin-right: 0; }
-  .main-content { padding-top: 260px; }
   .nav-dropdown {
     left: auto;
     right: 0;
@@ -2731,7 +3121,6 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .main-content { padding-top: 180px; }
   .navbar-brand-icon { height: 32px; width: 32px; }
 }
 
@@ -2841,10 +3230,7 @@ a:focus-visible,
 }
 
 /* Ajuste do main-content */
-.main-content { padding-top: 120px; }
-
 @media (max-width: 700px) {
-  .main-content { padding-top: 160px; }
   .toolbar-left { gap: 8px; }
   .toolbar-search { max-width: none; min-width: 0; }
   .toolbar-filters { gap: 4px; }
@@ -3058,17 +3444,6 @@ a:focus-visible,
 }
 
 @media (max-width: 768px) {
-  .continue-grid .card {
-    padding: 10px 12px;
-    min-height: 80px;
-  }
-  .continue-grid .card-img {
-    width: 60px;
-    height: 90px;
-  }
-  .continue-grid .card-body h3 {
-    font-size: 0.8rem;
-  }
   .modal-episodes .modal {
     padding: 16px;
   }
@@ -3089,24 +3464,7 @@ a:focus-visible,
   .grid-cols-14, .grid-cols-12, .grid-cols-10, .grid-cols-8, .grid-cols-6 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .card-body { padding: 10px; }
   .card-body h3 { font-size: 0.75rem; }
-  .continue-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .continue-grid .card {
-    padding: 8px 12px;
-    min-height: 70px;
-  }
-  .continue-grid .card-img {
-    width: 60px; height: 60px;
-  }
-  .card-img {
-    width: 80px; height: 80px;
-  }
-  .card {
-    min-height: 80px;
-  }
-  .main-content { max-width: 100%; padding: 80px 12px 12px 12px; }
+  .main-content { max-width: 100%; }
   .modal { padding: 20px; max-width: 100%; }
   .profile-dropdown { right: 0; left: auto; top: calc(100% + 8px); min-width: 200px; max-width: calc(100vw - 24px); }
   .dm-poster-wrap {
@@ -3217,14 +3575,24 @@ a:focus-visible,
   margin: 0;
 }
 
-/* TMDB search result cards — simplified (no season/episode/progress) */
+/* ---- Cartão de pesquisa: exceção declarada ao modelo ----
+   Não é um `.card` porque o resultado do TMDb não tem temporada, episódio nem
+   progresso — a anatomia do modelo não teria o que mostrar. O que ele não pode
+   é inventar aparência: raio, borda, elevação, vão do pôster e escala de
+   texto saem dos mesmos tokens de `.card`. Antes eram literais próprios
+   (`20px`, `0 12px 40px rgba(0,0,0,0.5)`) e o título ficava em 0.82rem/700
+   contra 0.85rem/600 do resto do app.
+
+   A única diferença de layout que sobra é o título em duas linhas: aqui o
+   nome pode ser longo e não há ano nem subtítulo para compensar, então o
+   truncamento em uma linha esconderia o título de um resultado de busca. */
 .pesquisa-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   display: flex;
   flex-direction: column;
   animation: cardIn 0.4s ease both;
@@ -3232,9 +3600,11 @@ a:focus-visible,
 
 .pesquisa-card:hover {
   transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
   z-index: 2;
 }
+.pesquisa-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .pesquisa-card-img {
   aspect-ratio: 2 / 3;
@@ -3242,7 +3612,7 @@ a:focus-visible,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-surface);
+  background: var(--bg-secondary);
   position: relative;
 }
 
@@ -3279,12 +3649,12 @@ a:focus-visible,
 }
 
 .pesquisa-card-body .badge {
+  font-family: var(--font-mono);
   display: inline-block;
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -3293,11 +3663,10 @@ a:focus-visible,
 }
 
 .pesquisa-card-body h3 {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.25;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3313,447 +3682,545 @@ a:focus-visible,
 }
 
 /* ================================================================
-   HOME PAGE - LIQUID GLASS MONOCROMÁTICO
+   HOME — padrão único de layout
+   --------------------------------------------------------------
+   Todas as medidas desta página vêm dos tokens `--home-*` do `:root`.
+   Nenhum número solto abaixo: quando um valor precisava ser diferente
+   do resto, ele era uma exceção sem justificativa, e era aí que nascia
+   a inconsistência (quatro formatos de carrossel, quatro espaçamentos
+   entre seções, doze tamanhos de texto).
+
+   Hierarquia, de fora para dentro:
+     .home-section-container   ritmo vertical da página
+       .home-section           uma seção
+         .home-section-head    título + atualizar
+         .home-h-scroll        o trilho (carrossel) — a primitiva
+           .card--rail        um item: o card do Catálogo, estreito
+     .home-section--panel     seção de escolha, com caixa em volta
    ================================================================ */
-.home-section-container { display: flex; flex-direction: column; gap: 28px; }
-.home-greeting { padding: 8px 0 4px; }
-.home-greeting-title {
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-.home-greeting-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-.home-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-.stat-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 16px;
+
+/* ── Ritmo vertical ───────────────────────────────────────────
+   O espaçamento entre seções mora AQUI, num só lugar. Antes o
+   container tinha `gap: 28px` e cada seção ainda carregava
+   `margin-bottom: 30px` — 58px entre duas seções, e a regra
+   `last-of-type` que tentava compensar nunca casava, porque a
+   última filha do container é uma `<section>` sem a classe
+   `.home-section`. */
+.home-section-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  gap: var(--home-space-section);
 }
-.stat-number {
-  font-family: var(--font-mono);
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-space-block);
 }
-.stat-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 500;
+
+/* ── Cabeçalho de seção ───────────────────────────────────────
+   Toda seção usa o mesmo cabeçalho, com ou sem botão de atualizar.
+   Antes cinco seções tinham o `<h2>` solto e cinco ganhavam o wrapper
+   por JavaScript, o que fazia o título subir e descer conforme a
+   seção. Agora o wrapper está no HTML de todas — `setupSectionRefresh`
+   só preenche o botão, não cria a estrutura. */
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--home-space-inner);
+  min-height: var(--tap-icon);
 }
-.stat-card--highlight { background: var(--accent-soft); border-color: var(--border-strong); }
-.stat-icon { font-size: 1rem; color: var(--accent); margin-bottom: 2px; }
-.stat-progress { height: 4px; background: var(--bg-secondary); border: 1px solid rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; width: 100%; margin: 6px 0 2px; }
-.stat-progress-bar { height: 100%; background: var(--accent); border-radius: 999px; }
-/* O gap de 12px e interno de cada secao. Sem uma margem ENTRE as secoes elas
-   encostam umas nas outras e a tela inteira vira um bloco so — era o que
-   deixava "Descubra por afinidade" e a roleta ilegiveis quando ficaram
-   lado a lado. */
-.home-section { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
-.home-section:last-of-type { margin-bottom: 0; }
 .home-section-title {
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: var(--fs-title);
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--home-space-inner);
+  min-width: 0;
 }
-.home-section-title i { color: var(--accent); font-size: 0.85rem; }
-.home-section-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.home-section-title i {
+  color: var(--accent);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ── Botão de atualizar ───────────────────────────────────────
+   28px em vez de 20px: o alvo anterior era menor que o espaço entre
+   duas linhas de texto e era quase invisível a 0.5 de opacidade. A
+   hierarquia continua sendo discreta — a cor faz o trabalho, não a
+   transparência. */
 .home-refresh-btn {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: var(--tap-icon);
+  height: var(--tap-icon);
   padding: 0;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.62rem;
+  font-size: 0.8rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.5;
-  transition: color 0.2s, opacity 0.2s;
+  transition: color var(--transition), background var(--transition);
 }
-.home-refresh-btn:hover:not(:disabled) { color: var(--text-primary); opacity: 0.9; }
-.home-refresh-btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; opacity: 1; }
-.home-refresh-btn:disabled { cursor: default; opacity: 0.25; }
-.home-refresh-btn.is-loading i { animation: homeSpin 0.8s linear infinite; opacity: 1; }
+.home-refresh-btn:hover:not(:disabled) { color: var(--text-primary); background: var(--accent-soft); }
+.home-refresh-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.home-refresh-btn:disabled { cursor: default; color: var(--text-muted); opacity: 0.4; }
+.home-refresh-btn.is-loading i { animation: homeSpin 0.8s linear infinite; }
 @keyframes homeSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+/* ── O trilho: a primitiva de rolagem horizontal ──────────────
+   Uma única implementação, usada por Continuar, Calendário, esqueleto
+   e todas as faixas de cartões. Antes eram quatro, e cada uma faltava
+   uma parte: Continuar não tinha snap nem máscara, o esqueleto não
+   rolava (o conteúdo saía da tela e era cortado pelo `overflow-x:
+   hidden` do `body`), o Calendário não tinha scrollbar nem máscara.
+   O efeito era uma lista de filmes que rolava de um jeito num
+   carrossel e de outro no vizinho.
+
+   `.home-h-scroll` é o nome histórico; o papel é o de trilho. */
 .home-h-scroll {
   display: flex;
-  gap: 12px;
+  gap: var(--home-space-item);
+  width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 8px;
   scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  /* O fade da direita avisa que há mais. A esquerda é reta de propósito:
+     o primeiro item alinha com o padding da página, e um fade ali
+     desalinharia a borda do pôster com a do título. */
   -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
   mask-image: linear-gradient(to right, black 90%, transparent 100%);
-  width: 100%;
-  scroll-snap-type: x proximity;
 }
-.home-card { scroll-snap-align: start; }
 .home-h-scroll::-webkit-scrollbar { height: 6px; }
-.home-h-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-.home-continue-grid {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  padding-bottom: 8px;
+.home-h-scroll::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
 }
-.home-card {
-  flex: 0 0 130px;
-  width: 130px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  flex-direction: column;
-}
-.home-card:hover { transform: translateY(-4px); border-color: var(--border-strong); box-shadow: var(--shadow); }
-.home-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.home-card-img {
-  position: relative;
-  aspect-ratio: 2/3;
-  background: var(--bg-secondary);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.home-card-img img { width: auto; max-width: 100%; height: auto; max-height: 100%; object-fit: contain; }
-.home-card-img i { font-size: 1.4rem; opacity: 0.25; color: var(--text-muted); }
-.home-card-badge {
-  position: absolute;
-  top: 0;
-  right: 6px;
-  width: 18px;
-  height: 24px;
-  padding: 3px 0 6px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  font-weight: 700;
-  background: var(--accent);
-  color: var(--accent-ink);
-  text-align: center;
-  clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-  opacity: 0.92;
-}
-.home-card-badge.tier-Splus { background: var(--tier-splus); color: var(--tier-splus-ink); }
-.home-card-badge.tier-S { background: var(--tier-s); color: var(--tier-s-ink); }
-.home-card-badge.tier-A { background: var(--tier-a); color: var(--tier-a-ink); }
-.home-card-badge.tier-B { background: var(--tier-b); color: var(--tier-b-ink); }
-.home-card-badge.tier-C { background: var(--tier-c); color: var(--tier-c-ink); }
-.home-card-badge.tier-D { background: var(--tier-d); color: var(--tier-d-ink); }
-.home-card-add {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--accent-ink);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  transition: transform 0.15s;
-}
-.home-card-add:hover { transform: scale(1.1); }
-.home-card-body { padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 3px; }
-.home-card-body h3 {
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-.home-card-subtitle {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* `home-skeleton` é estado, não layout: a classe existe para o JavaScript
+   marcar "isto está carregando" e para os testes, e de propósito NÃO tem regra
+   própria. O elemento carrega `home-h-scroll` no markup e herda a primitiva
+   inteira — trilho, gap, snap, máscara. Sem container próprio, a troca de
+   esqueleto por cartões não muda a área rolável, e a página não "pula" quando
+   os dados chegam. */
 
-/* ==========================================================================
-   "Títulos para você" — indicações ancoradas em quem fez o que o usuário já
-   curtiu. O card é mais largo que o comum porque a frase precisa caber em três
-   linhas: ela é a informação, o pôster é só a moldura.
+/* ── Cartão ───────────────────────────────────────────────────
+   A home não tem cartão: tem `.card`, o mesmo do Catálogo, mais a
+   variante de largura `.card--rail` (veja o bloco CARD, no topo da
+   folha). Estas regras todas aqui — raio, `padding`, `gap`, imagem em
+   `cover`, `translateY(-4px)`, trilho de 3px sem porcentagem — eram um
+   segundo modelo para o mesmo dado, e foi a fonte de "aqui a fonte é
+   outra": o título da Home saía em `--fs-card` com o corpo na base herdada,
+   e o do Catálogo em 0.85rem com a meta herdando a mesma base.
 
-   A lista é curta (1 a 3 cards) e por isso não é um carrossel de rolagem: é um
-   cilindro. Os cards ficam sobrepostos em curva, e o que está no centro é o
-   único em tamanho cheio. Ver `mountPickCoverflow` em homePage.js, que
-   posiciona cada card pelo desvio em relação ao índice ativo.
-   ========================================================================== */
-.home-picks-coverflow {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  width: 100%;
-  /* Sem isso o rotateY achata os cards laterais em vez de dar a volta. */
-  /* Fechada de propósito: a 1200px a curva quase não aparecia. */
-  perspective: 900px;
-  perspective-origin: 50% 45%;
-  padding: 6px 0 10px;
-}
-/* Fade de entrada. Só opacity: mexer em transform aqui brigaria com a
-   matriz 3D que o coverflow escreve inline em cada card. */
-.home-picks-coverflow--in { animation: picksFade 0.4s ease both; }
-@keyframes picksFade { from { opacity: 0; } to { opacity: 1; } }
-.home-pick-card {
-  /* Fora do fluxo: quem centraliza é o índice ativo, não o grupo. No flex, o
-     grupo inteiro ficaria centralizado e o card da frente nunca cairia no meio
-     quando a quantidade é ímpar. */
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 170px;
-  margin-left: -85px;
-  transform-style: preserve-3d;
-  transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.45s ease;
-  will-change: transform;
-}
-.home-pick-card .home-card-body { gap: 6px; }
-.home-pick-reason {
-  margin: 0;
-  font-size: 0.66rem;
-  line-height: 1.4;
-  color: var(--text-primary);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+   O que sobra nesta página é o que a home tem de próprio: o nome do
+   episódio, que não cabe no cabeçalho de um cartão comum. */
 
-/* Tela estreita: três cards em curva não cabem, e um card cortado na metade é
-   pior que um carrossel de rolagem. Aqui vira lista com scroll, que é o
-   comportamento que o resto da home já usa. */
-@media (max-width: 640px) {
-  .home-picks-coverflow {
-    justify-content: flex-start;
-    overflow-x: auto;
-    overflow-y: hidden;
-    gap: 12px;
-    scrollbar-width: thin;
-    padding-bottom: 8px;
-  }
-  .home-pick-card {
-    position: static;
-    margin-left: 0;
-    transform: none !important;
-    opacity: 1 !important;
-    flex: 0 0 170px;
-  }
-}
-.home-card-epname {
-  font-size: 0.62rem;
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.home-card-progress-track { height: 3px; background: var(--bg-secondary); border-radius: 999px; overflow: hidden; margin-top: 4px; }
-.home-card-progress-bar { height: 100%; background: var(--accent); border-radius: 999px; }
+/* ── Estados: vazio, erro e esqueleto ─────────────────────────
+   `.home-empty` é uma caixa de estado (usada por Continuar).
+   `.home-note` é a frase que substitui a faixa. Antes o mesmo
+   `.home-empty` fazia os dois papéis, e a Roleta recebia uma caixa
+   tracejada de altura cheia para dizer uma frase. */
 .home-empty {
-  background: var(--bg-elevated);
+  background: var(--home-surface-panel);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--home-space-block);
   align-items: center;
 }
-.home-empty p { color: var(--text-muted); font-size: 0.85rem; }
+.home-empty p { color: var(--text-muted); font-size: var(--fs-body); }
+.home-note {
+  color: var(--text-muted);
+  font-size: var(--fs-body);
+  text-align: center;
+  padding: var(--home-space-block) 0;
+}
+.home-error {
+  color: var(--text-muted);
+  font-size: var(--fs-btn);
+  text-align: center;
+  padding: var(--home-space-inner);
+}
+
+/* ── Botões ───────────────────────────────────────────────────
+   Um só formato para todos os botões de ação da home: cápsula, altura
+   de toque de 36px, mesmo rótulo. O botão da Roleta, o de Continuar,
+   o de Analisar e o de Buscar ano usavam a mesma classe, mas cada
+   chamador ainda passava `padding` e `gap` próprios por atributo
+   `style` no HTML. */
 .home-empty-btn {
+  min-height: var(--tap-btn);
   background: var(--accent);
   color: var(--accent-ink);
   border: none;
-  padding: 8px 16px;
+  padding: 0 18px;
   border-radius: var(--radius-pill);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: var(--fs-btn);
+  font-family: inherit;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: var(--home-space-inner);
+  transition: background var(--transition);
 }
-.home-empty-btn:hover { background: var(--accent-hover); }
-.home-skeleton { display: flex; gap: 12px; }
+.home-empty-btn:hover:not(:disabled) { background: var(--accent-hover); }
+.home-empty-btn:disabled { opacity: 0.4; cursor: default; }
+.home-empty-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
 .home-skeleton-card {
-  flex: 0 0 130px;
-  width: 130px;
+  flex: 0 0 var(--home-card-w);
+  width: var(--home-card-w);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--home-space-inner);
+  scroll-snap-align: start;
 }
-.skeleton-img { aspect-ratio: 2/3; background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%); background-size: 200% 100%; animation: skeletonShine 1.4s infinite; border-radius: 8px; }
-.skeleton-line { height: 10px; background: var(--bg-elevated); border-radius: 4px; animation: skeletonShine 1.4s infinite; }
+.skeleton-img {
+  aspect-ratio: 2/3;
+  background: linear-gradient(90deg, var(--home-surface-card) 25%, var(--bg-hover) 50%, var(--home-surface-card) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShine 1.4s infinite;
+  border-radius: var(--radius-xs);
+}
+.skeleton-line {
+  height: 10px;
+  background: var(--home-surface-card);
+  border-radius: 4px;
+  animation: skeletonShine 1.4s infinite;
+}
 .skeleton-line.short { width: 60%; }
 @keyframes skeletonShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-.home-error { color: var(--text-muted); font-size: 0.8rem; padding: 8px; text-align: center; }
 
-.home-categories { display: flex; flex-direction: column; gap: 28px; }
-.home-categories .home-section { gap: 12px; }
-.home-calendar-grid { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
-.home-calendar-day { flex: 0 0 154px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 11px; display: flex; flex-direction: column; gap: 10px; scroll-snap-align: start; }
+/* ── Saudação ────────────────────────────────────────────────
+   O topo da página. */
+.home-greeting { display: flex; flex-direction: column; gap: 4px; }
+.home-greeting-title {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.home-greeting-subtitle { font-size: 0.9rem; color: var(--text-muted); }
+
+/* ── Categorias ───────────────────────────────────────────────
+   Wrapper das seções de gênero. Sem `gap` próprio: o espaçamento
+   entre elas é o mesmo da página, porque elas são seções como as
+   outras e ficam dentro do mesmo contêiner. */
+.home-categories { display: flex; flex-direction: column; gap: var(--home-space-section); }
+
+/* ── Calendário da semana ─────────────────────────────────────
+   A grade é o mesmo trilho das faixas de cartões. Cada coluna é uma
+   "caixa de dia", com a mesma superfície e o mesmo raio de um cartão,
+   e os cartões dentro dela mantêm a largura comum. */
+.home-calendar-day {
+  flex: 0 0 154px;
+  background: var(--home-surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-snap-align: start;
+}
 /* Hoje merece achar na rolagem; o que já saiu fica recessivo. */
 .home-calendar-day.is-today { border-color: var(--accent); }
 .home-calendar-day.is-past { opacity: 0.55; }
 .home-calendar-day.is-past:hover, .home-calendar-day.is-today:hover { opacity: 1; }
-.home-calendar-date { display: flex; align-items: baseline; justify-content: center; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.home-calendar-dow { font-family: var(--font-display); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
-.home-calendar-dnum { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.home-calendar-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.home-calendar-dow {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.home-calendar-dnum {
+  font-family: var(--font-mono);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: var(--text-primary);
+}
 .home-calendar-day.is-today .home-calendar-dnum { color: var(--accent); }
-.home-calendar_eps { display: flex; flex-direction: column; gap: 10px; }
-/* O card do calendário segue a largura dos 130px do resto da home. O `flex` base
-   do `.home-card` é horizontal, então precisa ser zerado aqui: dentro de uma
-   coluna ele viraria altura. */
-.home-cal-card { flex: 0 0 auto; width: 130px; margin: 0 auto; }
-.home-cal-card .home-card-body h3 { font-size: 0.74rem; }
-.home-cal-epname { font-size: 0.66rem; color: var(--text-muted); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.home-roulette-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.home-roulette-time { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 320px; min-width: 200px; }
-.home-roulette-time input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; cursor: pointer; }
-.home-roulette-time-label { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--text-primary); min-width: 48px; text-align: center; background: var(--bg-elevated); border: 1px solid var(--border); padding: 4px 8px; border-radius: var(--radius-pill); }
-.home-roulette-result { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; width: 100%; }
-.home-roulette-card { display: flex; gap: 20px; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; width: 100%; max-width: 520px; margin: 0 auto; box-shadow: var(--shadow); }
-.home-roulette-poster img { width: 110px; height: 165px; object-fit: cover; border-radius: 8px; background: var(--bg-secondary); flex-shrink: 0; }
-.home-roulette-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-.home-roulette-info strong { font-family: var(--font-display); font-size: 0.95rem; color: var(--text-primary); line-height: 1.2; }
-.home-roulette-info small { font-size: 0.72rem; color: var(--text-secondary); }
-.home-roulette-shuffle { padding: 16px; color: var(--text-muted); font-style: italic; text-align: center; width: 100%; max-width: 560px; background: var(--bg-elevated); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
-.home-roulette-history { margin-top: 10px; font-size: 0.72rem; color: var(--text-muted); }
-/* ── Painel das seções de ESCOLHA ────────────────────────────────
-   As seções de escolha (afinidade e roleta) recebem um container próprio,
-   para não se confundirem com os carrosséis — que são só título + linha
-   horizontal, sem caixa nenhuma em volta.
+.home-calendar-eps { display: flex; flex-direction: column; gap: 10px; }
+.home-hint {
+  font-size: var(--fs-btn);
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+}
+/* O card do calendário é `.card` + `.card--calendar` (a variante de largura
+   mora no bloco CARD). O nome do episódio não cabe no cabeçalho de um cartão
+   comum, então é a única peça de texto que a home acrescenta ao modelo. */
+.home-calendar-epname {
+  font-size: var(--fs-meta);
+  color: var(--text-muted);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Duas linhas sempre, para as colunas do dia saírem com a mesma
+     altura mesmo quando o episódio tem nome curto. */
+  min-height: 2.5em;
+}
 
-   Usa apenas tokens que já existiam no projeto (--bg-elevated, --border,
-   --radius-sm). Nada de cor ou tamanho novo. As duas compartilham a mesma
-   classe, então o padding e o respiro são idênticos por construção — não
-   por社會偶然. */
-.home-section--panel {
-  background: var(--bg-elevated);
+/* ── Roleta ───────────────────────────────────────────────────
+   Seção de escolha, não faixa: o resultado é um cartão grande e
+   centralizado, então ela usa `--home-space-block` entre as peças. */
+.home-roulette-controls { display: flex; gap: var(--home-space-item); align-items: center; justify-content: center; flex-wrap: wrap; }
+.home-roulette-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-space-inner);
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.home-roulette-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: var(--home-surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 18px 20px;
+  padding: 16px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  box-shadow: var(--shadow);
+}
+.home-roulette-poster img {
+  width: 110px;
+  height: 165px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  background: var(--home-surface-well);
+  flex-shrink: 0;
+}
+.home-roulette-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+/* O par de botões do resultado acompanha a coluna de texto, que é à
+   esquerda. Centralizar só ele descolaria da informação que ele age
+   sobre. */
+.home-roulette-note { color: var(--text-muted); }
+.home-roulette-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.home-roulette-info strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.home-roulette-info small { font-size: var(--fs-meta); color: var(--text-secondary); }
+.home-roulette-shuffle {
+  padding: 16px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  width: 100%;
+  max-width: 560px;
+  background: var(--home-surface-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+.home-roulette-history { font-size: var(--fs-meta); color: var(--text-muted); text-align: center; }
+
+/* ── Painéis das seções de ESCOLHA ───────────────────────────
+   Roleta, afinidade e destaques do ano recebem uma caixa, para não se
+   confundirem com as faixas — que são só título + trilho, sem nada em
+   volta. A superfície é um degrau abaixo do cartão (`--home-surface-
+   panel`), o que dá a hierarquia página → painel → cartão. */
+.home-section--panel {
+  background: var(--home-surface-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--home-panel-pad);
   gap: 14px;
 }
-/* Dentro do painel o titulo encosta no topo, sem folga extra. */
-.home-section--panel > .home-section-title { margin-bottom: 0; }
 .home-section--panel .home-empty-btn { align-self: flex-start; }
-/* ── Rodapé da home: voltar ao topo ─────────────────────────── */
-.home-foot { display: flex; justify-content: center; padding: 4px 0 8px; }
+
+/* ── Painéis centralizados ────────────────────────────────────
+   Roleta e afinidade são painéis de *ação*, não de conteúdo: o que
+   eles têm é um botão, um campo e um resultado — não um trilho de
+   pôsteres. Alinhados à esquerda, o título ficava grudado na borda e o
+   resto do painel vazio à direita, o que lia como caixa quebrada em
+   vez de decisão.
+
+   Centralizar resolve, mas não é só `text-align`: os filhos precisam
+   de `align-items` e de uma largura de leitura, senão o campo de busca
+   estica de ponta a ponta do painel e o botão fica numa coluna sem
+   relação com nada. A largura máxima é o que dá a simetria — sem ela,
+   "centralizado" num painel de 1400px é só um item no meio do vazio. */
+.home-section--centered { align-items: center; }
+.home-section--centered .home-section-head { justify-content: center; width: 100%; }
+.home-section--centered .home-section-title { justify-content: center; }
+.home-section--centered .home-empty-btn { align-self: center; }
+
+/* O `max-width` acompanha a largura de leitura do texto corrido: a
+   dica da afinidade e o resultado da roleta já são prosa, e prosa em
+   1400px não se lê. */
+.home-section--centered .home-hint,
+.home-section--centered .home-error,
+.home-section--centered .home-affinity-search,
+.home-section--centered .home-affinity-chips { max-width: 560px; width: 100%; }
+
+/* A busca da afinidade precisa continuar alinhada ao menu suspenso,
+   que se ancora no campo. Limitar a largura sem centralizar os dois
+   junto abriria o menu fora do campo. */
+.home-section--centered .home-affinity-search { margin: 0 auto; }
+.home-section--centered .home-affinity-dropdown { left: 50%; right: auto; transform: translateX(-50%); width: 100%; }
+.home-section--centered .home-affinity-chips { justify-content: center; }
+
+/* O campo em si, e não só o wrapper. `.toolbar-search` tem `max-width:
+   360px` para caber ao lado de um botão, e é reusado por três lugares da
+   home. O wrapper aqui é largo (560px) e o campo fica com 360px dentro
+   dele: sem centralizar o filho, o campo aparece 100px à esquerda do
+   centro, e o `margin: 0 auto` do pai não move nada porque o filho não
+   estica. O `width: 100%` faz o campo ocupar o wrapper; o `max-width` é
+   o que impede que ele estoure a 560px em tela larga. */
+.home-section--centered .home-affinity-search .toolbar-search {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+}
+
+/* ── Rodapé ─────────────────────────────────────────────────── */
+.home-foot { display: flex; justify-content: center; }
 .home-backtop {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--home-space-inner);
+  min-height: var(--tap-btn);
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  padding: 9px 18px;
-  font-size: 0.8rem;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: var(--fs-btn);
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
-.home-backtop:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-  background: var(--bg-hover);
-}
-.home-backtop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.home-backtop:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-hover); }
+.home-backtop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .home-backtop i { font-size: 0.75rem; }
 
-/* ── Destaques do ano (campo de ano + carrossel) ───────────────── */
-.home-year-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.home-year-row .toolbar-search { min-width: 120px; }
-.home-year-row .toolbar-search input {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.home-year-row .toolbar-search input.is-invalid {
+/* ── Campos de entrada ────────────────────────────────────────
+   Os dois campos da home (ano e afinidade) reusam `.toolbar-search`
+   da barra global e vinham dimensionados por `style` inline no HTML.
+   A largura agora vem daqui, então o campo acompanha o painel em
+   vez de ter 420px cravados. */
+.home-field-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.home-field-row .toolbar-search { flex: 0 1 200px; min-width: 120px; }
+.home-field-row .toolbar-search input { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0.04em; }
+.home-field-row .toolbar-search input.is-invalid,
+.home-field-row .toolbar-search input.is-invalid:focus {
   border-color: var(--danger);
   box-shadow: 0 0 0 1px var(--danger);
 }
-.home-year-row .toolbar-search input.is-invalid:focus {
-  border-color: var(--danger);
-}
 
-.home-affinity-hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; }
-.home-calendar-hint { font-size: 0.8rem; color: var(--text-muted); margin: -4px 0 2px; }
-.home-affinity-search { position: relative; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.home-affinity-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-width: 420px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 10; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; }
-.home-affinity-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; border: none; text-align: left; cursor: pointer; color: var(--text-primary); }
+.home-affinity-search { position: relative; display: flex; flex-direction: column; gap: var(--home-space-inner); }
+.home-affinity-search .toolbar-search { flex: 1; }
+.home-affinity-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-width: 420px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--home-surface-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+}
+.home-affinity-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--home-space-inner) 10px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
 .home-affinity-option:hover { background: var(--bg-hover); }
-.home-affinity-option span { flex: 1; font-size: 0.85rem; font-weight: 500; }
-.home-affinity-option small { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); }
-.home-affinity-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.home-affinity-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-soft); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 10px; border-radius: var(--radius-pill); font-size: 0.8rem; }
-.home-affinity-chip button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 0 2px; }
-.home-affinity-chip button:hover { color: var(--danger); }
-.home-challenge-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; }
-.home-challenge-head { display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; }
-.home-challenge-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
-.home-timeline-grid { display: flex; flex-direction: column; gap: 12px; }
-.home-timeline-item { display: flex; gap: 12px; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
-.home-timeline-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); min-width: 80px; text-align: center; }
-.home-timeline-card { display: flex; gap: 12px; align-items: center; flex: 1; }
-
-@media (max-width: 768px) {
-  .home-stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .home-card { flex: 0 0 120px; width: 120px; }
-  .home-skeleton-card { flex: 0 0 120px; width: 120px; }
+.home-affinity-option img { width: 32px; height: 48px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.home-affinity-option span { flex: 1; font-size: var(--fs-body); font-weight: 500; min-width: 0; }
+.home-affinity-option small { font-family: var(--font-mono); font-size: var(--fs-meta); color: var(--text-muted); }
+.home-affinity-chips { display: flex; flex-wrap: wrap; gap: var(--home-space-inner); }
+.home-affinity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-btn);
 }
+.home-affinity-chip button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 2px;
+}
+.home-affinity-chip button:hover { color: var(--danger); }
+
+/* ================================================================
+   ADAPTAÇÃO
+   Um único bloco, no fim, com os mesmos degraus do JavaScript.
+   Trocar a largura do token em `:root` propaga para cartão, esqueleto,
+   calendário e para a contagem de `getFullWidthCount`/`getPickCount`:
+   é a razão de a medida morar em token.
+   ================================================================ */
+@media (max-width: 768px) {
+  :root {
+    --home-card-w: var(--home-card-w-sm);
+    --home-space-section: 24px;
+  }
+  .home-calendar-day { flex-basis: 142px; }
+}
+
 @media (max-width: 480px) {
-  .home-stats-grid { grid-template-columns: 1fr; }
+  :root {
+    --home-space-section: 20px;
+    --home-panel-pad: var(--home-panel-pad-sm);
+  }
+  .home-calendar-day { flex-basis: 132px; }
+  .home-roulette-card { flex-direction: column; text-align: center; gap: 12px; }
+  .home-roulette-info { align-items: center; }
+  .home-affinity-dropdown { max-width: none; }
 }
 .modal-confirm { max-width: 420px; }
 .modal-confirm .modal-footer { display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid var(--border); }
@@ -3777,7 +4244,7 @@ a:focus-visible,
 /* — A) HUD Superior — */
 .tp-hud { display:flex; flex-direction:column; gap:12px; margin-bottom:12px; position:relative; z-index:20; }
 .tp-hud-top { display:flex; align-items:center; justify-content:stretch; gap:0; padding:8px 12px; border-radius:999px; overflow:visible; border:1px solid var(--border); background:var(--bg-elevated); box-shadow:var(--shadow); position:relative; }
-.tp-back-btn--unified { background:transparent; border:none; color:var(--text-secondary); font-family:var(--font-body); font-size:0.78rem; font-weight:600; cursor:pointer; padding:8px 16px; border-radius:999px; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:6px; transition:background .2s, color .2s; }
+.tp-back-btn--unified { background:transparent; border:none; color:var(--text-secondary); font-size:0.78rem; font-weight:600; cursor:pointer; padding:8px 16px; border-radius:999px; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:6px; transition:background .2s, color .2s; }
 .tp-back-btn--unified:hover { background:var(--bg-hover); color:var(--text-primary); }
 .tp-divider-v { width:1px; align-self:stretch; min-height:32px; background:var(--border); flex-shrink:0; margin:0 12px; }
 .tp-logo-block { flex:1; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:12px; min-width:0; padding:4px 8px; text-align:left; }
@@ -3817,7 +4284,7 @@ a:focus-visible,
    fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
    três cartões em gap igual, ele não é mais o elemento mais alto da linha
    (a coluna de conteúdo é), então não precisa se auto-alinhar. */
-.tp-side-card-head { display:flex; align-items:center; gap:6px; font-family:var(--font-body); font-size:0.68rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:2px; }
+.tp-side-card-head { display:flex; align-items:center; gap:6px; font-size:0.68rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:2px; }
 .tp-side-card-head i { font-size:0.7rem; }
 .tp-side-hud .tp-status-col .dm-status-btn { width:100%; justify-content:center; }
 .tp-side-hud .dm-action-btn, .tp-side-hud .dm-btn { width:100%; justify-content:center; }
@@ -3842,7 +4309,7 @@ a:focus-visible,
 /* — E) Tokens — */
 .tp-pill { border:1px solid var(--border); background:var(--bg-elevated); border-radius:999px; padding:10px 18px; display:flex; align-items:center; justify-content:center; min-height:44px; box-shadow:var(--shadow); }
 .tp-box { border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
-.tp-label { font-family:var(--font-body); font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
+.tp-label { font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
 /* ── Padronização: blocos, botões e títulos ── */
 .tp-hud-top, .tp-hud-controls, .tp-episode-unified, .tp-main, .tp-frame {
   border: 1px solid var(--border);
@@ -3884,7 +4351,8 @@ a:focus-visible,
 .title-page .poster-stepper-btn:hover,
 .title-page .tp-back-btn--unified:hover,
 .title-page .tier-option:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); transform: translateY(-1px); }
-.title-page .dm-status-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 2px 8px rgba(var(--accent-rgb),0.25); }
+/* Status ativo: fundo sólido já o distingue, o halo só acrescentava brilho. */
+.title-page .dm-status-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .title-page .dm-btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .title-page .dm-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .title-page .dm-btn-danger { background: rgba(239,68,68,0.12); color: var(--danger); border-color: rgba(239,68,68,0.25); }
@@ -3915,7 +4383,6 @@ a:focus-visible,
 .tp-genres-block #titleGenres,
 .tp-episode-unified .tp-label,
 #titleBack {
-  font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0.01em;
@@ -3923,12 +4390,12 @@ a:focus-visible,
   text-transform: none;
 }
 .tp-episode-unified .tp-label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; }
-#titleOriginalName { font-family: var(--font-body); font-size: 0.7rem; font-weight: 400; }
+#titleOriginalName { font-size: 0.7rem; font-weight: 400; }
 .tp-episode-unified #titleTemporadaDisplay,
-.tp-episode-unified #titleEpisodioDisplay { font-family: var(--font-body); font-weight: 800; }
-.tp-episode-unified #titleEpTitle { font-family: var(--font-body); font-weight: 600; font-size: 0.78rem; }
+.tp-episode-unified #titleEpisodioDisplay { font-weight: 700; }
+.tp-episode-unified #titleEpTitle { font-weight: 600; font-size: 0.78rem; }
 /* Cabeçalhos de categoria — orientam o usuário */
-.tp-section-head { display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 2px 6px; }
+.tp-section-head { display:flex; align-items:center; gap:8px; font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 2px 6px; }
 .tp-section-head i { color:var(--text-muted); font-size:0.7rem; }
 .tp-section-head span { font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0; font-size:0.65rem; opacity:0.7; }
 /* ── Todos os elementos quase imperceptíveis ── */
@@ -4204,7 +4671,6 @@ a:focus-visible,
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(212, 212, 212, 0.3);
 }
 
 .title-status-overlay .dm-status-btn.active:hover {
