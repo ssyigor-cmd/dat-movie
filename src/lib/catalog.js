@@ -54,35 +54,59 @@ export function getTierClass(tier) {
 }
 
 /**
+ * Soma de um `seasonEpisodesMap`, ou seja, o total de episódios da série toda.
+ *
+ * Este total é o denominador confiável do progresso, e a coluna
+ * `totalEpisodios` não é: o modal de adicionar grava `number_of_episodes` (a
+ * série inteira), a página do título grava a contagem só da temporada atual, e
+ * a coluna nasce com `DEFAULT 1` — que com qualquer episódio assistido já dá
+ * 100%. Numerador e denominador precisam falar da mesma unidade, então o mapa,
+ * que vem do TMDb temporada a temporada, manda sempre que existir.
+ * @param {Object} mapa - Mapa temporada → contagem de episódios.
+ * @returns {number} Total somado, ou 0 se o mapa não servir.
+ */
+export function totalDeEpisodiosDaSerie(mapa) {
+  if (!mapa || typeof mapa !== 'object' || Array.isArray(mapa)) return 0;
+  return Object.values(mapa).reduce((acc, eps) => acc + (Number(eps) || 0), 0);
+}
+
+/**
  * Calcula a porcentagem de progresso acumulado assistido de um título.
+ *
+ * Devolve 0 quando não há como saber o total de episódios do título — barra
+ * vazia é "faltou dado", barra cheia seria uma mentira.
  * @param {Object} item - Objeto do item do catálogo.
  * @returns {number} Porcentagem calculada entre 0 e 100.
  */
 export function calcularProgresso(item) {
   if (!item) return 0;
-  let cumulativeCurrent = 0;
-  const totalEp = Math.max(1, item.totalEpisodios || 1);
+  const somaMapa = totalDeEpisodiosDaSerie(item.seasonEpisodesMap);
+  const coluna = Number(item.totalEpisodios) || 0;
+  const currentSeason = Number(item.temporada) || 0;
 
-  try {
-    if (item.seasonEpisodesMap && typeof item.seasonEpisodesMap === 'object' && item.temporada) {
-      const seasonsMap = item.seasonEpisodesMap;
-      const currentSeason = Number(item.temporada);
-      let sumPrevious = 0;
-      for (const [season, eps] of Object.entries(seasonsMap)) {
-        if (Number(season) < currentSeason && typeof eps === 'number') {
-          sumPrevious += eps;
-        }
-      }
-      cumulativeCurrent = sumPrevious + Math.max(0, item.episodio || 0);
-    } else {
-      cumulativeCurrent = Math.max(0, item.episodio || 0);
+  let assistido = Math.max(0, Number(item.episodio) || 0);
+  // Só soma temporadas anteriores quando há mapa: sem ele não existe como
+  // saber quantos episódios as temporadas de trás tinham.
+  if (somaMapa > 0 && currentSeason > 1) {
+    let anteriores = 0;
+    for (const [season, eps] of Object.entries(item.seasonEpisodesMap)) {
+      if (Number(season) < currentSeason) anteriores += Number(eps) || 0;
     }
-  } catch (e) {
-    cumulativeCurrent = Math.max(1, item.episodio || 1);
+    assistido += anteriores;
   }
 
-  if (cumulativeCurrent > totalEp) cumulativeCurrent = totalEp;
-  return Math.min(100, Math.round((cumulativeCurrent / totalEp) * 100));
+  // O mapa manda: ele vem do TMDb temporada a temporada. A coluna só entra
+  // quando o mapa não existe, e nem assim quando ela for menor que o que já
+  // foi assistido. Um total assim não é um total apertado, é lixo — a coluna
+  // nasce com DEFAULT 1 e o bug antigo da página do título gravava só a
+  // temporada atual — e dividir por ele marca como concluído um título que
+  // está no começo. Sem total não há porcentagem honesta a mostrar.
+  const totalEp = somaMapa > 0 ? somaMapa : coluna;
+  if (totalEp <= 0) return 0;
+  if (somaMapa <= 0 && assistido >= totalEp) return 0;
+
+  const pct = Math.round((Math.min(assistido, totalEp) / totalEp) * 100);
+  return Math.max(0, Math.min(100, pct));
 }
 
 /**
@@ -196,7 +220,9 @@ export function filterNotInCatalog(tmdbResults, catalogItems) {
 /**
  * Ordena uma lista de itens de acordo com a chave especificada.
  * @param {Array} items - Lista de itens a serem ordenados.
- * @param {string} sortKey - Chave de ordenação (ex: 'nome-asc', 'progresso-desc', 'tier-asc').
+ * @param {string} sortKey - Chave de ordenação: `campo-direção`, com direção
+ *   `asc` ou `desc` (ex: 'nome-asc', 'nome-desc', 'progresso-desc', 'ano-asc').
+ *   Todo campo aceito nos dois sentidos.
  * @returns {Array} Nova lista ordenada.
  */
 export function sortItems(items, sortKey = 'data-desc') {
@@ -231,10 +257,15 @@ export function sortItems(items, sortKey = 'data-desc') {
         valA = a.temporada || 0;
         valB = b.temporada || 0;
         break;
-      case 'ano':
-        valA = a.ano || 0;
-        valB = b.ano || 0;
+      case 'ano': {
+        // Mesma sentinela do tier: um título sem ano vira 0, que em ordem
+        // ascendente subiria para o topo — "Ano (mais antigo)" abrindo com
+        // tudo que não tem ano. O par de valores joga o ausente para o fim nas
+        // duas direções, que é onde ele pertence.
+        valA = a.ano ? a.ano : (isAsc ? Infinity : -1);
+        valB = b.ano ? b.ano : (isAsc ? Infinity : -1);
         break;
+      }
       default:
         valA = 0;
         valB = 0;

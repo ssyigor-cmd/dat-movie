@@ -5,12 +5,12 @@
 
 import { supabase } from './lib/supabase.js';
 import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo, fetchTvDetailsCached } from './lib/api.js';
-import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword } from './lib/auth.js';
+import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
-import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
+import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
 import { updateStepperValue, setupSteppers } from './lib/stepper.js';
-import { renderContinueWatching, createCardElement } from './components/cards.js';
+import { createCardElement } from './components/cards.js';
 import { setupDetailModal } from './components/detailModal.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { setupTitleInfoModal, flagEmoji } from './components/titleInfoModal.js';
@@ -98,6 +98,7 @@ const tierToggleBtn = dom.tierToggleBtn;
 const tierMenu = dom.tierMenu;
 const sortOrder = dom.sortOrder;
 const sortToggleBtn = dom.sortToggleBtn;
+const sortDirectionBtn = dom.sortDirectionBtn;
 const sortMenu = dom.sortMenu;
 const filterMenuOptions = dom.filterMenuOptions;
 
@@ -108,14 +109,32 @@ const authForm = dom.authForm;
 const authEmail = dom.authEmail;
 const authPassword = dom.authPassword;
 const authMessage = dom.authMessage;
-const authLoginBtn = dom.authLoginBtn;
-const authSignupBtn = dom.authSignupBtn;
+const authSubmitBtn = dom.authSubmitBtn;
+const authSwitchBtn = dom.authSwitchBtn;
+const authSwitchText = dom.authSwitchText;
+const authTitle = dom.authTitle;
+const authSubtitle = dom.authSubtitle;
+const authName = dom.authName;
+const authPasswordConfirm = dom.authPasswordConfirm;
+const authRevealBtn = dom.authRevealBtn;
+const authStrength = dom.authStrength;
 const logoutBtn = dom.logoutBtn;
 const profileToggle = dom.profileToggle;
 const profileDropdown = dom.profileDropdown;
-const profileEmail = dom.profileEmail;
+const profileName = dom.profileName;
+const profileHeadName = dom.profileHeadName;
 const profileEmailFull = dom.profileEmailFull;
-const continueSection = dom.continueSection;
+const profileAvatar = dom.profileAvatar;
+const profileNameView = dom.profileNameView;
+const profileNameViewText = dom.profileNameViewText;
+const profileNameEdit = dom.profileNameEdit;
+const profileNameRow = dom.profileNameRow;
+const profileNameInput = dom.profileNameInput;
+const profileNameSave = dom.profileNameSave;
+const profileNameCancel = dom.profileNameCancel;
+const profileNameError = dom.profileNameError;
+const showProgressBar = dom.showProgressBar;
+const profileSince = dom.profileSince;
 const gridSection = dom.gridSection;
 const searchView = dom.searchView;
 const statusWrapper = dom.statusWrapper;
@@ -162,19 +181,333 @@ setTimeout(() => {
     } catch (err) { /* ignore if DOM not ready */ }
 }, 0);
 
+/**
+ * Aplica a preferência de exibição da barra de progresso.
+ *
+ * A chave fica no `<body>` em vez de ser passada para cada card: assim o
+ * toggle vale para o que já está renderizado na tela, sem re-renderizar
+ * catálogo nem Home. Um card isolado não decide o que é clutter — o card não
+ * sabe que existe uma preferência.
+ */
+function applyProgressBarVisibility() {
+  const mostrar = state.showProgressBar;
+  document.body.classList.toggle('is-progress-bar-hidden', !mostrar);
+  if (showProgressBar) showProgressBar.checked = mostrar;
+}
+
+applyProgressBarVisibility();
+
+if (showProgressBar) {
+  showProgressBar.addEventListener('change', () => {
+    state.showProgressBar = showProgressBar.checked;
+    // Sem binding no `catch`: a falha de escrita em localStorage (modo privado,
+    // cota cheia) não vale interromper o toggle, e o aviso já vem no console do
+    // navegador.
+    try {
+      localStorage.setItem(STORAGE_KEYS.SHOW_PROGRESS_BAR, String(state.showProgressBar));
+    } catch { /* preferência não persistida: vale só nesta sessão */ }
+    applyProgressBarVisibility();
+    // O menu cobre justamente os cards que a preferência muda, então ficar
+    // aberto deixaria o clique sem resultado visível. Fecha para a tela
+    // responder na hora.
+    closeProfileDropdown();
+  });
+}
+
 // NAVBAR E ESTATÍSTICA
 const navbar = document.getElementById('topNavbar');
 const navbarNav = document.getElementById('navbarNav');
 const headerListName = document.getElementById('headerListName');
 
 // ========== AUTENTICAÇÃO ==========
+
+// O formulário é um só e alterna entre login e cadastro. `data-auth-only="signup"`
+// marca o que só existe no cadastro — o CSS não controla isso, quem controla é
+// `setAuthMode`.
+let authMode = 'login';
+
+const AUTH_MODE_COPY = {
+  login: {
+    title: 'Entrar',
+    subtitle: 'Acesse sua biblioteca para continuar de onde parou.',
+    submit: 'Entrar',
+    switchText: 'Ainda não tem conta?',
+    switchAction: 'Cadastrar',
+  },
+  signup: {
+    title: 'Criar conta',
+    subtitle: 'Leva menos de um minuto. Você confere o email depois.',
+    submit: 'Criar conta',
+    switchText: 'Já tem conta?',
+    switchAction: 'Entrar',
+  },
+};
+
+function setAuthMessage(text, kind) {
+  authMessage.textContent = text || '';
+  authMessage.classList.toggle('is-error', kind === 'error');
+  authMessage.classList.toggle('is-success', kind === 'success');
+}
+
+// Erros por campo: `setFieldError`/`clearFieldError` são as do `uiHelpers.js` e
+// já procuram `.field-error` dentro de `.auth-group`, que é onde o formulário de
+// login mora. Aqui só existe a lista de quais campos participam.
+const AUTH_FIELDS = [
+  { input: () => authName, errorId: 'authNameError' },
+  { input: () => authEmail, errorId: 'authEmailError' },
+  { input: () => authPassword, errorId: 'authPasswordError' },
+  { input: () => authPasswordConfirm, errorId: 'authPasswordConfirmError' },
+];
+
+function clearAuthFieldErrors() {
+  for (const field of AUTH_FIELDS) {
+    const input = field.input();
+    if (input) clearFieldError(input);
+  }
+}
+
+/** Força da senha de 0 a 4, só usada como feedback visual do cadastro. */
+function passwordStrength(value) {
+  if (!value) return { level: 0, label: '' };
+  let score = 0;
+  if (value.length >= 8) score++;
+  if (value.length >= 12) score++;
+  if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+  if (/\d/.test(value)) score++;
+  if (/[^A-Za-z0-9]/.test(value)) score++;
+  // Senha longa e só com letras não deve passar por forte.
+  const level = score >= 5 ? 4 : score >= 4 ? 3 : score >= 3 ? 2 : 1;
+  const labels = { 1: 'Fraca', 2: 'Razoável', 3: 'Boa', 4: 'Forte' };
+  return { level, label: labels[level] };
+}
+
+function renderPasswordStrength() {
+  if (!authStrength) return;
+  const { level, label } = passwordStrength(authPassword.value);
+  authStrength.dataset.level = String(level);
+  const labelEl = authStrength.querySelector('.auth-strength-label');
+  if (labelEl) labelEl.textContent = label;
+}
+
+/** Validação local do cadastro, antes de chamar o Supabase. */
+function validateSignup() {
+  clearAuthFieldErrors();
+  let firstInvalid = null;
+
+  const name = authName.value.trim();
+  if (name.length < 2) {
+    setFieldError(authName, 'Diga como quer ser chamado (mínimo 2 letras).');
+    firstInvalid = firstInvalid || authName;
+  }
+
+  const email = authEmail.value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setFieldError(authEmail, 'Email inválido.');
+    firstInvalid = firstInvalid || authEmail;
+  }
+
+  const password = authPassword.value;
+  if (password.length < 8) {
+    setFieldError(authPassword, 'A senha precisa de pelo menos 8 caracteres.');
+    firstInvalid = firstInvalid || authPassword;
+  }
+
+  if (authPasswordConfirm.value !== password) {
+    setFieldError(authPasswordConfirm, 'As senhas não são iguais.');
+    firstInvalid = firstInvalid || authPasswordConfirm;
+  }
+
+  if (firstInvalid) {
+    setAuthMessage('Confira os campos destacados.', 'error');
+    firstInvalid.focus();
+    return null;
+  }
+  return { name, email, password };
+}
+
+function setAuthMode(mode) {
+  authMode = mode === 'signup' ? 'signup' : 'login';
+  const copy = AUTH_MODE_COPY[authMode];
+  const isSignup = authMode === 'signup';
+
+  authTitle.textContent = copy.title;
+  authSubtitle.textContent = copy.subtitle;
+  authSubmitBtn.textContent = copy.submit;
+  authSwitchText.textContent = copy.switchText;
+  authSwitchBtn.textContent = copy.switchAction;
+
+  for (const el of authForm.querySelectorAll('[data-auth-only="signup"]')) {
+    el.hidden = !isSignup;
+  }
+  authStrength.hidden = !isSignup;
+  // No login a senha já vem preenchida pelo gerenciador; no cadastro o atributo
+  // certo é o de criação, senão o navegador sugere uma senha já salva.
+  authPassword.autocomplete = isSignup ? 'new-password' : 'current-password';
+  authName.required = isSignup;
+  authPassword.required = true;
+  authPasswordConfirm.required = isSignup;
+  authEmail.required = true;
+
+  clearAuthFieldErrors();
+  setAuthMessage('');
+  if (!isSignup) renderPasswordStrength();
+}
+
 function setAuthUI(showLogin) {
   authContainer.style.display = showLogin ? 'flex' : 'none';
   if (navbar) navbar.style.display = showLogin ? 'none' : 'flex';
   document.querySelector('.main-content').style.display = showLogin ? 'none' : 'block';
-  
+
   // Update logos when auth state changes
   updateLogos();
+}
+
+/** Nome de exibição: `full_name` do metadata, com queda para o email. */
+function displayNameFor(user) {
+  const name = user?.user_metadata?.full_name;
+  if (typeof name === 'string' && name.trim()) return name.trim();
+  return user?.email?.split('@')[0] || 'Usuário';
+}
+
+function initialsFor(name) {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '--';
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return parts[0][0] + parts[parts.length - 1][0];
+}
+
+function renderProfileMenu(user) {
+  if (!user) return;
+  const displayName = displayNameFor(user);
+  const initials = initialsFor(displayName);
+  const savedName = typeof user?.user_metadata?.full_name === 'string'
+    ? user.user_metadata.full_name.trim()
+    : '';
+
+  profileName.textContent = displayName;
+  profileHeadName.textContent = displayName;
+  profileAvatar.textContent = initials;
+  profileEmailFull.textContent = user.email || '---';
+
+  // O estado travado mostra o que está salvo. O campo de edição existe no DOM
+  // desde o início, mas escondido; quem olha o menu vê um nome, não um
+  // formulário.
+  if (profileNameViewText) {
+    profileNameViewText.textContent = savedName || 'Sem nome de exibição';
+    profileNameViewText.classList.toggle('is-empty', !savedName);
+  }
+  // Repreenche o input, mas só se a pessoa não estiver no meio da digitação:
+  // sobrescrever enquanto ela escreve é o jeito mais rápido de perder o que
+  // ela digitou. Se ela estiver editando, marcar o campo como sujo é mais
+  // honesto do que fingir que o valor salvo é o que está na tela.
+  if (profileNameInput && document.activeElement !== profileNameInput) {
+    profileNameInput.value = savedName;
+  }
+  syncProfileNameEditState(savedName);
+  if (profileNameError) profileNameError.textContent = '';
+
+  if (user.created_at) {
+    const since = new Date(user.created_at);
+    const label = Number.isNaN(since.getTime())
+      ? '---'
+      : since.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    profileSince.textContent = `Membro desde ${label}`;
+  }
+}
+
+/* ── Edição do nome de exibição ───────────────────────────────
+   Três estados, e só um caminho para sair de cada um:
+
+     travado  → o nome aparece como texto; nada é editável
+     edição  → input aberto, com Salvar e Cancelar
+     sujo    → edição com texto diferente do que está salvo
+
+   O ponto do desenho é que abrir o menu não abre um formulário. Antes o input
+   ficava sempre visível e editável, então quem só ia sair do perfil já
+   entendia ter algo a preencher, e fechar o dropdown com o campo alterado
+   perdia a digitação sem aviso. Aqui a edição precisa ser pedida, e sair com
+   alteração pendente pergunta antes de descartar. */
+
+/** Estado da edição do nome. Vive fora do DOM porque é decisão de interface. */
+let profileNameEditing = false;
+
+/** O que está salvo agora, para saber se o campo está sujo. */
+let profileNameSaved = '';
+
+/** Erro de validação visível, para não sumir sozinho ao mexer no campo. */
+let profileNameErrorText = '';
+
+const NOME_MIN = 2;
+const NOME_MAX = 40;
+
+/** Normaliza o que a pessoa digitou: sem espaço nas pontas, sem repetição. */
+function normalizeProfileName(raw) {
+  return String(raw ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Confere o nome digitado.
+ * @returns {string} mensagem de erro, ou '' se estiver válido
+ */
+function validateProfileName(value) {
+  if (!value) return 'Informe um nome.';
+  if (value.length < NOME_MIN) return `Mínimo ${NOME_MIN} letras.`;
+  if (value.length > NOME_MAX) return `Máximo ${NOME_MAX} letras.`;
+  return '';
+}
+
+/** O que está no campo difere do que está salvo? */
+function isProfileNameDirty() {
+  if (!profileNameInput) return false;
+  return normalizeProfileName(profileNameInput.value) !== profileNameSaved;
+}
+
+/**
+ * Um único lugar que decide o estado visual do editor, para os dois lados não
+ * divergirem: Salvar e Cancelar na mão, ou a re-renderização depois de salvar.
+ */
+function syncProfileNameEditState(saved = profileNameSaved) {
+  profileNameSaved = saved;
+
+  if (profileNameRow) profileNameRow.hidden = !profileNameEditing;
+  if (profileNameView) profileNameView.hidden = profileNameEditing;
+
+  const dirty = profileNameEditing && isProfileNameDirty();
+  if (profileNameRow) profileNameRow.classList.toggle('is-dirty', dirty);
+
+  // Salvar só habilita com alteração válida e pendente: sem isso o botão
+  // aceitaria clique para reenviar o mesmo nome.
+  if (profileNameSave) {
+    profileNameSave.disabled = !dirty || Boolean(validateProfileName(normalizeProfileName(profileNameInput?.value)));
+  }
+}
+
+/** Abre a edição com o valor salvo, e foca o campo inteiro. */
+function startProfileNameEdit() {
+  if (profileNameEditing) return;
+  profileNameEditing = true;
+  profileNameErrorText = '';
+  if (profileNameInput) profileNameInput.value = profileNameSaved;
+  if (profileNameError) profileNameError.textContent = '';
+  syncProfileNameEditState();
+  if (profileNameInput) {
+    profileNameInput.focus();
+    profileNameInput.select();
+  }
+}
+
+/** Fecha a edição e devolve o valor salvo. `foco` decide onde a atenção vai. */
+function stopProfileNameEdit(foco = false) {
+  if (!profileNameEditing) return;
+  profileNameEditing = false;
+  profileNameErrorText = '';
+  if (profileNameInput) {
+    profileNameInput.value = profileNameSaved;
+    profileNameInput.classList.remove('invalid');
+  }
+  if (profileNameError) profileNameError.textContent = '';
+  syncProfileNameEditState();
+  if (foco && profileNameEdit) profileNameEdit.focus();
 }
 
 async function checkSession() {
@@ -184,10 +517,7 @@ async function checkSession() {
       setAuthUI(false);
       const user = await getCurrentUser();
       state.currentUser = user || null;
-      if (user) {
-        profileEmail.textContent = user.email.split('@')[0] || user.email;
-        profileEmailFull.textContent = user.email;
-      }
+      if (user) renderProfileMenu(user);
       // Default to home on fresh login if no persisted tab
       if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_TAB)) {
         state.currentTab = 'home';
@@ -210,44 +540,76 @@ async function checkSession() {
   }
 }
 
-const authLoginBtnDefaultHTML = authLoginBtn.innerHTML;
-const authSignupBtnDefaultHTML = authSignupBtn.innerHTML;
-
 function setAuthLoading(show) {
-  authLoginBtn.disabled = show;
-  authSignupBtn.disabled = show;
-  authLoginBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i> Entrando...' : authLoginBtnDefaultHTML;
-  authSignupBtn.innerHTML = show ? '<i class="fas fa-spinner fa-spin"></i>' : authSignupBtnDefaultHTML;
+  authSubmitBtn.disabled = show;
+  authSwitchBtn.disabled = show;
+  if (show) {
+    const label = authMode === 'signup' ? 'Criando conta...' : 'Entrando...';
+    authSubmitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}`;
+  } else {
+    // Só o texto: o botão não tem ícone fora do loading, e passar por
+    // `innerHTML` aqui apagaria o label que `setAuthMode` acabou de escrever.
+    authSubmitBtn.textContent = AUTH_MODE_COPY[authMode].submit;
+  }
 }
 
 async function handleLogin() {
+  clearAuthFieldErrors();
   const email = authEmail.value.trim();
   const password = authPassword.value;
-  if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+
+  if (!email || !password) {
+    if (!email) setFieldError(authEmail, 'Preencha o email.');
+    if (!password) setFieldError(authPassword, 'Preencha a senha.');
+    setAuthMessage('Preencha email e senha.', 'error');
+    return;
+  }
+
   setAuthLoading(true);
   try {
     await loginWithPassword(email, password);
-    authMessage.textContent = 'Login realizado!';
     await checkSession();
   } catch (error) {
     console.error('Erro de login:', error);
     console.error('Detalhes do erro:', error.message, error.status, error.name);
-    authMessage.textContent = `Erro: ${error.message || 'Não foi possível entrar. Verifique seu email e senha.'}`;
+    // "Credenciais inválidas" é o caso comum; o resto provavelmente é rede.
+    const invalid = /invalid login credentials/i.test(error.message || '');
+    setAuthMessage(
+      invalid
+        ? 'Email ou senha incorretos.'
+        : `Erro: ${error.message || 'Não foi possível entrar. Tente novamente.'}`,
+      'error'
+    );
   }
   setAuthLoading(false);
 }
 
 async function handleSignup() {
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
-  if (!email || !password) { authMessage.textContent = 'Preencha email e senha.'; return; }
+  const data = validateSignup();
+  if (!data) return;
+
   setAuthLoading(true);
   try {
-    await signUpWithPassword(email, password);
-    authMessage.textContent = 'Cadastro enviado! Confirme seu email (se ativado) ou faça login.';
+    const result = await signUpWithPassword(data.email, data.password, data.name);
+    // Com confirmação de email ligada, `session` vem nulo e o login não acontece
+    // aqui: o usuário precisa confirmar antes. Sem isso, entra direto.
+    if (result.session) {
+      await checkSession();
+    } else {
+      setAuthMessage('Conta criada! Confira seu email para confirmar e depois entre.', 'success');
+      setAuthMode('login');
+      authEmail.value = data.email;
+    }
   } catch (error) {
     console.error('Erro de cadastro:', error);
-    authMessage.textContent = 'Não foi possível concluir o cadastro. Tente novamente.';
+    console.error('Detalhes do erro:', error.message, error.status, error.name);
+    const already = /already registered|already exists/i.test(error.message || '');
+    if (already) {
+      setFieldError(authEmail, 'Esse email já tem conta.');
+      setAuthMessage('Esse email já está cadastrado.', 'error');
+    } else {
+      setAuthMessage(`Erro: ${error.message || 'Não foi possível concluir o cadastro.'}`, 'error');
+    }
   }
   setAuthLoading(false);
 }
@@ -345,7 +707,6 @@ async function loadItems() {
         document.getElementById('homeSection').style.display = 'none';
         document.getElementById('gridSection').style.display = 'none';
         document.getElementById('searchView').style.display = 'none';
-        document.getElementById('continueSection').style.display = 'none';
         const mh = document.querySelector('.main-header');
         if (mh) mh.style.display = 'none';
         showTitlePage(item, titlePageEl);
@@ -629,11 +990,18 @@ function updateActiveNav() {
     if (tierWrapper) tierWrapper.style.display = 'none';
     // Esconder opções de ordenação sem sentido para Próximos
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-    // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
-    const hiddenValues = ['tier-asc','progresso-desc','ano-desc'];
-    if (hiddenValues.includes(sortOrder.value)) {
-      sortOrder.value = 'data-desc';
-      markMenuActive(sortMenu, sortOrder);
+    // Se o campo do sort não faz sentido para a wishlist, cair para "Data" —
+    // preservando o sentido, que agora é escolha de quem está filtrando e não
+    // vem atrelado ao campo. Antes a lista era de valores inteiros
+    // ("tier-asc", "ano-desc"…); com o sentido separado, o corte é pelo campo,
+    // e os dois lados precisam entrar para o botão do menu não sumir junto.
+    //
+    // O valor é escrito direto, sem `setSort`: o `render` desta função já vem
+    // no fim, e despachar `change` aqui renderizaria a grade duas vezes.
+    const hiddenFields = ['tier', 'progresso', 'ano'];
+    if (hiddenFields.includes(sortField())) {
+      sortOrder.value = `data-${sortDirection()}`;
+      syncSortUi();
     }
   } else if (state.currentTab === 'pesquisa') {
     filterStatus.style.display = 'none';
@@ -879,7 +1247,6 @@ const handleCardClick = (index) => {
     document.getElementById('homeSection').style.display = 'none';
     document.getElementById('gridSection').style.display = 'none';
     document.getElementById('searchView').style.display = 'none';
-    document.getElementById('continueSection').style.display = 'none';
     document.querySelector('.main-header').style.display = 'none';
   }
 };
@@ -1319,7 +1686,6 @@ function openTitlePageForSearch(raw, allResults = null) {
     document.getElementById('homeSection').style.display = 'none';
     document.getElementById('gridSection').style.display = 'none';
     document.getElementById('searchView').style.display = 'none';
-    document.getElementById('continueSection').style.display = 'none';
     const mh = document.querySelector('.main-header');
     if (mh) mh.style.display = 'none';
     showTitlePage(existing, titlePageEl);
@@ -1347,7 +1713,6 @@ function openTitlePageForSearch(raw, allResults = null) {
   document.getElementById('homeSection').style.display = 'none';
   document.getElementById('gridSection').style.display = 'none';
   document.getElementById('searchView').style.display = 'none';
-  document.getElementById('continueSection').style.display = 'none';
   const mh2 = document.querySelector('.main-header');
   if (mh2) mh2.style.display = 'none';
   showTitlePage(preview, titlePageEl);
@@ -1478,7 +1843,6 @@ function render() {
   // Home tab
   if (state.currentTab === 'home') {
     if (homeSection) homeSection.style.display = '';
-    continueSection.style.display = 'none';
     gridSection.style.display = 'none';
     searchView.style.display = 'none';
     if (headerListName) headerListName.textContent = 'Início';
@@ -1496,7 +1860,6 @@ function render() {
   if (homeSection) homeSection.style.display = 'none';
 
   if (state.currentTab === 'pesquisa') {
-    continueSection.style.display = 'none';
     gridSection.style.display = 'none';
     searchView.style.display = '';
     headerListName.textContent = 'Pesquisar';
@@ -1508,7 +1871,6 @@ function render() {
   // Normal tabs — hide search view, show grid (Continuar removido do catálogo - só na Home)
   searchView.style.display = 'none';
   gridSection.style.display = '';
-  continueSection.style.display = 'none';
 
   const search = searchInput?.value || '';
   const statusFilter = filterStatus.value;
@@ -1589,10 +1951,10 @@ function render() {
       header.className = `group-header ${tier ? getTierClass(tier) : 'tier-null'}`;
       header.innerHTML = `<h3>${escapeHTML(tier) || 'Sem tier'}</h3><span class="group-count">${itemsInTier.length}</span>`;
       fragment.appendChild(header);
-      itemsInTier.forEach((item) => fragment.appendChild(createCardElement(item, null, state.items, handleCardClick)));
+      itemsInTier.forEach((item) => fragment.appendChild(createCardElement(item, state.items, handleCardClick)));
     }
   } else {
-    filtered.forEach((item) => fragment.appendChild(createCardElement(item, null, state.items, handleCardClick)));
+    filtered.forEach((item) => fragment.appendChild(createCardElement(item, state.items, handleCardClick)));
   }
   grid.appendChild(fragment);
 
@@ -1908,28 +2270,205 @@ setupSteppers('#modalOverlay .stepper-btn', 'add', handleStepperUpdate);
 setupSteppers('#detailModal .stepper-btn', 'detail', handleStepperUpdate);
 
 // Event listeners de autenticação
-authLoginBtn.addEventListener('click', (e) => { e.preventDefault(); handleLogin(); });
-authSignupBtn.addEventListener('click', (e) => { e.preventDefault(); handleSignup(); });
-authForm.addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); });
+authForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (authMode === 'signup') handleSignup();
+  else handleLogin();
+});
 
-profileToggle.addEventListener('click', (e) => {
+authSwitchBtn.addEventListener('click', () => {
+  setAuthMode(authMode === 'signup' ? 'login' : 'signup');
+});
+
+authRevealBtn.addEventListener('click', () => {
+  const showing = authPassword.type === 'text';
+  authPassword.type = showing ? 'password' : 'text';
+  authRevealBtn.setAttribute('aria-pressed', String(!showing));
+  authRevealBtn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+  authRevealBtn.innerHTML = showing
+    ? '<i class="fas fa-eye"></i>'
+    : '<i class="fas fa-eye-slash"></i>';
+});
+
+authPassword.addEventListener('input', () => {
+  if (authMode === 'signup') renderPasswordStrength();
+  // Mexer no campo é o sinal de que a pessoa corrigiu: some com o erro.
+  if (authPassword.classList.contains('invalid')) clearFieldError(authPassword);
+});
+
+for (const field of AUTH_FIELDS) {
+  const input = field.input();
+  if (!input) continue;
+  input.addEventListener('input', () => {
+    if (input.classList.contains('invalid')) clearFieldError(input);
+  });
+}
+
+if (profileNameEdit) profileNameEdit.addEventListener('click', startProfileNameEdit);
+
+if (profileNameCancel) profileNameCancel.addEventListener('click', () => stopProfileNameEdit(true));
+
+profileNameSave.addEventListener('click', async () => {
+  const next = normalizeProfileName(profileNameInput.value);
+  const erro = validateProfileName(next);
+
+  profileNameError.textContent = erro;
+  profileNameErrorText = erro;
+  profileNameInput.classList.toggle('invalid', Boolean(erro));
+
+  if (erro) {
+    profileNameInput.focus();
+    syncProfileNameEditState();
+    return;
+  }
+  // Salvar o que já está salvo é ruído: devolve o campo ao estado travado.
+  if (next === profileNameSaved) {
+    stopProfileNameEdit(true);
+    return;
+  }
+
+  profileNameSave.disabled = true;
+  profileNameSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  try {
+    const user = await updateDisplayName(next);
+    if (user) {
+      state.currentUser = user;
+      // Sai da edição antes de re-renderizar: `renderProfileMenu` lê o estado
+      // para decidir o que mostrar, e o nome novo já é o salvo. O foco vai para
+      // o lápis porque o botão de salvar some com a linha — sem isso, quem
+      // salvou pelo teclado perde o lugar na página.
+      stopProfileNameEdit(true);
+      renderProfileMenu(user);
+    }
+  } catch (error) {
+    console.error('Erro ao salvar nome:', error);
+    profileNameErrorText = 'Não foi possível salvar. Tente novamente.';
+    profileNameError.textContent = profileNameErrorText;
+    profileNameInput.focus();
+  } finally {
+    profileNameSave.innerHTML = '<i class="fas fa-check"></i>';
+    syncProfileNameEditState();
+  }
+});
+
+profileNameInput.addEventListener('input', () => {
+  const normalizado = normalizeProfileName(profileNameInput.value);
+  const erro = validateProfileName(normalizado);
+
+  if (profileNameErrorText && !erro) {
+    profileNameErrorText = '';
+    profileNameError.textContent = '';
+  }
+
+  // "Falta uma letra" não pode ser julgado a cada tecla: no segundo caractere
+  // de "Bruno" o campo ainda parece incompleto, e marcar ali é bronca no meio
+  // da digitação. O mínimo só é cobrado quando a pessoa tenta salvar. Durante a
+  // digitação, o campo só fica marcado se passar do limite ou se o erro já
+  // estiver na tela por causa de uma tentativa anterior.
+  const excedeu = normalizado.length > NOME_MAX;
+  const jaAvisado = Boolean(profileNameErrorText) && Boolean(erro);
+  profileNameInput.classList.toggle('invalid', excedeu || jaAvisado);
+  syncProfileNameEditState();
+});
+
+// Enter salva, porque o campo é de uma linha só; Escape desfaz e devolve o
+// foco ao botão que abriu a edição.
+profileNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (!profileNameSave.disabled) profileNameSave.click();
+    return;
+  }
+  // Escape desfaz e devolve o foco ao botão que abriu a edição.
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    stopProfileNameEdit(true);
+  }
+});
+
+profileToggle.addEventListener('click', async (e) => {
   e.stopPropagation();
 
-  const isOpen = profileDropdown.style.display === 'block';
-  profileDropdown.style.display = isOpen ? 'none' : 'block';
-  profileToggle.classList.toggle('active', !isOpen);
+  if (profileDropdown.style.display === 'block') {
+    // Fechar pelo toggle passa pela mesma checagem do clique fora: se o botão
+    // de saída pulasse a confirmação, ele seria a rota de fuga da alteração
+    // pendente, e a guarda perderia o sentido.
+    await closeProfileDropdown();
+    return;
+  }
+
+  profileDropdown.style.display = 'block';
+  profileToggle.classList.add('active');
+  profileToggle.setAttribute('aria-expanded', 'true');
 });
-document.addEventListener('click', () => {
+/**
+ * Fecha o dropdown do perfil.
+ *
+ * É o único caminho de saída: clique fora e clique no toggle passam por aqui.
+ * Com alteração pendente, pergunta antes de descartar, e devolver `false`
+ * mantém o menu aberto — fechar depois de a pessoa dizer "não" seria jogar
+ * fora justamente o que ela tentou escrever.
+ *
+ * @returns {Promise<boolean>} true se o menu foi fechado
+ */
+async function closeProfileDropdown() {
+  if (profileNameEditing) {
+    // Editando sem alteração: fechar é o mesmo que cancelar, sem perguntar.
+    if (isProfileNameDirty()) {
+      const descartar = await showConfirm(
+        'Há uma alteração no nome que não foi salva. Sair descarta o que você digitou.',
+        'Descartar alteração?'
+      );
+      if (!descartar) return false;
+    }
+    stopProfileNameEdit();
+  }
   profileDropdown.style.display = 'none';
+  profileToggle.classList.remove('active');
+  profileToggle.setAttribute('aria-expanded', 'false');
+  // O modal de confirmação devolve o foco para o elemento que estava ativo
+  // antes dele — que pode ser o input que esta função acabou de esconder. Só
+  // se recupera quando o foco não está em lugar nenhum, para não puxar a
+  // atenção de quem só estava clicando com o mouse.
+  const foco = document.activeElement;
+  if (!foco || foco === document.body) profileToggle.focus();
+  return true;
+}
+
+document.addEventListener('click', (e) => {
+  // O clique no toggle não deve fechar o menu junto — só fecha o que é de fora.
+  if (profileDropdown.contains(e.target)) return;
+  closeProfileDropdown();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (profileDropdown.style.display !== 'block') return;
+  // Escape desfaz a edição primeiro e só depois fecha o menu: são dois níveis
+  // de estado, e um Escape não deveria desfazer os dois de uma vez. Como o
+  // descarte por aqui é explícito, não há o que perguntar.
+  if (profileNameEditing) {
+    stopProfileNameEdit(true);
+    return;
+  }
+  closeProfileDropdown();
+  // O caminho do Escape é determinístico: a atenção volta para o toggle, sem
+  // depender de para onde o foco tinha ido.
+  profileToggle.focus();
 });
 
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
   cacheClear();
+  setAuthMode('login');
   await checkSession();
 });
 
 setupConfirmModal();
+// O formulário começa no modo login; `hidden` no HTML só esconde os campos de
+// cadastro, o texto e os atributos precisam ser montados por `setAuthMode`.
+setAuthMode('login');
 checkSession();
 
 // Tier badge e dropdown do modal de adição
@@ -2025,6 +2564,74 @@ sortOrder.addEventListener('change', render);
     if (!toggleBtn || !select) return;
     const active = String(select.value) !== String(defaultValue);
     toggleBtn.classList.toggle('active', active);
+  }
+
+  // — Ordenar: um campo e um sentido
+  //
+  // O sentido morava colado na opção ("nome-asc", "nome-desc"), e o menu
+  // carregava dez itens para cinco campos: metade das opções repetia o mesmo
+  // campo só para trocar a seta. Agora o menu escolhe o campo e a seta ao lado
+  // escolhe o sentido.
+  //
+  // O sentido é único, não um por campo, e é compartilhado: trocar de campo
+  // preserva a seta que a pessoa escolheu, em vez de voltar ao padrão daquele
+  // campo. Por isso o `data-value` de cada opção é reescrito com o sentido
+  // vigente — o handler genérico de `.filter-option` continua sendo o único
+  // caminho para mexer no select.
+
+  /** Campo da ordenação atual ('nome', 'data', 'tier', 'progresso', 'ano'). */
+  function sortField() {
+    return String(sortOrder.value).split('-')[0];
+  }
+
+  /** Sentido da ordenação atual. */
+  function sortDirection() {
+    return String(sortOrder.value).split('-')[1] === 'asc' ? 'asc' : 'desc';
+  }
+
+  /** Reescreve o `data-value` das opções para o sentido vigente. */
+  function syncSortMenuValues() {
+    if (!sortMenu) return;
+    const dir = sortDirection();
+    sortMenu.querySelectorAll('.filter-option[data-field]').forEach(opt => {
+      opt.dataset.value = `${opt.dataset.field}-${dir}`;
+    });
+  }
+
+  /**
+   * A seta é o que diz o sentido, então ela é a única coisa que precisa mudar:
+   * ícone para cima quando crescente, para baixo quando decrescente, e o
+   * rótulo do botão acompanhando — uma seta sozinha não diz o que o clique
+   * faz, só onde a lista está.
+   */
+  function syncSortDirectionBtn() {
+    if (!sortDirectionBtn) return;
+    const asc = sortDirection() === 'asc';
+    const label = asc ? 'Ordem crescente' : 'Ordem decrescente';
+    const icon = sortDirectionBtn.querySelector('i');
+    if (icon) icon.className = asc ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
+    sortDirectionBtn.setAttribute('aria-label', label);
+    sortDirectionBtn.title = label;
+  }
+
+  /** Aplica uma chave de ordenação pelo mesmo caminho de um clique no menu. */
+  function setSort(key) {
+    sortOrder.value = key;
+    sortOrder.dispatchEvent(new Event('change'));
+  }
+
+  /**
+   * Menu, seta e destaque do botão, todos derivados do valor do select.
+   *
+   * A ordem importa: as opções carregam o sentido vigente no `data-value`, e
+   * comparar esse valor antes de reescrevê-lo deixaria o campo selecionado sem
+   * destaque logo depois de inverter a seta.
+   */
+  function syncSortUi() {
+    syncSortMenuValues();
+    syncSortDirectionBtn();
+    markMenuActive(sortMenu, sortOrder);
+    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
   }
 
   if (statusToggleBtn && statusMenu) {
@@ -2125,9 +2732,28 @@ sortOrder.addEventListener('change', render);
     updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
   });
   sortOrder.addEventListener('change', () => {
-    markMenuActive(sortMenu, sortOrder);
-    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+    // O `change` é o único caminho que muda a ordenação, então é aqui que as
+    // três peças se acertam — venha de um clique no menu, da seta ou do reset
+    // da aba "Próximos".
+    syncSortUi();
   });
+
+  if (sortDirectionBtn) {
+    sortDirectionBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const proximo = sortDirection() === 'asc' ? 'desc' : 'asc';
+      setSort(`${sortField()}-${proximo}`);
+      // Fecha o menu junto: quem inverteu a seta quer ver a grade reordenada, e
+      // o dropdown aberto fica por cima de exatamente o que veio para ver.
+      closeAllFilterMenus();
+    });
+  }
+
+  // O `selected` do <select> manda: o sentido do menu e o ícone da seta saem
+  // dele, e não do que estiver escrito no HTML. Sem isso, trocar o `selected`
+  // exigiria acertar as duas metades na mão, e a seta passaria a mentir sobre
+  // a ordem em uso.
+  syncSortUi();
 
   // Poster click toggles synopsis overlay
   const detailPosterWrap = document.getElementById('detailPosterWrap');
@@ -2288,32 +2914,6 @@ document.addEventListener('keydown', (e) => {
 
 // ========== PESQUISA TMDB ==========
 let pesquisaTimeout = null;
-let searchEnrichToken = 0;
-
-/**
- * Enriquece os cards da busca com temporadas/episódios e marca continuações.
- * Busca os detalhes só dos 6 primeiros resultados, em paralelo e com cache.
- */
-async function enrichSearchCards(results, grid, token) {
-  const targets = results.slice(0, 6);
-  const queue = [...targets];
-  const workers = Array.from({ length: 3 }, async () => {
-    while (queue.length) {
-      const res = queue.shift();
-      if (token !== searchEnrichToken) return;
-      const card = grid.querySelector(`.pesquisa-card[data-tmdb-id="${res.id}"]`);
-      if (!card) continue;
-      const details = await fetchTvDetailsCached(res.id);
-      if (!details || token !== searchEnrichToken) continue;
-      const parts = [];
-      if (details.number_of_seasons) parts.push(`${details.number_of_seasons} temporada${details.number_of_seasons > 1 ? 's' : ''}`);
-      if (details.number_of_episodes) parts.push(`${details.number_of_episodes} eps`);
-      const meta = card.querySelector('.pesquisa-card-meta');
-      if (meta && parts.length) meta.textContent = parts.join(' · ');
-    }
-  });
-  await Promise.allSettled(workers);
-}
 
 if (pesquisaInput) {
   pesquisaInput.addEventListener('input', () => {
@@ -2360,13 +2960,11 @@ if (pesquisaInput) {
           return;
         }
 
-        const token = ++searchEnrichToken;
         const fragment = document.createDocumentFragment();
         filteredResults.forEach(res => {
           const name = res.name || res.title;
           if (!name) return;
           const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
-          const mediaType = 'Serie';
           const poster = res.poster_path || '';
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);
@@ -2389,10 +2987,8 @@ if (pesquisaInput) {
               ${contTag ? `<span class="pesquisa-card-tag">${escapeHTML(contTag)}</span>` : ''}
             </div>
             <div class="pesquisa-card-body">
-              <span class="badge">${mediaType}</span>
               <h3 title="${safeName}">${safeName}</h3>
               ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
-              <span class="pesquisa-card-meta"></span>
             </div>
           `;
 
@@ -2407,7 +3003,6 @@ if (pesquisaInput) {
         });
 
         pesquisaGrid.appendChild(fragment);
-        enrichSearchCards(filteredResults, pesquisaGrid, token);
 
         if (typeof anime !== 'undefined') {
           const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');

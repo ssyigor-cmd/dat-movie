@@ -7,7 +7,8 @@ export const STORAGE_KEYS = {
   ACTIVE_TAB: 'activeTab',
   ACTIVE_LIST_ID: 'activeListId',
   GRID_DENSITY: 'gridDensity',
-  GROUPING_ACTIVE: 'groupingActive'
+  GROUPING_ACTIVE: 'groupingActive',
+  SHOW_PROGRESS_BAR: 'showProgressBar'
 };
 
 export const state = {
@@ -30,6 +31,9 @@ export const state = {
   existingItemForSearch: null,
   gridDensity: parseInt(localStorage.getItem(STORAGE_KEYS.GRID_DENSITY)) || 8,
   groupingActive: (localStorage.getItem(STORAGE_KEYS.GROUPING_ACTIVE)) === 'true',
+  // Padrão é *mostrar*. Quem nunca escolheu nada não deve ver a tela mudar ao
+  // atualizar o app; a ausência da chave conta como "não escolheu".
+  showProgressBar: localStorage.getItem(STORAGE_KEYS.SHOW_PROGRESS_BAR) !== 'false',
   addSeasonLimits: {},
   addEpisodeInfoRequestId: 0,
 };

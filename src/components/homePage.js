@@ -3,10 +3,10 @@
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
 import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getFavorites, getCatalogStats, formatAirDate, getTitlesByGenre, getTitlesByYear, getRecommendationsForUser, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getTimeline, getChallenge, pickRandomByTime, getAffinityRecommendations, normalizeTrendingItem, pickVariety } from '../lib/trendingApi.js';
-import { callTMDB, resolveItemPosterUrl } from '../lib/api.js';
+import { getTrendingToSuggest, getFavorites, formatAirDate, getTitlesByGenre, getTitlesByYear, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getAffinityRecommendations, normalizeTrendingItem, pickVariety, getAffinityRail, getAffinityRails, AFFINITY_RAIL_COUNT } from '../lib/trendingApi.js';
+import { callTMDB } from '../lib/api.js';
+import { cardMarkup, attachCardInteraction, resolveCardPoster } from './cards.js';
 import { pickWithMix } from '../lib/recommendScoring.js';
-import { getFriendPicks } from '../lib/friendPicks.js';
 import { filterNotInCatalog } from '../lib/catalog.js';
 
 /**
@@ -58,21 +58,24 @@ function pickScoredForSection(key, pool, count) {
 
 /**
  * Garante o cabeçalho da seção com o botão discreto de atualizar e o liga uma única vez.
+ *
+ * O `.home-section-head` vem do template de todas as seções, inclusive das de
+ * categoria. Antes ele era criado aqui quando não existisse, e era por isso que
+ * o título de cinco seções ficava mais baixo que o das outras — o wrapper
+ * sumia de uma seção para a outra conforme o chamador. Agora o wrapper é parte
+ * do contrato da seção: se faltar, é bug do template e vale aparecer no console
+ * em vez de a seção renderizar com o título desalinhado.
+ *
  * @param {Element} section - Elemento da seção (.home-section).
  * @param {Function} onRefresh - Callback que recarrega a lista.
  * @param {string} [label] - Texto do title/aria-label do botão.
  */
 function setupSectionRefresh(section, onRefresh, label = 'Atualizar lista') {
   if (!section || typeof onRefresh !== 'function') return;
-  const title = section.querySelector('.home-section-title');
-  if (!title) return;
-  let head = title.parentElement;
-  if (!head.classList.contains('home-section-head')) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'home-section-head';
-    title.replaceWith(wrapper);
-    wrapper.appendChild(title);
-    head = wrapper;
+  const head = section.querySelector('.home-section-head');
+  if (!head || !head.querySelector('.home-section-title')) {
+    console.warn('Seção sem .home-section-head; botão de atualizar não aplicado:', section.id);
+    return;
   }
   let btn = head.querySelector('.home-refresh-btn');
   if (!btn) {
@@ -107,7 +110,12 @@ function setupSectionRefresh(section, onRefresh, label = 'Atualizar lista') {
 export function buildGreeting(user) {
   let name = '';
   if (user) {
-    name = user.user_metadata?.name || '';
+    // `full_name` é a chave que o cadastro grava (`auth.js`) e que o menu do
+    // perfil lê e edita. A saudação lia `name`, que ninguém escreve — por isso
+    // toda tela inicial mostrava a parte antes do @ do email, mesmo com nome
+    // cadastrado.
+    name = user.user_metadata?.full_name || '';
+    if (typeof name === 'string') name = name.trim();
     if (!name && user.email) {
       name = user.email.split('@')[0];
     }
@@ -136,49 +144,64 @@ export function skeletonHTML(count = null) {
 }
 
 /**
- * Cria card pequeno para Home (120px)
+ * Uma faixa "Se você gostou de X vai gostar disso".
+ *
+ * O número entra à mão no template e não sai de um `Array.from`: as quatro
+ * faixas são **espalhadas** entre as outras seções, e é essa distribuição que
+ * evita quatro títulos iguais empilhados. Um laço seria mais curto, mas as
+ * quatro cairiam no mesmo ponto da página, coladas.
+ *
+ * @param {number} index - Posição da faixa, de 0 a `AFFINITY_RAIL_COUNT - 1`.
+ * @returns {string} HTML da seção.
  */
-function createHomeCard({ posterUrl, title, subtitle, badge, onClick, extraHtml = '', actionBtnHtml = '', item = null }) {
+function railHTML(index) {
+  return `
+      <section class="home-section" id="homeRail${index}" aria-label="Recomendações a partir de um título do seu catálogo" style="display:none;">
+        <div class="home-section-head">
+          <h2 class="home-section-title" id="homeRail${index}Title"><i class="fas fa-heart"></i> Recomendações</h2>
+          <button type="button" id="homeRail${index}Refresh" class="home-refresh-btn" title="Atualizar recomendações" aria-label="Atualizar recomendações"><i class="fas fa-rotate"></i></button>
+        </div>
+        <div class="home-h-scroll" id="homeRail${index}Grid"></div>
+        <div class="home-h-scroll home-skeleton" id="homeRail${index}Skeleton">${skeletonHTML()}</div>
+      </section>`;
+}
+
+/**
+ * Cria o card da home.
+ *
+ * A home não tem um cartão próprio: usa `cardMarkup` de `cards.js`, o mesmo
+ * markup do Catálogo, e só acrescenta a variante de largura `card--rail`
+ * porque aqui a faixa é um trilho horizontal de largura fixa. Raio, borda,
+ * hover, imagem, tipografia e barra de progresso vêm de `card` — foi esta
+ * função, enquanto escrevia o `home-card` com regras próprias, a origem da
+ * fonte diferente entre a home e o resto do app.
+ *
+ * A anatomia é única: imagem + título + linha de metadado + `extraHtml`. Os
+ * parâmetros `badge` e `actionBtnHtml` que já existiram aqui renderizavam um
+ * selo de tier e um botão flutuante, e nenhuma das nove seções que usam esta
+ * função passava um nem o outro — eram 44 linhas de CSS para duas formas que
+ * ninguém produzia. Se um dia um selo voltar, ele volta pelo `stampHtml` de
+ * `cardMarkup`.
+ *
+ * @param {Object} o - { posterUrl, title, subtitle, onClick, extraHtml, item }.
+ * @returns {HTMLElement} Card.
+ */
+function createHomeCard({ posterUrl, title, subtitle, onClick, extraHtml = '', item = null }) {
   const card = document.createElement('div');
-  card.className = 'home-card';
+  card.className = 'card card--rail';
   card.setAttribute('tabindex', '0');
   card.setAttribute('role', 'button');
   card.setAttribute('aria-label', title);
   const safeTitle = escapeHTML(title);
-  const safeSubtitle = subtitle ? escapeHTML(subtitle) : '';
-  const safeBadge = badge ? escapeHTML(badge) : '';
-  card.innerHTML = `
-    <div class="home-card-img">
-      ${posterUrl ? `<img src="${escapeHTML(posterUrl)}" alt="${safeTitle}" loading="lazy" />` : `<i class="fas fa-film"></i>`}
-      ${safeBadge ? `<span class="home-card-badge">${safeBadge}</span>` : ''}
-      ${actionBtnHtml}
-    </div>
-    <div class="home-card-body">
-      <h3 title="${safeTitle}">${safeTitle}</h3>
-      ${safeSubtitle ? `<span class="home-card-subtitle">${safeSubtitle}</span>` : ''}
-      ${extraHtml}
-    </div>
-  `;
-  if (onClick) {
-    card.addEventListener('click', onClick);
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } });
-  }
-  if (actionBtnHtml) {
-    const btn = card.querySelector('.home-card-add');
-    if (btn && onClick) {
-      // Prevent double trigger: action button stops propagation and still triggers onClick via separate handler
-      // So we make button handle its own click and stop propagation to card
-      btn.addEventListener('click', (e) => { e.stopPropagation(); onClick(e); });
-    }
-  }
-  if (item && item.tmdb_id) {
-    const img = card.querySelector('.home-card-img img');
-    if (img) {
-      resolveItemPosterUrl(item, 'w500')
-        .then(url => { if (url && img.src !== url) img.src = url; })
-        .catch(() => {});
-    }
-  }
+  card.innerHTML = cardMarkup({
+    posterUrl: posterUrl || '',
+    titleHtml: safeTitle,
+    titleAttr: title,
+    metaHtml: subtitle ? `<div class="info"><span>${escapeHTML(subtitle)}</span></div>` : '',
+    extraHtml
+  });
+  attachCardInteraction(card, onClick);
+  resolveCardPoster(card, item);
   return card;
 }
 
@@ -197,52 +220,46 @@ export function renderHomeBase(container, context) {
       <p class="home-greeting-subtitle">${escapeHTML(subtitle)}</p>
     </section>
 
-    <section class="home-stats" id="homeStats" aria-label="Estatísticas rápidas">
-      <div class="home-stats-grid"></div>
-    </section>
-
     <section class="home-section" id="homeContinueSection" aria-label="Continuar assistindo">
-      <h2 class="home-section-title"><i class="fas fa-play"></i> Continuar Assistindo</h2>
-      <div class="home-continue-grid" id="homeContinueGrid"></div>
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-play"></i> Continuar Assistindo</h2>
+      </div>
+      <div class="home-h-scroll" id="homeContinueGrid"></div>
       <div class="home-empty" id="homeContinueEmpty" style="display:none;">
         <p>Você ainda não começou nenhum título. Que tal adicionar um?</p>
         <button class="home-empty-btn" id="homeContinueAddBtn"><i class="fas fa-plus"></i> Adicionar título</button>
       </div>
     </section>
 
-    <section class="home-section" id="homePicksSection" aria-label="Títulos para você" style="display:none;">
+    <section class="home-section home-section--panel home-section--centered" id="homeRouletteSection" aria-label="Roleta">
       <div class="home-section-head">
-        <h2 class="home-section-title"><i class="fas fa-user-friends"></i> Títulos para você</h2>
-        <button type="button" id="homePicksRefresh" class="home-refresh-btn" title="Atualizar indicações" aria-label="Atualizar indicações"><i class="fas fa-rotate"></i></button>
+        <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
       </div>
-      <div class="home-picks-coverflow" id="homePicksGrid"></div>
-      <div class="home-skeleton" id="homePicksSkeleton">${skeletonHTML()}</div>
-    </section>
-
-<section class="home-section home-section--panel" id="homeRouletteSection" aria-label="Roleta">
-      <h2 class="home-section-title"><i class="fas fa-random"></i> Não sabe o que assistir?</h2>
-      <div class="home-roulette-controls" style="justify-content:center; padding:12px 0;">
+      <div class="home-roulette-controls">
         <button id="homeRouletteBtn" class="home-empty-btn"><i class="fas fa-dice"></i> Sortear título novo</button>
       </div>
-      <div id="homeRouletteResult" class="home-roulette-result" style="display:none; justify-content:center;"></div>
+      <div id="homeRouletteResult" class="home-roulette-result" style="display:none;"></div>
       <div id="homeRouletteHistory" class="home-roulette-history" style="display:none;"><small>Últimos sorteados:</small> <span id="homeRouletteHistoryList"></span></div>
     </section>
 
-
-    
+    ${railHTML(0)}
 
     <section class="home-section" id="homeCalendarSection" aria-label="Calendário da semana" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
-      <p class="home-calendar-hint" id="homeCalendarHint" style="display:none;"></p>
-      <div id="homeCalendarGrid" class="home-calendar-grid"></div>
-      <div class="home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-calendar-week"></i> Episódios da Semana</h2>
+      </div>
+      <p class="home-hint" id="homeCalendarHint" style="display:none;"></p>
+      <div id="homeCalendarGrid" class="home-h-scroll"></div>
+      <div class="home-h-scroll home-skeleton" id="homeCalendarSkeleton">${skeletonHTML()}</div>
     </section>
 
-<section class="home-section home-section--panel" id="homeAffinitySection" aria-label="Descoberta por afinidade">
-      <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
-      <p class="home-affinity-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
+    <section class="home-section home-section--panel home-section--centered" id="homeAffinitySection" aria-label="Descoberta por afinidade">
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-flask"></i> Descubra por afinidade</h2>
+      </div>
+      <p class="home-hint">Adicione até 4 títulos que você curtiu e descubra algo novo para assistir</p>
       <div class="home-affinity-search">
-        <div class="toolbar-search" style="flex:1; max-width:420px;">
+        <div class="toolbar-search">
           <i class="fas fa-search"></i>
           <input type="text" id="homeAffinityInput" placeholder="Buscar título para comparar..." aria-label="Buscar título para afinidade" />
         </div>
@@ -250,51 +267,53 @@ export function renderHomeBase(container, context) {
       </div>
       <div id="homeAffinityChips" class="home-affinity-chips"></div>
       <button id="homeAffinityAnalyze" class="home-empty-btn" disabled><i class="fas fa-microscope"></i> Analisar (0/4)</button>
-      <div class="home-h-scroll" id="homeAffinityGrid" style="display:none; margin-top:12px;"></div>
-      <div class="home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
+      <div class="home-h-scroll" id="homeAffinityGrid" style="display:none;"></div>
+      <div class="home-h-scroll home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
       <div class="home-error" id="homeAffinityError" style="display:none;"></div>
     </section>
 
+    ${railHTML(3)}
 
-    
-        
-<section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
+    <section class="home-section" id="homeAbandonedSection" aria-label="Abandonados" style="display:none;">
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-pause-circle"></i> Abandonados</h2>
+      </div>
       <div class="home-h-scroll" id="homeAbandonedGrid"></div>
     </section>
 
-<section class="home-section home-section--panel" id="homeYearSection" aria-label="Destaques do ano" style="display:none;">
-      <h2 class="home-section-title" id="homeYearTitle"><i class="fas fa-calendar-alt"></i> Destaques do ano</h2>
-      <div class="home-year-row">
-        <div class="toolbar-search" style="flex:0 0 150px;">
+    ${railHTML(1)}
+
+    <section class="home-section home-section--panel" id="homeYearSection" aria-label="Destaques do ano" style="display:none;">
+      <div class="home-section-head">
+        <h2 class="home-section-title" id="homeYearTitle"><i class="fas fa-calendar-alt"></i> Destaques do ano</h2>
+      </div>
+      <div class="home-field-row">
+        <div class="toolbar-search">
           <i class="fas fa-calendar-alt"></i>
           <input type="text" id="homeYearInput" inputmode="numeric" maxlength="4" placeholder="2020" aria-label="Ano para buscar destaques" />
         </div>
         <button type="button" id="homeYearSearch" class="home-empty-btn"><i class="fas fa-magnifying-glass"></i> Buscar ano</button>
       </div>
       <div class="home-h-scroll" id="homeYearGrid"></div>
-      <div class="home-skeleton" id="homeYearSkeleton" style="display:none;">${skeletonHTML()}</div>
+      <div class="home-h-scroll home-skeleton" id="homeYearSkeleton" style="display:none;">${skeletonHTML()}</div>
       <div class="home-error" id="homeYearError" style="display:none;"></div>
     </section>
 
-    <section class="home-section" id="homeRecommendSection" aria-label="Recomendações" style="display:none;">
-      <div class="home-section-head">
-        <h2 class="home-section-title" id="homeRecommendTitle"><i class="fas fa-heart"></i> Recomendações</h2>
-        <button type="button" id="homeRecommendRefresh" class="home-refresh-btn" title="Atualizar recomendações" aria-label="Atualizar recomendações"><i class="fas fa-rotate"></i></button>
-      </div>
-      <div class="home-h-scroll" id="homeRecommendGrid"></div>
-      <div class="home-skeleton" id="homeRecommendSkeleton">${skeletonHTML()}</div>
-    </section>
+    ${railHTML(2)}
 
     <section class="home-section" id="homeTrendingSection" aria-label="Em alta" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-fire"></i> Em Alta</h2>
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-fire"></i> Em Alta</h2>
+      </div>
       <div class="home-h-scroll" id="homeTrendingGrid"></div>
-      <div class="home-skeleton" id="homeTrendingSkeleton">${skeletonHTML()}</div>
+      <div class="home-h-scroll home-skeleton" id="homeTrendingSkeleton">${skeletonHTML()}</div>
       <div class="home-error" id="homeTrendingError" style="display:none;"></div>
     </section>
 
     <section class="home-section" id="homeFavoritesSection" aria-label="Seus favoritos" style="display:none;">
-      <h2 class="home-section-title"><i class="fas fa-star"></i> Seus Favoritos</h2>
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-star"></i> Seus Favoritos</h2>
+      </div>
       <div class="home-h-scroll" id="homeFavoritesGrid"></div>
     </section>
 
@@ -334,39 +353,6 @@ export function renderHomeBase(container, context) {
 }
 
 /**
- * Renderiza estatísticas rápidas
- */
-export function renderHomeStats(container, items) {
-  const stats = getCatalogStats(items);
-  const grid = container.querySelector('.home-stats-grid');
-  if (!grid) return;
-  // Substitui contagens simples por métricas úteis: tempo investido, progresso médio, taxa de conclusão
-  grid.innerHTML = `
-    <div class="stat-card stat-card--highlight">
-      <i class="fas fa-clock stat-icon"></i>
-      <span class="stat-number">${stats.horasAssistidas}h</span>
-      <span class="stat-label">${stats.totalEpisodiosAssistidos} episódios assistidos</span>
-    </div>
-    <div class="stat-card">
-      <i class="fas fa-chart-line stat-icon"></i>
-      <span class="stat-number">${stats.progressoMedio}%</span>
-      <div class="stat-progress"><div class="stat-progress-bar" style="width:${stats.progressoMedio}%"></div></div>
-      <span class="stat-label">Progresso médio</span>
-    </div>
-    <div class="stat-card">
-      <i class="fas fa-check-circle stat-icon"></i>
-      <span class="stat-number">${stats.taxaConclusao}%</span>
-      <span class="stat-label">${stats.concluidos} de ${stats.total} concluídos</span>
-    </div>
-    <div class="stat-card">
-      <i class="fas fa-play stat-icon"></i>
-      <span class="stat-number">${stats.assistindo}</span>
-      <span class="stat-label">Em andamento • ${stats.planejados} na lista</span>
-    </div>
-  `;
-}
-
-/**
  * Renderiza Continuar Assistindo (carrossel horizontal máx. 20)
  */
 export function renderHomeContinue(container, items, onCardClick, onOpenAddModal) {
@@ -392,13 +378,19 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
   grid.innerHTML = '';
   // Reuse card creation similar to cards.js but horizontal mini
   limited.forEach((item) => {
-    const posterUrl = item.imagem || '';
-    const subtitle = `T${item.temporada} · Ep ${String(item.episodio).padStart(2, '0')}`;
-    const extra = `<div class="home-card-progress"><div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div>`;
+    const progress = calcularProgresso(item);
+    // A barra é a do modelo (`.progress-wrap`, com a porcentagem ao lado), a
+    // mesma do Catálogo. A home tinha uma trilha de 3px sem porcentagem: o
+    // mesmo dado de progresso com duas formas de mostrar.
+    const extra = `
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div>
+        <span class="progress-pct">${progress}%</span>
+      </div>`;
     const card = createHomeCard({
-      posterUrl,
+      posterUrl: item.imagem || '',
       title: item.nome,
-      subtitle,
+      subtitle: `T${item.temporada} · Ep ${String(item.episodio).padStart(2, '0')}`,
       extraHtml: extra,
       onClick: () => onCardClick && onCardClick(items.indexOf(item)),
       item
@@ -588,270 +580,198 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 }
 
 /**
- * Geometria do cilindro.
+ * Uma faixa "Se você gostou de X vai gostar disso".
  *
- * `step` menor que a largura do card é o que produz a sobreposição: 170 de
- * largura com 63 de passo deixa 107px do vizinho escondidos atrás, e é essa
- * fatia que dá a leitura de "pilha girando" em vez de "cards lado a lado".
+ * Cada faixa tem estado próprio — âncora, títulos exibidos e semente de
+ * seleção — e é o que faz o botão atualizar **uma** faixa e não a página. O
+ * estado vive no DOM (`dataset`) em vez de num `Map` do módulo porque a home é
+ * remontada do zero a cada render: um `Map` guardaria as âncoras da instância
+ * anterior, e a faixa recém-carregada receberia um filtro de títulos obsoleto.
  *
- * `depth` e `scale` trabalham juntos de propósito: só o `rotateY` gira o card
- * sem afastá-lo, e o conjunto parece um leque de papel em vez de um disco. O
- * `translateZ` é quem cria a profundidade, e o `scale` compensa a perda de
- * altura aparente que ele causa.
+ * @param {Element} section - A `<section>` da faixa.
+ * @param {number} index - Posição da faixa.
+ * @returns {Element|null} A seção, ou null se não existir.
  */
-const COVER = {
-  // 170 de largura com 63 de passo: 107px do vizinho ficam escondidos, 63%
-  // do card -- a MESMA proporcao de quando o card tinha 210 e passo 78. O passo
-  // acompanha a largura de proposito: com o card menor e o passo antigo (78),
-  // a sobreposicao cairia para 26% e o cilindro voltaria a parecer cards
-  // encostados, que e o defeito que o passo curto veio resolver.
-  // Largura do card: 170px, em style.css (.home-pick-card).
-  step: 63,
-  // 32 graus. A 25 a compressão horizontal ficava discreta demais e o conjunto
-  // não parecia girando em torno de um eixo.
-  angle: 32,
-  depth: 150,
-  // O scale compensa a perda de altura aparente do translateZ, e vem junto
-  // porque separados o card do fundo fica pequeno sem parecer distante.
-  scaleStep: 0.14,
-  // O escurecimento é o que vende a profundidade mais que a geometria: sem ele
-  // o card do fundo tem quase o mesmo peso visual do da frente, e o conjunto
-  // fica plano mesmo com rotateY correto.
-  fadeStep: 0.3,
-  fadeMax: 0.6
-};
+function railSection(container, index) {
+  return container.querySelector(`#homeRail${index}`);
+}
 
 /**
- * Monta o cilindro e devolve o controlador.
+ * Acende a faixa e pinta o esqueleto enquanto a base é buscada.
  *
- * O card no centro é o único em tamanho cheio; os outros entram na curva,
- * menores e mais apagados. Clicar num card lateral o traz para o centro;
- * clicar no que já está no centro abre o título. Sem scroll — são 1 a 3 cards,
- * e rolagem aqui seria um carrossel disfarçado.
- *
- * @param {Element} container - Elemento com os cards já dentro.
- * @param {Array} picks - Cards, na mesma ordem do DOM.
- * @param {Function} onOpen - Abre o título do card.
- * @param {Function} [onRotate] - Notifica o índice ativo.
- * @returns {Object} `{ rotate, active, destroy }`.
+ * @param {Element} section - A `<section>` da faixa.
+ * @param {number} index - Posição da faixa.
  */
-export function mountPickCoverflow(container, picks, onOpen, onRotate) {
-  const cards = [...container.querySelectorAll('.home-pick-card')];
-  if (cards.length === 0) return { rotate() {}, active: 0, destroy() {} };
+function railLoading(section, index) {
+  section.style.display = '';
+  const grid = section.querySelector(`#homeRail${index}Grid`);
+  const skel = section.querySelector(`#homeRail${index}Skeleton`);
+  if (grid) grid.style.display = 'none';
+  if (skel) skel.style.display = '';
+}
 
-  // A altura do contentor é a do card mais alto: os cards são absolutos, então
-  // sem isso o contentor colapsa e a curva aparece cortada.
-  const maisAlto = cards.reduce((max, c) => Math.max(max, c.offsetHeight), 0);
-  if (maisAlto > 0) container.style.height = maisAlto + 'px';
+/**
+ * Pinta os cards de uma faixa, ou apaga a faixa se não houver o que mostrar.
+ *
+ * A faixa apagada perde o `dataset`, e isso é o ponto: sem âncora registrada,
+ * as outras faixas não a contam como vizinha ocupada, e o `offset` delas pode
+ * reaproveitar a base que ficou livre.
+ *
+ * @param {Element} section - A `<section>` da faixa.
+ * @param {number} index - Posição da faixa.
+ * @param {Object|null} rail - `{ base, pool }` da faixa.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @returns {boolean} true se a faixa ficou acesa.
+ */
+function railPaint(section, index, rail, onAddFromTrending) {
+  const grid = section.querySelector(`#homeRail${index}Grid`);
+  const skel = section.querySelector(`#homeRail${index}Skeleton`);
+  const titleEl = section.querySelector(`#homeRail${index}Title`);
+  if (skel) skel.style.display = 'none';
 
-  // O ativo precisa poder ficar fora do meio. Com 2 cards só existe uma
-  // posição central de verdade, e fixar o ativo no índice 1 deixava o card 0
-  // sozinho à esquerda, com o grupo inteiro descentrado. Aqui o ativo ocupa o
-  // meio e o resto se distribui em volta: com 3 cards o primeiro plano inicial
-  // é o do meio; com 2, o segundo; com 1, o único.
-  const centro = (cards.length - 1) / 2;
-  // floor e nao round: Math.round(0.5) sobe para 1, que e justamente o caso
-  // quebrado que esta mudanca queria resolver.
-  let active = Math.floor(centro);
-
-  function paint() {
-    cards.forEach((card, i) => {
-      const d = i - active;
-      const dist = Math.abs(d);
-      card.style.transform = [
-        'translateX(' + d * COVER.step + 'px)',
-        'rotateY(' + (-d * COVER.angle) + 'deg)',
-        'translateZ(' + (-dist * COVER.depth) + 'px)',
-        'scale(' + Math.max(0.6, 1 - dist * COVER.scaleStep) + ')'
-      ].join(' ');
-      card.style.opacity = String(Math.max(1 - COVER.fadeMax, 1 - dist * COVER.fadeStep));
-      card.style.zIndex = String(50 - dist);
-      // O lateral fica sem tab-stop: ele existe para ser girado, e o teclado
-      // chega nele pelas setas a partir do card do centro.
-      card.tabIndex = d === 0 ? 0 : -1;
-      card.setAttribute('aria-current', d === 0 ? 'true' : 'false');
-    });
-    if (onRotate) onRotate(active);
+  const chosen = rail ? pickScoredForSection(`affinity${index}`, rail.pool, getFullWidthCount()) : null;
+  if (!rail || !grid || !chosen || chosen.length === 0) {
+    section.style.display = 'none';
+    delete section.dataset.baseId;
+    delete section.dataset.shown;
+    delete section.dataset.seed;
+    return false;
   }
 
-  function rotate(index) {
-    const next = Math.max(0, Math.min(cards.length - 1, index));
-    if (next === active) return;
-    active = next;
-    paint();
-  }
-
-  cards.forEach((card, i) => {
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (i === active) { if (onOpen) onOpen(picks[i]); }
-      else rotate(i);
-    });
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') { e.preventDefault(); rotate(active + 1); cards[active].focus(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); rotate(active - 1); cards[active].focus(); }
-      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (onOpen) onOpen(picks[i]); }
-    });
+  if (titleEl) titleEl.innerHTML = `<i class="fas fa-heart"></i> Se você gostou de "${escapeHTML(rail.base.nome)}" vai gostar disso`;
+  grid.style.display = '';
+  grid.innerHTML = '';
+  chosen.forEach((t) => {
+    // Envelope em arrow: o card chama o handler com o evento do DOM, e
+    // `onAddFromTrending` espera o item.
+    grid.appendChild(createHomeCard({
+      posterUrl: t.posterUrl,
+      title: t.title,
+      subtitle: t.date ? formatAirDate(t.date) : 'Série',
+      onClick: () => onAddFromTrending && onAddFromTrending(t)
+    }));
   });
+  animateCards(grid);
 
-  paint();
-  return {
-    rotate,
-    get active() { return active; },
-    destroy() { cards.forEach(c => { c.style.transform = ''; c.style.zIndex = ''; }); }
-  };
+  // O que a faixa está exibindo agora, para as vizinhas não repetirem nem
+  // tomarem a mesma âncora. Fica no `dataset` porque o `Map` do módulo não
+  // sobrevive ao remount.
+  section.dataset.baseId = String(rail.base.tmdb_id);
+  section.dataset.shown = chosen.map((t) => String(t.id)).join(',');
+  section.dataset.seed = String(bumpSeedIfNew(section));
+  return true;
 }
 
 /**
- * Card de indicação: a mesma anatomia do card da home, mais a frase que
- * justifica a indicação.
+ * Lê (e cria) a semente de seleção de cards da faixa.
  *
- * A frase é uma linha de verdade, não um rótulo — por isso ela é o elemento de
- * maior peso do card, e o subtítulo da data cede lugar a ela.
+ * Não é a semente da âncora: é a do `pickWithMix`, que decide a ordem dos
+ * títulos dentro da faixa. Vive no `dataset` pelo mesmo motivo do resto.
  *
- * Havia aqui uma miniatura com o rosto do criador, para ligar a frase a uma
- * pessoa. Saiu a pedido do usuário: 22px não chegam a dizer nada, e o nome já
- * está na frase. Sobrava o furo quando o TMDb não tem foto do criador.
- * @param {Object} pick - Item devolvido por `getFriendPicks`.
- * @param {Function} onClick - Callback de abertura.
- * @returns {HTMLElement} Card.
+ * @param {Element} section - A `<section>` da faixa.
+ * @returns {number} Semente atual.
  */
-function createPickCard(pick, onClick) {
-  const card = document.createElement('div');
-  card.className = 'home-card home-pick-card';
-  card.setAttribute('tabindex', '0');
-  card.setAttribute('role', 'button');
-  card.setAttribute('aria-label', pick.title + '. ' + pick.reason);
-  const title = escapeHTML(pick.title);
-  card.innerHTML = `
-    <div class="home-card-img">
-      ${pick.posterUrl ? `<img src="${escapeHTML(pick.posterUrl)}" alt="${title}" loading="lazy" />` : '<i class="fas fa-film"></i>'}
-    </div>
-    <div class="home-card-body">
-      <h3 title="${title}">${title}</h3>
-      <p class="home-pick-reason">${escapeHTML(pick.reason)}</p>
-    </div>
-  `;
-  if (onClick) {
-    card.addEventListener('click', onClick);
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } });
-  }
-  return card;
+function bumpSeedIfNew(section) {
+  const atual = Number(section.dataset.seed || 0);
+  section.dataset.seed = String(atual + 1);
+  return atual;
 }
 
 /**
- * Carrega "Títulos para você".
+ * O que as outras faixas estão ocupando agora: âncoras e títulos.
  *
- * A seção se esconde em três casos, e nos três a resposta é a mesma: não há
- * âncora forte no catálogo, a API falhou, ou nenhum candidato tem criador em
- * comum verificado. Preferimos não mostrar a mostrar indicação sem lastro — é a
- * diferença entre "um amigo indicou" e "o app escolheu".
+ * É o que mantém as quatro faixas distintas depois de uma atualização
+ * individual. Sem isto, a faixa 2 giraria para a base que a faixa 1 acabou de
+ * escolher e as duas ofereceriam as mesmas coisas com nomes diferentes no
+ * título — repetição que o clique do usuário produziu.
+ *
+ * @param {Element} container - Container da home.
+ * @param {number} index - Faixa a ignorar (a que está se atualizando).
+ * @returns {{titles: Set<string>, bases: Set<string>}} Conjuntos das vizinhas.
+ */
+function railNeighbours(container, index) {
+  const titles = new Set();
+  const bases = new Set();
+  for (let i = 0; i < AFFINITY_RAIL_COUNT; i++) {
+    if (i === index) continue;
+    const vizinha = railSection(container, i);
+    if (!vizinha || vizinha.style.display === 'none') continue;
+    if (vizinha.dataset.baseId) bases.add(vizinha.dataset.baseId);
+    if (vizinha.dataset.shown) vizinha.dataset.shown.split(',').forEach((id) => titles.add(id));
+  }
+  return { titles, bases };
+}
+
+/**
+ * Carrega uma faixa, ou recarrega só ela.
+ *
+ * O primeiro carregamento pede as `AFFINITY_RAIL_COUNT` faixas de uma vez: o
+ * `seen` compartilhado garante a não repetição entre elas com um filtro só. A
+ * atualização pede uma, com o que as vizinhas estão exibindo como exclusão —
+ * é a diferença entre "as quatro mudam" e "esta muda".
+ *
+ * Faixa sem pool é apagada em vez de ficar vazia: três faixas verdadeiras são
+ * melhores do que quatro com uma oca no meio, e o conjunto menor que o pedido é
+ * o próprio aviso de que o catálogo não ancora mais que isso.
+ *
  * @param {Element} container - Container da home.
  * @param {Array} items - Catálogo do usuário.
  * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {number} [onlyIndex] - Recarrega só esta faixa.
  * @returns {Promise<void>}
  */
-/** Controlador do cilindro da última montagem, para o botão de atualizar girar. */
-let refreshPicksController = null;
+export async function loadAndRenderAffinityRails(container, items, onAddFromTrending, onlyIndex = null) {
+  const todas = Array.from({ length: AFFINITY_RAIL_COUNT }, (_, i) => railSection(container, i)).filter(Boolean);
+  if (todas.length === 0) return;
 
-export async function loadAndRenderFriendPicks(container, items, onAddFromTrending) {
-  const section = container.querySelector('#homePicksSection');
-  const grid = container.querySelector('#homePicksGrid');
-  const skel = container.querySelector('#homePicksSkeleton');
-  if (!section || !grid || !skel) return;
-
-  setupSectionRefresh(section, () => {
-    // Gira antes de recarregar, e não depois: os cards laterais são alcançáveis
-    // por clique, mas o botão é o caminho de teclado que não exige mira. Com a
-    // lista inteira visível ele também é o que troca a âncora, então um clique
-    // faria as duas coisas — e aí o usuário nunca veria o card que girou.
-    if (refreshPicksController) refreshPicksController.rotate(0);
-    bumpSeed('picks');
-    loadAndRenderFriendPicks(container, items, onAddFromTrending);
-  }, 'Atualizar indicações');
-
-  section.style.display = '';
-  grid.style.display = 'none';
-  skel.style.display = '';
-
-  try {
-    const picks = await getFriendPicks(items, { anchorIndex: getVariety('picks').seed });
-    skel.style.display = 'none';
-    if (!picks || picks.length === 0) {
-      section.style.display = 'none';
-      return;
-    }
-    grid.style.display = '';
-    grid.innerHTML = '';
-    // O card nasce sem handler de clique: quem decide abrir ou girar é o
-    // cilindro, e ele depende de saber qual card está no centro.
-    picks.forEach((pick) => {
-      grid.appendChild(createPickCard(pick, null));
+  const primeiro = onlyIndex === null;
+  if (primeiro) {
+    todas.forEach((section, i) => {
+      setupSectionRefresh(section, () => {
+        loadAndRenderAffinityRails(container, items, onAddFromTrending, i);
+      }, 'Atualizar recomendações');
+      railLoading(section, i);
     });
-
-    const cover = mountPickCoverflow(
-      grid,
-      picks,
-      (pick) => onAddFromTrending && onAddFromTrending(pick)
-    );
-    // O botão de atualizar trocava a lista; agora ele também gira, para o
-    // usuário alcançar os cards fora do centro sem precisar mirar neles.
-    refreshPicksController = cover;
-
-    // Sem `animateCards` aqui, de propósito. Ele anima `opacity` e `translateY`,
-    // e o anime.js escreve no `transform` inline do elemento -- numa lista comum
-    // isso é inofensivo, mas no cilindro sobrescreveria a matriz 3D e o card
-    // voltaria a ser um retângulo reto. O próprio coverflow já anima com
-    // transition, e a entrada é o fade do contentor, abaixo.
-    grid.classList.add('home-picks-coverflow--in');
-  } catch (e) {
-    skel.style.display = 'none';
-    section.style.display = 'none';
-    console.warn('Erro ao buscar indicações:', e);
+  } else {
+    const section = railSection(container, onlyIndex);
+    if (!section) return;
+    railLoading(section, onlyIndex);
   }
-}
 
-export async function loadAndRenderRecommendations(container, items, onCardClick, onAddFromTrending) {
-  const section = container.querySelector('#homeRecommendSection');
-  const grid = container.querySelector('#homeRecommendGrid');
-  const skel = container.querySelector('#homeRecommendSkeleton');
-  const titleEl = container.querySelector('#homeRecommendTitle');
-  if (!section || !grid || !skel) return;
-
-  setupSectionRefresh(section, () => {
-    bumpSeed('recommend');
-    loadAndRenderRecommendations(container, items, onCardClick, onAddFromTrending);
-  }, 'Atualizar recomendações');
-
-  section.style.display = '';
-  grid.style.display = 'none';
-  skel.style.display = '';
   try {
-    const data = await getRecommendationsForUser(items, null, { baseIndex: getVariety('recommend').seed });
-    const pool = data?.pool?.length ? data.pool : (data?.recommendations || []);
-    const chosen = pickScoredForSection('recommend', pool, getFullWidthCount());
-    skel.style.display = 'none';
-    if (!data || !chosen || chosen.length === 0) {
-      section.style.display = 'none';
+    if (primeiro) {
+      const dados = await getAffinityRails(items, { count: AFFINITY_RAIL_COUNT });
+      dados.forEach((rail, i) => {
+        const section = railSection(container, i);
+        if (section) railPaint(section, i, rail, onAddFromTrending);
+      });
       return;
     }
-    if (titleEl) titleEl.innerHTML = `<i class="fas fa-heart"></i> Se você gostou de "${escapeHTML(data.base.nome)}" vai gostar disso`;
-    grid.style.display = '';
-    grid.innerHTML = '';
-    chosen.forEach((t) => {
-      const subtitle = t.date ? formatAirDate(t.date) : 'Série';
-      const card = createHomeCard({
-        posterUrl: t.posterUrl,
-        title: t.title,
-        subtitle,
-        onClick: () => onAddFromTrending && onAddFromTrending(t)
-      });
-      grid.appendChild(card);
+
+    // A faixa que está se atualizando libera a própria âncora e os próprios
+    // títulos: são eles que estão sendo trocados. Sem isso, a faixa estaria
+    // excluindo de si mesma e nunca encontraria material novo.
+    const vizinhas = railNeighbours(container, onlyIndex);
+    const baseAtual = railSection(container, onlyIndex)?.dataset.baseId;
+    if (baseAtual) vizinhas.bases.add(baseAtual);
+    const rail = await getAffinityRail(items, {
+      offset: bumpSeed('affinity'),
+      excludeTitles: vizinhas.titles,
+      excludeBaseIds: vizinhas.bases
     });
-    animateCards(grid);
+    const section = railSection(container, onlyIndex);
+    if (section) railPaint(section, onlyIndex, rail, onAddFromTrending);
   } catch (e) {
-    skel.style.display = 'none';
-    section.style.display = 'none';
+    const indices = primeiro
+      ? todas.map((_, i) => i)
+      : [onlyIndex];
+    indices.forEach((i) => {
+      const section = railSection(container, i);
+      if (!section) return;
+      const skel = section.querySelector(`#homeRail${i}Skeleton`);
+      if (skel) skel.style.display = 'none';
+      section.style.display = 'none';
+    });
   }
 }
 
@@ -890,9 +810,11 @@ function renderCategorySection(container, items, cat, onAddFromTrending) {
     section.className = 'home-section';
     section.id = `homeCatSection-${cat.id}`;
     section.innerHTML = `
-      <h2 class="home-section-title"><i class="fas ${cat.icon}"></i> ${escapeHTML(cat.name)}</h2>
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas ${cat.icon}"></i> ${escapeHTML(cat.name)}</h2>
+      </div>
       <div class="home-h-scroll" id="cat-${cat.id}"></div>
-      <div class="home-skeleton" id="cat-skel-${cat.id}">${skeletonHTML()}</div>
+      <div class="home-h-scroll home-skeleton" id="cat-skel-${cat.id}">${skeletonHTML()}</div>
     `;
     wrap.appendChild(section);
   }
@@ -1011,8 +933,8 @@ export async function loadAndRenderCalendar(container, items, onCardClick) {
           <span class="home-calendar-dow">${escapeHTML(dow)}</span>
           <span class="home-calendar-dnum">${escapeHTML(br)}</span>
         </div>
-        <div class="home-calendar_eps"></div>`;
-      const epsWrap = col.querySelector('.home-calendar_eps');
+        <div class="home-calendar-eps"></div>`;
+      const epsWrap = col.querySelector('.home-calendar-eps');
       eps.forEach(({ item, episode }) => {
         // Sem pôster do título, usa a still do episódio: melhor que cartão vazio.
         const posterUrl = item.imagem || (episode.still_path ? `https://image.tmdb.org/t/p/w300${episode.still_path}` : '');
@@ -1020,36 +942,22 @@ export async function loadAndRenderCalendar(container, items, onCardClick) {
         const c = createHomeCard({
           posterUrl,
           title: item.nome,
-          // Temporada e episódio no subtítulo, como nos outros cards da home. O
-          // nome do episódio ia espremido no subtítulo, que é de 0.62rem com
-          // ellipsis: ficava "T1 E2 - Episó..." e não se lia nada.
+          // Temporada e episódio na linha de metadado, como nos outros cards.
+          // O nome do episódio não caberia nela — que é de uma linha com
+          // ellipsis — então vai abaixo, como `extraHtml`.
           subtitle: `T${episode.season_number} · E${episode.episode_number}`,
-          extraHtml: epName ? `<span class="home-cal-epname" title="${escapeHTML(epName)}">${escapeHTML(epName)}</span>` : '',
+          extraHtml: epName ? `<span class="home-calendar-epname" title="${escapeHTML(epName)}">${escapeHTML(epName)}</span>` : '',
           onClick: () => onCardClick && onCardClick(items.indexOf(item)),
           item
         });
-        c.classList.add('home-cal-card');
+        c.classList.add('card--calendar');
+        c.classList.remove('card--rail');
         epsWrap.appendChild(c);
       });
       grid.appendChild(col);
     });
     animateCards(grid);
   } catch { skel.style.display = 'none'; section.style.display = 'none'; }
-}
-
-export function loadAndRenderChallenge(container, items) {
-  const section = container.querySelector('#homeChallengeSection');
-  const grid = container.querySelector('#homeChallengeGrid');
-  if (!section || !grid) return;
-  const ch = getChallenge(items, 5);
-  if (ch.goal === 0) { section.style.display = 'none'; return; }
-  section.style.display = '';
-  grid.innerHTML = `
-    <div class="home-challenge-card">
-      <div class="home-challenge-head"><span>${ch.concluidosMes} / ${ch.goal} concluídos no mês</span><span>${ch.pct}%</span></div>
-      <div class="home-card-progress-track"><div class="home-card-progress-bar" style="width:${ch.pct}%"></div></div>
-      <p class="home-challenge-hint">${ch.pct >= 100 ? 'Desafio completo!' : `Faltam ${ch.goal - ch.concluidosMes} para bater a meta`}</p>
-    </div>`;
 }
 
 export function loadAndRenderAbandoned(container, items, onCardClick) {
@@ -1071,32 +979,6 @@ export function loadAndRenderAbandoned(container, items, onCardClick) {
     grid.appendChild(card);
   });
   animateCards(grid);
-}
-
-export function loadAndRenderTimeline(container, items, onCardClick) {
-  const section = container.querySelector('#homeTimelineSection');
-  const grid = container.querySelector('#homeTimelineGrid');
-  if (!section || !grid) return;
-  const list = getTimeline(items, 10);
-  if (list.length === 0) { section.style.display = 'none'; return; }
-  section.style.display = '';
-  grid.innerHTML = '';
-  list.forEach(item => {
-    const d = new Date(item.dataAtualizacao || item.dataCriacao || 0);
-    const dateStr = isNaN(d.getTime()) ? '' : formatAirDate(d.toISOString().slice(0,10));
-    const card = document.createElement('div');
-    card.className = 'home-timeline-item';
-    card.innerHTML = `<div class="home-timeline-date">${dateStr}</div><div class="home-timeline-card"><img src="${item.imagem || ''}" alt="" style="width:40px;height:60px;object-fit:cover;border-radius:4px;" /><div><strong>${escapeHTML(item.nome)}</strong><br><small>T${item.temporada} E${item.episodio} • ${item.status}</small><div class="home-card-progress-track" style="margin-top:4px;"><div class="home-card-progress-bar" style="width:${calcularProgresso(item)}%"></div></div></div></div>`;
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', () => onCardClick && onCardClick(items.indexOf(item)));
-    if (item.tmdb_id) {
-      const img = card.querySelector('img');
-      resolveItemPosterUrl(item, 'w500')
-        .then(url => { if (url && img.src !== url) img.src = url; })
-        .catch(() => {});
-    }
-    grid.appendChild(card);
-  });
 }
 
 export function setupRoulette(container, items, onCardClick, onAddFromTrending) {
@@ -1130,11 +1012,10 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
   btn.addEventListener('click', async () => {
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sorteando...';
     res.style.display = 'flex';
-    res.style.justifyContent = 'center';
     res.innerHTML = '<div class="home-roulette-shuffle"><i class="fas fa-dice fa-spin"></i> Buscando título novo...</div>';
     res.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const pool = await getNewPool();
-    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-empty">Nenhum título novo encontrado. Tente novamente.</p>'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório'; return; }
+    if (pool.length === 0) { res.style.display = ''; res.innerHTML = '<p class="home-note">Nenhum título novo encontrado. Tente novamente.</p>'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório'; return; }
     // Animação de embaralhamento - mostra 4 picks rápidos
     for (let k = 0; k < 4; k++) {
       await new Promise(r => setTimeout(r, 120 + k*40));
@@ -1151,8 +1032,8 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
       <div class="home-roulette-info">
         <strong>${escapeHTML(picked.title)}</strong>
         <small>${picked.date ? formatAirDate(picked.date) : 'Série'}</small>
-        <small style="color:var(--text-muted)">Título novo para descobrir</small>
-        <div style="margin-top:8px; display:flex; gap:8px;">
+        <small class="home-roulette-note">Título novo para descobrir</small>
+        <div class="home-roulette-actions">
           <button class="home-empty-btn" data-action="details"><i class="fas fa-eye"></i> Mais Detalhes</button>
           <button class="tool-btn" data-action="again"><i class="fas fa-redo"></i> Sortear outro</button>
         </div>
@@ -1219,7 +1100,7 @@ function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
           if (selected.some(s => String(s.id) === String(raw.id))) return;
           const row = document.createElement('button');
           row.className = 'home-affinity-option';
-          row.innerHTML = `<img src="${raw.poster_path ? `https://image.tmdb.org/t/p/w92${raw.poster_path}` : ''}" alt="" style="width:32px;height:48px;object-fit:cover;border-radius:4px;background:var(--bg-secondary);" onerror="this.style.display='none'" /><span>${escapeHTML(title)}</span><small>${(raw.first_air_date || '').slice(0,4) || ''}</small>`;
+          row.innerHTML = `<img src="${raw.poster_path ? `https://image.tmdb.org/t/p/w92${raw.poster_path}` : ''}" alt="" onerror="this.style.display='none'" /><span>${escapeHTML(title)}</span><small>${(raw.first_air_date || '').slice(0,4) || ''}</small>`;
           row.addEventListener('click', () => {
             if (selected.length >= 4) return;
             selected.push({ id: raw.id, title, poster_path: raw.poster_path });
@@ -1267,7 +1148,7 @@ function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
 
 function animateCards(gridEl) {
   if (typeof window !== 'undefined' && window.anime) {
-    const cards = gridEl.querySelectorAll('.home-card, .home-skeleton-card');
+    const cards = gridEl.querySelectorAll('.card--rail, .card--calendar, .home-skeleton-card');
     if (cards.length) {
       window.anime({
         targets: cards,
@@ -1287,12 +1168,10 @@ function animateCards(gridEl) {
 export async function renderHome(container, context) {
   const { items } = context;
   renderHomeBase(container, context);
-  renderHomeStats(container, items);
   renderHomeContinue(container, items, context.onCardClick, context.onOpenAddModal);
   renderHomeFavorites(container, items, context.onCardClick);
   // Novas seções
   loadAndRenderCalendar(container, items, context.onCardClick);
-  loadAndRenderFriendPicks(container, items, context.onAddFromTrending);
   setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
@@ -1300,6 +1179,6 @@ export async function renderHome(container, context) {
   loadAndRenderByYear(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
   loadAndRenderTrending(container, items, context.onAddFromTrending);
-  loadAndRenderRecommendations(container, items, context.onCardClick, context.onAddFromTrending);
+  loadAndRenderAffinityRails(container, items, context.onAddFromTrending);
   loadAndRenderCategories(container, items, context.onAddFromTrending);
 }

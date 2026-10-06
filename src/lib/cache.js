@@ -6,6 +6,30 @@ const DEFAULT_TTL = 60 * 60 * 1000; // 1h - dados TMDb mudam pouco
 const DEFAULT_MAX = 200;
 const LS_KEY = 'datmovie_cache_v1';
 
+/**
+ * Teto de idade do blob persistido, independente do TTL de cada chave.
+ *
+ * É rede de segurança para entradas que ninguém mais vai ler, não a validade
+ * delas — quem decide isso é o `expiresAt` de cada item. Precisa ser bem mais
+ * folgado que o TTL padrão porque há chaves com validade longa (as páginas do
+ * `discover`, que só mudam quando o catálogo de genres muda), e um teto de 24h
+ * as apagava todas antes de vencerem, jogando fora o trabalho caro justo na
+ * segunda visita, que é justamente quando ele seria reaproveitado.
+ */
+const MAX_RESTORE_AGE = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Janela de agrupamento das escritas no localStorage.
+ *
+ * `setItem` é síncrono e bloqueia a main thread. O preenchimento da home faz
+ * dezenas de `cacheSet` em sequência (um por página de `discover`, uma por
+ * faixa de afinidade), e serializar o cache inteiro a cada um transformava o
+ * carregamento em engasgo. Aqui as escritas dentro da janela viram uma só.
+ * Perder o cache num fechamento abrupto não é perda real: ele é reconstruído na
+ * próxima visita.
+ */
+const PERSIST_DEBOUNCE_MS = 250;
+
 class LRUCache {
   constructor(ttl = DEFAULT_TTL, maxSize = DEFAULT_MAX) {
     this.ttl = ttl;
@@ -62,9 +86,21 @@ class LRUCache {
     if (removed > 0) { try { this._persist(); } catch {} }
     return removed;
   }
-  clear() { this.map.clear(); try { localStorage.removeItem(LS_KEY); } catch {} }
+clear() {
+    this.map.clear();
+    // Uma escrita já agendada escreveria o cache de volta depois do clear.
+    if (this._persistTimer) { clearTimeout(this._persistTimer); this._persistTimer = null; }
+    try { localStorage.removeItem(LS_KEY); } catch {}
+  }
   size() { return this.map.size; }
   _persist() {
+    if (this._persistTimer) return;
+    this._persistTimer = setTimeout(() => {
+      this._persistTimer = null;
+      this._write();
+    }, PERSIST_DEBOUNCE_MS);
+  }
+  _write() {
     try {
       const obj = {};
       for (const [k, v] of this.map.entries()) obj[k] = v;
@@ -77,8 +113,9 @@ class LRUCache {
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (!parsed.data) return;
-      // Só restaura se não for muito antigo (24h)
-      if (Date.now() - (parsed.ts || 0) > 24*60*60*1000) { localStorage.removeItem(LS_KEY); return; }
+      // Blob nenhum ninguém mais vai ler. A validade de cada entrada continua
+      // sendo o `expiresAt` dela, checado logo abaixo.
+      if (Date.now() - (parsed.ts || 0) > MAX_RESTORE_AGE) { localStorage.removeItem(LS_KEY); return; }
       for (const [k, v] of Object.entries(parsed.data)) {
         if (v && v.expiresAt && Date.now() < v.expiresAt) this.map.set(k, v);
       }

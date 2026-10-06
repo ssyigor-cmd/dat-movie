@@ -36,6 +36,8 @@
 > canal realtime (`supabase.channel` / `postgres_changes`) no código.
 
 - **Autenticação Segura:** Login, cadastro e gerenciamento de sessões com Supabase Auth.
+- **Nome de Exibição Travado por Padrão:** O menu do perfil mostra o nome como texto, e a edição só abre quando você pede (botão Alterar). Sair do menu com alteração não salva pede confirmação em vez de descartar em silêncio.
+- **Preferência de Exibição:** No mesmo menu, um checkbox mostra ou esconde a barra de progresso dos títulos, no Catálogo e na Home. A escolha é guardada no navegador e vale para os cards já na tela, sem recarregar.
 - **Pesquisa TMDB:** Busca integrada ao TMDb que traz backdrop, sinopse, logo, título original e dados completos de temporadas/episódios.
 - **Listas Personalizáveis:** Crie, renomeie, reordene (drag-and-drop) e exclua listas. Um título pode pertencer a múltiplas listas, mas nunca é duplicado na mesma lista.
 - **Detecção de Título Existente:** Ao pesquisar um título que já existe no catálogo, o modal pré-marca as listas que ele já pertence e adiciona apenas às novas listas ao salvar.
@@ -59,7 +61,8 @@
   - [Vite](https://vite.dev/) como empacotador de assets e servidor de desenvolvimento.
   - [anime.js](https://animejs.com/) para animações e transições fluidas de UI.
   - [Sortable.js](https://sortablejs.github.io/Sortable/) para drag-and-drop de listas na sidebar.
-  - Font Awesome para biblioteca de ícones.
+  - **Inter** (corpo, botões, episódios) + **Space Grotesk** (títulos e destaques) + **JetBrains Mono** (dados técnicos e códigos) via Google Fonts. Ver `assets/BRAND_GUIDELINES.md`.
+  - Font Awesome 6.5.0 para biblioteca de ícones.
 - **Backend & Cloud (BaaS):**
   - [Supabase](https://supabase.com/) como banco de dados (PostgreSQL), autenticação e segurança de acesso.
   - Supabase Edge Functions (Deno) para consumo seguro de APIs externas.
@@ -67,6 +70,12 @@
   - [TMDb (The Movie Database)](https://www.themoviedb.org/) para busca, metadados, posters e backdrops.
 - **Testes Unitários:**
   - [Vitest](https://vitest.dev/) para execução rápida de testes das regras de negócio e utilitários.
+  - Além das regras de negócio, alguns testes seguram **contratos visuais** que
+    apodrecem em silêncio: a tipografia (famílias e pesos reais, e o mono
+    reservado a dado técnico), o uso do mono no card, a anatomia do card, a
+    home, a ausência de halo na cor de destaque e o alvo da preferência de
+    barra de progresso. Regressão nesses contratos aparece só como "a fonte
+    mudou" ou "o botão não funciona", muito depois do commit que a trouxe.
 
 ---
 
@@ -107,13 +116,20 @@ Para rodar a aplicação localmente, certifique-se de possuir:
 
 5. **Executar Testes:**
    ```bash
-   npm test
+   npm test          # suíte completa (Vitest)
+   npm run lint      # ESLint em src, tests e scripts
+   npm run check     # lint + testes + build, na ordem
    ```
 
 6. **Build de Produção:**
    ```bash
    npm run build
    ```
+
+> **Testes de contrato visual rodam sem navegador.** Eles leem `style.css`,
+> `index.html` e os fontes e checam a regra, não o pixel. É de propósito: a
+> tipografia, o halo e a anatomia do card já voltaram mais de uma vez sem
+> ninguém perceber, porque a quebra só aparece olhando a tela.
 
 ---
 
@@ -216,34 +232,53 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 
 ```text
 ├── assets/                  # Identidade de marca, imagens e logotipos
+│   └── BRAND_GUIDELINES.md  # Tokens de cor e tipografia (fonte da verdade)
 ├── src/
 │   ├── components/          # Componentes de UI
-│   │   ├── cards.js         # Criação de cards e bento "Continuando"
+│   │   ├── cards.js         # Anatomia do card, em um único lugar
+│   │   ├── confirmModal.js  # Confirmação assíncrona com trava de foco
 │   │   ├── detailModal.js   # Modal de detalhes com backdrop, logo e sinopse
 │   │   ├── episodesModal.js # Modal de episódios com acordeão e destaque atual
-│   │   └── uiHelpers.js     # Toasts, travas de foco, validação e Canvas Orb
+│   │   ├── homePage.js      # Home: continuando, roulette, calendário, afinidade
+│   │   ├── titleInfoModal.js# Ficha expandida do TMDb
+│   │   └── uiHelpers.js     # Toasts, validação de campo e helpers
 │   ├── lib/                 # Lógica de negócio e utilitários
 │   │   ├── api.js           # Chamadas TMDB, cache de logos e fetch de imagens
-│   │   ├── auth.js          # Fluxos de login, cadastro e sign-out
+│   │   ├── auth.js          # Fluxos de login, cadastro, sign-out e nome
+│   │   ├── cache.js         # Cache em localStorage com TTL
 │   │   ├── catalog.js       # Cálculos, filtros, ordenação e escape HTML
+│   │   ├── dom.js           # Registro central de referências do DOM
 │   │   ├── imageNavigation.js # Filtros e ordenação de imagens do TMDb
 │   │   ├── lists.js         # CRUD de listas e relacionamento item-lista
-│   │   ├── stepper.js       # Controle de botões stepper (clique simples e hold)
-│   │   └── supabase.js      # Inicialização do Supabase Client
-│   └── main.js              # Ponto de entrada (bootstrap e eventos globais)
+│   │   ├── logoPicker.js    # Escolha de logo por catálogo
+│   │   ├── seasonArt.js     # Arte por temporada
+│   │   ├── state.js         # Estado global e chaves de preferências
+│   │   ├── stepper.js       # Botões stepper (clique simples e hold)
+│   │   ├── supabase.js      # Inicialização do Supabase Client
+│   │   ├── titleFilters.js  # Filtros e ordenação de títulos
+│   │   ├── trendingApi.js   # Trending, sugestões e estatísticas do catálogo
+│   │   └── ...              # autoRotate, fuzzySearch, recommendScoring, titleRelations
+│   ├── pages/
+│   │   └── titlePage.js     # Página do título (ficha, episódios, backdrop)
+│   └── main.js              # Bootstrap, eventos globais e fluxo do perfil
 ├── supabase/
+│   ├── functions/           # Edge Functions (Deno)
 │   └── migrations/          # Schema do banco — fonte da verdade do DDL e das RLS
 │       ├── create_items_table.sql
 │       ├── create_lists_tables.sql
 │       ├── add_index_items_user_id.sql
 │       ├── add_unique_index_items_user_tmdb.sql
 │       └── migrate_existing_data.sql
-├── tests/                   # Testes unitários (Vitest)
-│   ├── catalog.test.js
-│   └── imageNavigation.test.js
+├── tests/                   # Testes unitários e de contrato (Vitest)
+│   ├── catalog.test.js      # Regras de negócio do catálogo
+│   ├── cards.test.js        # Anatomia do card em um único lugar
+│   ├── typography.test.js   # Famílias, pesos reais e reserva do mono
+│   ├── glow.test.js         # Nenhum halo; anel de foco e sombra intactos
+│   ├── progressBar.test.js  # Alvo e persistência da preferência de exibição
+│   └── ...                  # 22 suítes no total
 ├── index.html               # Arquivo HTML base da SPA
 ├── package.json             # Dependências e scripts
-├── style.css                # Folha de estilos unificada (Liquid Glass Design)
+├── style.css                # Folha de estilos unificada
 └── README.md                # Este arquivo
 ```
 

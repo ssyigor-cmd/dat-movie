@@ -91,17 +91,28 @@ export function formatAirDate(dateStr) {
 }
 
 /**
- * Busca séries em alta na semana (apenas tv - sistema é só para mídias seriadas), filtra os que não estão no catálogo
- * @param {Array} catalogItems
- * @param {number} limit - máximo de itens
- * @returns {Promise<Array>} lista de até limit itens com poster, título, etc
+ * Quantos itens uma faixa da home pede.
+ *
+ * É deliberadamente mais do que cabe na tela: o trilho rola, e é o excedente
+ * que dá o que aparecer quando o usuário clica em atualizar. Se devolvesse só o
+ * que cabe, não haveria de onde escolher e o botão trocaria a ordem da mesma
+ * lista.
+ *
+ * Os degraus são os mesmos breakpoints que o CSS usa (`--home-card-w` muda em
+ * 768 e 480). A tabela antiga quebrava em 640 e 1024, que não existem em
+ * lugar nenhum do layout: a 700px o esqueleto pedia 14 itens com o cartão do
+ * mesmo tamanho que a 769px pedia 18, e a 1000px o esqueleto encolhia com o
+ * cartão ainda em 130px. Alinhar os degraus faz a troca de esqueleto por
+ * cartões preservar a altura da página.
+ *
+ * @param {number} [viewportWidth] - Largura da janela (injetável para teste).
+ * @returns {number} Quantidade de itens.
  */
-export function getFullWidthCount() {
-  const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  if (w < 640) return 10;
-  if (w < 1024) return 14;
-  if (w < 1440) return 18;
-  if (w < 1920) return 20;
+export function getFullWidthCount(viewportWidth) {
+  const w = Number(viewportWidth) || (typeof window !== 'undefined' ? window.innerWidth : 1440);
+  if (w <= 480) return 10;
+  if (w <= 768) return 14;
+  if (w <= 1440) return 18;
   return 20;
 }
 
@@ -484,33 +495,124 @@ export function rankRecommendationBases(catalogItems) {
     .map(s => s.item);
 }
 
-export async function getRecommendationsForUser(catalogItems, limit = null, opts = {}) {
-  const lim = limit ?? getFullWidthCount();
+/**
+ * Recommendations for a single base, with `similar` as fallback.
+ *
+ * @param {Object} base - Catalog item serving as base.
+ * @param {Array} catalogItems - The user's catalog.
+ * @returns {Promise<Array|null>} Normalized pool, or null on failure/empty.
+ */
+async function fetchBasePool(base, catalogItems) {
+  if (!base || !base.tmdb_id) return null;
+  try {
+    let data;
+    try {
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR');
+    } catch {
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR');
+    }
+    const results = data.results || [];
+    const pool = filterNotInCatalog(results, catalogItems).map(normalizeTrendingItem);
+    return pool.length > 0 ? pool : null;
+  } catch (e) {
+    console.warn('Erro recomendações', e);
+    return null;
+  }
+}
+
+/** Quantas faixas de afinidade a home monta de uma vez. */
+export const AFFINITY_RAIL_COUNT = 4;
+
+/**
+ * As faixas "Se você gostou de X vai gostar disso", uma para cada base.
+ *
+ * Substitui uma faixa única: com uma base só, a home tinha um carrossel de
+ * indicação e o resto eram listas por categoria ou por ranking global. Com
+ * várias bases, cada faixa fica presa a um título **distinto** do catálogo, e o
+ * conjunto muda de âncora a cada render em vez de só reordenar o mesmo material.
+ *
+ * Uma faixa é carregada por vez, e por isso o estado que atravessa as chamadas
+ * vem por parâmetro em vez de viver aqui dentro:
+ *
+ * - `excludeTitles` é o que impede um título de aparecer em duas faixas. Como o
+ *   TMDb devolve interseção pesada entre recomendações de séries parecidas, sem
+ *   isso as quatro faixas mostravam quase os mesmos pôsteres em ordens
+ *   diferentes — a forma *discreta* de a seção parecer repetitiva, que não se
+ *   vê comparando dois prints lado a lado, só rolando a página.
+ * - `excludeBaseIds` é o que impede duas faixas com a mesma âncora. Sem ele,
+ *   atualizar a faixa 2 podia fazê-la cair na base que a faixa 1 já estava
+ *   usando, e as duas passavam a oferecer a mesma coisa com nomes diferentes no
+ *   título.
+ *
+ * Os dois conjuntos são de quem chama, porque quem chama sabe o que as outras
+ * faixas estão exibindo. Uma faixa que perde a âncora porque a vizinha tomou a
+ * base não é um problema: o laço segue para a próxima base da lista.
+ *
+ * Títulos do catálogo também saem (é o que `fetchBasePool` já faz), então a
+ * indicação nunca sugere algo que o usuário já tem.
+ *
+ * Base sem pool é descartada, não ocupa lugar: é melhor três faixas verdadeiras
+ * do que quatro com uma vazia. O que sobra menos que o pedido é o próprio sinal
+ * — o catálogo é pequeno demais para ancorar mais faixas.
+ *
+ * @param {Array} catalogItems - Catálogo do usuário.
+ * @param {Object} [opts] - { offset, excludeTitles, excludeBaseIds }.
+ * @returns {Promise<{base: Object, pool: Array}|null>} A faixa, ou null.
+ */
+export async function getAffinityRail(catalogItems, opts = {}) {
   const ranked = rankRecommendationBases(catalogItems);
   if (ranked.length === 0) return null;
-  // `baseIndex` rotaciona a base para o botão de atualizar trocar a lista
-  const start = ((opts.baseIndex || 0) % ranked.length + ranked.length) % ranked.length;
 
-  for (let i = 0; i < ranked.length; i++) {
+  const start = ((opts.offset || 0) % ranked.length + ranked.length) % ranked.length;
+  const seen = opts.excludeTitles instanceof Set ? opts.excludeTitles : new Set(opts.excludeTitles || []);
+  const takenBases = opts.excludeBaseIds instanceof Set ? opts.excludeBaseIds : new Set(opts.excludeBaseIds || []);
+
+  // Duas voltas na lista de bases: uma base sem resultado precisa de uma
+  // sucessora, e uma volta só cortaria a faixa mesmo havendo material válido
+  // logo adiante.
+  for (let i = 0; i < ranked.length * 2; i++) {
     const base = ranked[(start + i) % ranked.length];
     if (!base || !base.tmdb_id) continue;
-    try {
-      let data;
-      try {
-        data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR');
-      } catch {
-        data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR');
-      }
-      const results = data.results || [];
-      const filtered = filterNotInCatalog(results, catalogItems);
-      const pool = filtered.map(normalizeTrendingItem);
-      if (pool.length === 0) continue;
-      return { base, pool, recommendations: pool.slice(0, lim) };
-    } catch (e) {
-      console.warn('Erro recomendações', e);
-    }
+    if (takenBases.has(String(base.tmdb_id))) continue;
+    const pool = await fetchBasePool(base, catalogItems);
+    if (!pool) continue;
+    const fresh = pool.filter((t) => !seen.has(String(t.id)));
+    if (fresh.length === 0) continue;
+    fresh.forEach((t) => seen.add(String(t.id)));
+    return { base, pool: fresh };
   }
   return null;
+}
+
+/**
+ * As faixas de uma vez, para o primeiro carregamento.
+ *
+ * Existe porque a página abre com as quatro faixas já acesas. Pedir uma por vez
+ * na atualização dá o mesmo resultado, então esta função é só o atalho do
+ * primeiro carregamento — mas o atalho importa: `rankRecommendationBases` roda
+ * dentro de cada chamada, e um laço ingênuo chamaria `getAffinityRail` com o
+ * mesmo offset e receberia a mesma faixa quatro vezes.
+ *
+ * @param {Array} catalogItems - Catálogo do usuário.
+ * @param {Object} [opts] - { count, offset }.
+ * @returns {Promise<Array<{base: Object, pool: Array}>>} Até `count` faixas.
+ */
+export async function getAffinityRails(catalogItems, opts = {}) {
+  const count = Math.max(1, Math.trunc(opts.count ?? AFFINITY_RAIL_COUNT));
+  const offset = opts.offset || 0;
+  const rails = [];
+  const seen = new Set();
+  const takenBases = new Set();
+  for (let i = 0; i < count; i++) {
+    // O offset avança com o índice porque cada faixa precisa de uma âncora
+    // diferente: sem isso, todas as quatro pediriam a mesma base.
+    const rail = await getAffinityRail(catalogItems, { offset: offset + i, excludeTitles: seen, excludeBaseIds: takenBases });
+    if (!rail) continue;
+    rail.pool.forEach((t) => seen.add(String(t.id)));
+    takenBases.add(String(rail.base.tmdb_id));
+    rails.push(rail);
+  }
+  return rails;
 }
 
 /**

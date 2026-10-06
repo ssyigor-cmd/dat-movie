@@ -44,14 +44,33 @@ export async function loginWithPassword(email, password) {
 
 /**
  * Realiza o cadastro com email e senha.
- * @param {string} email 
- * @param {string} password 
- * @returns {Promise<{user: Object, session: Object}>}
+ * `displayName` vai para `user_metadata.full_name`, que é de onde o menu do
+ * usuário tira nome e iniciais — não há tabela `profiles` no projeto.
+ * @param {string} email
+ * @param {string} password
+ * @param {string} [displayName]
+ * @returns {Promise<{user: Object, session: Object|null}>}
  */
-export async function signUpWithPassword(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+export async function signUpWithPassword(email, password, displayName) {
+  const options = displayName
+    ? { data: { full_name: displayName } }
+    : undefined;
+  const { data, error } = await supabase.auth.signUp({ email, password, options });
   if (error) throw error;
   return data;
+}
+
+/**
+ * Atualiza o nome de exibição do usuário logado.
+ * @param {string} displayName
+ * @returns {Promise<Object>} o usuário atualizado
+ */
+export async function updateDisplayName(displayName) {
+  const { data, error } = await supabase.auth.updateUser({
+    data: { full_name: displayName },
+  });
+  if (error) throw error;
+  return data.user;
 }
 
 /**

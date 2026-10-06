@@ -9,7 +9,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, formatDateBR, calcularProgresso } from '../lib/catalog.js';
+import { getTierClass, formatDateBR, calcularProgresso, totalDeEpisodiosDaSerie } from '../lib/catalog.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
 import { resolveSeasonPosterUrl, shouldUseSeasonArt } from '../lib/seasonArt.js';
@@ -96,6 +96,48 @@ function getSeasonLimits(item) {
   return { maxTemp: max, map };
 }
 
+/**
+ * Compara dois mapas temporada → episódios sem depender da ordem das chaves.
+ * O que vem do banco é JSONB, cuja ordem de chaves não segue a de gravação,
+ * então comparar com JSON.stringify acusaria diferença a cada abertura.
+ */
+function mesmaContagemDeEpisodios(a, b) {
+  const chaves = new Set([...Object.keys(a || {}), ...Object.keys(b || {})]);
+  for (const chave of chaves) {
+    if ((Number(a?.[chave]) || 0) !== (Number(b?.[chave]) || 0)) return false;
+  }
+  return true;
+}
+
+/**
+ * Grava o mapa de temporadas e o total de episódios quando o banco não bate
+ * com o TMDb.
+ *
+ * Títulos salvos antes de o mapa existir vieram com `season_episodes_map`
+ * vazio e `total_episodios` = 1, o DEFAULT da tabela — e é esse formato que
+ * faz a barra marcar 100% num título no começo. A página do título já busca o
+ * dado certo do TMDb para montar os steppers, mas só o usava em memória.
+ * Gravar aqui conserta o título assim que ele é aberto: sem migration, sem
+ * chave de serviço e sem depender do TMDb para o resto da aplicação.
+ */
+async function persistirTotaisCorrigidos(item, mapaTmdb, totalTmdb) {
+  if (!item || !onUpdate || !Object.keys(mapaTmdb || {}).length) return;
+  const totalReal = Number(totalTmdb) || totalDeEpisodiosDaSerie(mapaTmdb);
+  const mapaMudou = !mesmaContagemDeEpisodios(item.seasonEpisodesMap, mapaTmdb);
+  const totalMudou = Number(item.totalEpisodios) !== totalReal;
+  if (!mapaMudou && !totalMudou) return;
+
+  try {
+    const saved = await onUpdate(item.id, { seasonEpisodesMap: mapaTmdb, totalEpisodios: totalReal });
+    // `item` é o mesmo objeto que está em state.items, então o card já lê o
+    // valor certo quando a grade volta a aparecer.
+    if (saved) Object.assign(item, saved);
+  } catch (e) {
+    // Falhar o conserto não pode derrubar a página do título.
+    console.error('Não foi possível corrigir os totais de episódios:', e);
+  }
+}
+
 // ================================================================
 // 3) RENDER
 // ================================================================
@@ -124,7 +166,7 @@ function renderTitlePage(item, container) {
           <div class="tp-logo-main">
             <div id="titleLogoWrap" style="display:none; align-items:center; justify-content:center; max-width:380px;"><img id="titleLogoImg" src="" alt="Logo" style="max-height:44px; max-width:340px; object-fit:contain; display:block;" /></div>
             <div id="titleNameFallback" style="line-height:1.2;">
-              <div id="titleName" style="font-family:var(--font-display); font-weight:700; font-size:0.95rem;">${item.nome}</div>
+              <div id="titleName" style="font-weight:700; font-size:0.95rem;">${item.nome}</div>
             </div>
           </div>
           <div class="tp-meta-group" id="tpMetaGroup" style="display:none;">
@@ -180,7 +222,7 @@ function renderTitlePage(item, container) {
           <div class="tp-episode-row" style="display:flex; gap:12px; align-items:stretch;">
             <div class="tp-season-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Temporada</span>
-              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+              <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleTemporadaDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curTempInit}</span>
                 <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
                 <span id="titleSeasonMax" style="font-size:1.1rem; color:var(--text-muted);">${displayMaxTemp}</span>
@@ -192,7 +234,7 @@ function renderTitlePage(item, container) {
             </div>
             <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Episódio</span>
-              <div style="display:flex; align-items:baseline; gap:4px; font-family:var(--font-body); font-weight:800; line-height:1;">
+              <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleEpisodioDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curEpInit}</span>
                 <span style="font-size:1rem; color:var(--text-muted); font-weight:400;">/</span>
                 <span id="titleEpMax" style="font-size:1.1rem; color:var(--text-muted);">${maxEpInit}</span>
@@ -598,7 +640,7 @@ function renderTitlePage(item, container) {
       tipo: item.tipo || 'serie',
       temporada: curTemp,
       episodio: curEp,
-      totalEpisodios: seasonLimits.maxEpByTemp?.[curTemp] || item.totalEpisodios || 1,
+      totalEpisodios: totalDeEpisodiosDaSerie(seasonLimits.maxEpByTemp) || item.totalEpisodios || 1,
       seasonEpisodesMap: seasonLimits.maxEpByTemp || {},
       status: newStatus,
       tier: newTier,
@@ -699,6 +741,7 @@ function renderTitlePage(item, container) {
         const map = {};
         seasons.forEach(s=>{ map[s.season_number]= s.episode_count || 0; });
         seasonLimits = { maxTemp: maxTempReal, maxEpByTemp: map };
+        persistirTotaisCorrigidos(item, map, details.number_of_episodes);
         if (seasonMaxEl) seasonMaxEl.textContent = String(maxTempReal).padStart(2,'0');
         if (curTemp > maxTempReal) { curTemp = maxTempReal; temporadaDisplay.textContent = String(curTemp).padStart(2,'0'); }
         const maxEpReal = episodeLimitFor(curTemp);
