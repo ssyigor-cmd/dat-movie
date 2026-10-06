@@ -224,6 +224,24 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
     releaseFocusTrap();
   }
 
+  /**
+   * Tirar o fade da direita do trilho de elenco quando não sobrou ninguém.
+   *
+   * A máscara do trilho é fixa, como nas faixas da home, mas o elenco é
+   * limitado a 12 e pode ser bem menor: uma minissérie de três nomes cabe na
+   * tela, e um fade que não tem para onde apontar apagaria a terceira foto sem
+   * motivo. Rolar de volta traz a máscara.
+   *
+   * @param {HTMLElement} [rail] - Trilho. Sem argumento, procura o do modal
+   *   atual — é o que a abertura e o redimensionamento usam, porque o trilho
+   *   pode parar de transbordar sem que ninguém tenha rolado.
+   */
+  function syncCastFade(rail = titleInfoContent.querySelector('.ti-cast')) {
+    if (!rail) return;
+    const fim = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 1;
+    rail.classList.toggle('is-end', fim);
+  }
+
   async function openTitleInfoModal(item) {
     if (!item) return;
     titleInfoTitle.innerHTML = `<i class="fas fa-circle-info"></i> ${escapeHTML(item.nome || 'Detalhes')}`;
@@ -349,8 +367,16 @@ row('Idioma original', langText),
 
       titleInfoContent.innerHTML = html;
       applyFlagFallbacks(titleInfoContent);
+      const castRail = titleInfoContent.querySelector('.ti-cast');
+      if (castRail) castRail.addEventListener('scroll', () => syncCastFade(castRail), { passive: true });
       titleInfoLoading.style.display = 'none';
       titleInfoContent.style.display = 'block';
+      // A medição vem depois do `display: block`: um elemento escondido tem
+      // `clientWidth` e `scrollWidth` zerados, e o trilho pareceria nunca
+      // transbordar — o que tiraria o fade de um elenco cheio logo na abertura.
+      // O `scroll` é passivo: ele só mede e troca uma classe, e não quer
+      // competir com a rolagem suave por causa disso.
+      syncCastFade(castRail);
     } catch (error) {
       console.error('Erro ao carregar detalhes:', error);
       titleInfoContent.innerHTML = `<div class="no-episodes">${item.tmdb_id ? 'Erro ao carregar detalhes.' : 'Sem dados no TMDB para este título.'}</div>`;
@@ -364,6 +390,10 @@ row('Idioma original', langText),
   titleInfoModal.addEventListener('click', (e) => {
     if (e.target === titleInfoModal) closeTitleInfoModal();
   });
+  // Uma vez só, na montagem: o modal é único, e a cada abertura o `innerHTML`
+  // troca o trilho. O redimensionamento importa porque o modal acompanha a
+  // largura da janela — alargar pode fazer o elenco curto deixar de transbordar.
+  window.addEventListener('resize', () => syncCastFade());
 
   return {
     open: (item) => openTitleInfoModal(item),

@@ -111,10 +111,15 @@
         </select>
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
-          <option value="data-desc" selected>Data adicionada</option>
-          <option value="tier-asc" data-wishlist-hidden>Tier</option>
-          <option value="progresso-desc" data-wishlist-hidden>Progresso</option>
-          <option value="ano-desc" data-wishlist-hidden>Ano</option>
+          <option value="nome-desc">Nome (Z–A)</option>
+          <option value="data-desc" selected>Data (mais recente)</option>
+          <option value="data-asc">Data (mais antiga)</option>
+          <option value="tier-asc" data-wishlist-hidden>Tier (S+ → D)</option>
+          <option value="tier-desc" data-wishlist-hidden>Tier (D → S+)</option>
+          <option value="progresso-desc" data-wishlist-hidden>Progresso (maior → menor)</option>
+          <option value="progresso-asc" data-wishlist-hidden>Progresso (menor → maior)</option>
+          <option value="ano-desc" data-wishlist-hidden>Ano (mais novo)</option>
+          <option value="ano-asc" data-wishlist-hidden>Ano (mais antigo)</option>
         </select>
       </div>
 
@@ -143,7 +148,7 @@
             <div class="profile-name-row" id="profileNameRow" hidden>
               <label class="sr-only" for="profileNameInput">Nome de exibição</label>
               <input type="text" id="profileNameInput" placeholder="Seu nome" maxlength="40"
-                     autocomplete="off" spellcheck="false" aria-describedby="profileNameHint" />
+                     autocomplete="off" spellcheck="false" />
               <button type="button" id="profileNameSave" aria-label="Salvar nome" disabled>
                 <i class="fas fa-check"></i>
               </button>
@@ -153,7 +158,6 @@
             </div>
           </div>
           <span class="field-error" id="profileNameError" role="alert"></span>
-          <p class="profile-name-hint" id="profileNameHint">O nome de exibição substitui seu email no app. Você só entra em edição quando pede.</p>
           <div class="profile-info"><i class="fas fa-calendar"></i> <span id="profileSince">Membro desde ---</span></div>
           <label class="profile-pref" for="showProgressBar">
             <input type="checkbox" id="showProgressBar" />
@@ -216,16 +220,19 @@
             </div>
           </div>
 
-          <div id="sortWrapper" class="filter-wrapper-item">
-            <button id="sortToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar">
+          <div id="sortWrapper" class="filter-wrapper-item filter-wrapper-pair">
+            <button id="sortToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar por">
               <i class="fas fa-sort"></i>
             </button>
+            <button id="sortDirectionBtn" class="tool-btn tool-btn-sm" aria-label="Ordem decrescente" title="Ordem decrescente">
+              <i class="fas fa-arrow-down"></i>
+            </button>
             <div id="sortMenu" class="filter-menu filter-menu-wide" role="menu" aria-hidden="true">
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="nome-asc">Nome (A–Z)</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="data-desc">Data adicionada</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="tier-asc" data-wishlist-hidden>Tier</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="progresso-desc" data-wishlist-hidden>Progresso</button>
-              <button role="menuitem" class="filter-option" data-target="sortOrder" data-value="ano-desc" data-wishlist-hidden>Ano</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="nome" data-value="nome-desc">Nome</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="data" data-value="data-desc">Data</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="tier" data-value="tier-desc" data-wishlist-hidden>Tier</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="progresso" data-value="progresso-desc" data-wishlist-hidden>Progresso</button>
+              <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="ano" data-value="ano-desc" data-wishlist-hidden>Ano</button>
             </div>
           </div>
 

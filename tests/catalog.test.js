@@ -4,6 +4,7 @@ import {
   formatDateBR,
   getTierClass,
   calcularProgresso,
+  totalDeEpisodiosDaSerie,
   filterItems,
   sortItems
 } from '../src/lib/catalog.js';
@@ -102,6 +103,83 @@ describe('calcularProgresso', () => {
     const item = { episodio: 15, totalEpisodios: 10 };
     expect(calcularProgresso(item)).toBe(100);
   });
+
+  it('ignora o total por temporada e usa a soma do mapa', () => {
+    // Regressão do bug do 100%: a página do título gravava a contagem só da
+    // temporada atual em `totalEpisodios`, e o acumulador somava as
+    // temporadas anteriores contra esse denominador menor.
+    const item = {
+      temporada: 3,
+      episodio: 2,
+      totalEpisodios: 10,
+      seasonEpisodesMap: { 1: 10, 2: 10, 3: 10 }
+    };
+    // 10 + 10 + 2 = 22 / 30 = 73%
+    expect(calcularProgresso(item)).toBe(73);
+  });
+
+  it('soma as 12 temporadas anteriores em antologia sem estourar 100%', () => {
+    const mapa = {};
+    for (let t = 1; t <= 13; t++) mapa[t] = 9;
+    const item = { temporada: 13, episodio: 2, totalEpisodios: 9, seasonEpisodesMap: mapa };
+    // 12 temporadas de 9 + 2 = 110 / 117 = 94%
+    expect(calcularProgresso(item)).toBe(94);
+  });
+
+  it('não marca 100% quando o totalEpisodios veio do DEFAULT 1 do banco', () => {
+    const item = { temporada: 1, episodio: 3, totalEpisodios: 1, seasonEpisodesMap: { 1: 10 } };
+    expect(calcularProgresso(item)).toBe(30);
+  });
+
+  it('não acumula temporadas anteriores sem seasonEpisodesMap', () => {
+    const item = { temporada: 4, episodio: 3, totalEpisodios: 40 };
+    expect(calcularProgresso(item)).toBe(8);
+  });
+
+  it('não marca 100% com o DEFAULT 1 do banco e sem mapa de temporadas', () => {
+    // Furo que sobreviveu à primeira correção: sem mapa, a coluna vira o único
+    // denominador, e o DEFAULT 1 do banco transforma qualquer episódio em
+    // 100%. Divisão por total Known-errado não devolve porcentagem nenhuma.
+    const item = { temporada: 13, episodio: 2, totalEpisodios: 1 };
+    expect(calcularProgresso(item)).toBe(0);
+  });
+
+  it('ignora total por temporada que não fecha com o que foi assistido', () => {
+    const item = { temporada: 13, episodio: 2, totalEpisodios: 9 };
+    expect(calcularProgresso(item)).toBe(0);
+  });
+
+  it('devolve 0 quando não há mapa nem total gravado', () => {
+    expect(calcularProgresso({ temporada: 1, episodio: 0 })).toBe(0);
+    expect(calcularProgresso({ temporada: 1, episodio: 0, totalEpisodios: 0 })).toBe(0);
+  });
+
+  it('aceita 100% real quando o mapa fecha com o que foi assistido', () => {
+    const item = {
+      temporada: 2,
+      episodio: 12,
+      totalEpisodios: 12,
+      seasonEpisodesMap: { 1: 12, 2: 12 }
+    };
+    // 12 + 12 = 24 / 24: concluído de verdade, não o clamp de total furado.
+    expect(calcularProgresso(item)).toBe(100);
+  });
+});
+
+describe('totalDeEpisodiosDaSerie', () => {
+  it('soma as contagens de todas as temporadas', () => {
+    expect(totalDeEpisodiosDaSerie({ 1: 10, 2: 8, 3: 12 })).toBe(30);
+  });
+
+  it('devolve 0 para mapa ausente, vazio ou de tipo inesperado', () => {
+    expect(totalDeEpisodiosDaSerie(null)).toBe(0);
+    expect(totalDeEpisodiosDaSerie({})).toBe(0);
+    expect(totalDeEpisodiosDaSerie([10, 8])).toBe(0);
+  });
+
+  it('ignora contagens não numéricas em vez de virar NaN', () => {
+    expect(totalDeEpisodiosDaSerie({ 1: 10, 2: null, 3: '8' })).toBe(18);
+  });
 });
 
 describe('filterItems', () => {
@@ -151,5 +229,60 @@ describe('sortItems', () => {
   it('ordena por data descendente (mais recente primeiro)', () => {
     const res = sortItems(items, 'data-desc');
     expect(res[0].nome).toBe('Attack on Titan');
+  });
+
+  it('inverte o nome em ordem decrescente (Z-A)', () => {
+    const res = sortItems(items, 'nome-desc');
+    expect(res[0].nome).toBe('Zelda');
+    expect(res[1].nome).toBe('Attack on Titan');
+  });
+
+  it('inverte a data (mais antiga primeiro)', () => {
+    const res = sortItems(items, 'data-asc');
+    expect(res[0].nome).toBe('Zelda');
+  });
+
+  it('ordena o ano nas duas direções', () => {
+    const comAno = [
+      { nome: 'Meio', ano: 1999 },
+      { nome: 'Antigo', ano: 1987 },
+      { nome: 'Novo', ano: 2015 }
+    ];
+    expect(sortItems(comAno, 'ano-desc').map(i => i.nome)).toEqual(['Novo', 'Meio', 'Antigo']);
+    expect(sortItems(comAno, 'ano-asc').map(i => i.nome)).toEqual(['Antigo', 'Meio', 'Novo']);
+  });
+
+  it('joga o título sem ano para o fim nas duas direções', () => {
+    // Sem a sentinela, `ano || 0` punha o ausente no topo da ordem ascendente —
+    // e "sem ano" não é "o mais antigo do acervo".
+    const comSem = [
+      { nome: 'Sem ano' },
+      { nome: 'Novo', ano: 2015 },
+      { nome: 'Antigo', ano: 1987 }
+    ];
+    expect(sortItems(comSem, 'ano-asc').map(i => i.nome)).toEqual(['Antigo', 'Novo', 'Sem ano']);
+    expect(sortItems(comSem, 'ano-desc').map(i => i.nome)).toEqual(['Novo', 'Antigo', 'Sem ano']);
+  });
+
+  it('ordena o tier nas duas direções e mantém o sem tier no fim', () => {
+    const comTier = [
+      { nome: 'D', tier: 'D' },
+      { nome: 'S+', tier: 'S+' },
+      { nome: 'B', tier: 'B' },
+      { nome: 'Sem tier' }
+    ];
+    expect(sortItems(comTier, 'tier-asc').map(i => i.nome)).toEqual(['S+', 'B', 'D', 'Sem tier']);
+    expect(sortItems(comTier, 'tier-desc').map(i => i.nome)).toEqual(['D', 'B', 'S+', 'Sem tier']);
+  });
+
+  it('ordena o progresso nas duas direções', () => {
+    // O progresso é episódio sobre total; `temporada` só entra com o mapa de
+    // episódios por temporada, então o teste usa os dois campos que ele lê.
+    const comProgresso = [
+      { nome: 'Baixo', episodio: 2, totalEpisodios: 10 },
+      { nome: 'Alto', episodio: 8, totalEpisodios: 10 }
+    ];
+    expect(sortItems(comProgresso, 'progresso-desc').map(i => i.nome)).toEqual(['Alto', 'Baixo']);
+    expect(sortItems(comProgresso, 'progresso-asc').map(i => i.nome)).toEqual(['Baixo', 'Alto']);
   });
 });

@@ -75,6 +75,7 @@ export const dom = {
   tierMenu: $('tierMenu'),
   sortWrapper: $('sortWrapper'),
   sortToggleBtn: $('sortToggleBtn'),
+  sortDirectionBtn: $('sortDirectionBtn'),
   sortMenu: $('sortMenu'),
   filterMenuOptions: document.querySelectorAll('.filter-option'),
   groupToggle: $('groupToggle'),

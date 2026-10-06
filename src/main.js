@@ -5,7 +5,7 @@
 
 import { supabase } from './lib/supabase.js';
 import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo, fetchTvDetailsCached } from './lib/api.js';
+import { callTMDB, fetchTitleLogo } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
@@ -98,6 +98,7 @@ const tierToggleBtn = dom.tierToggleBtn;
 const tierMenu = dom.tierMenu;
 const sortOrder = dom.sortOrder;
 const sortToggleBtn = dom.sortToggleBtn;
+const sortDirectionBtn = dom.sortDirectionBtn;
 const sortMenu = dom.sortMenu;
 const filterMenuOptions = dom.filterMenuOptions;
 
@@ -989,11 +990,18 @@ function updateActiveNav() {
     if (tierWrapper) tierWrapper.style.display = 'none';
     // Esconder opções de ordenação sem sentido para Próximos
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-    // Se o sort atual for inválido para a wishlist, resetar para "Mais recente"
-    const hiddenValues = ['tier-asc','progresso-desc','ano-desc'];
-    if (hiddenValues.includes(sortOrder.value)) {
-      sortOrder.value = 'data-desc';
-      markMenuActive(sortMenu, sortOrder);
+    // Se o campo do sort não faz sentido para a wishlist, cair para "Data" —
+    // preservando o sentido, que agora é escolha de quem está filtrando e não
+    // vem atrelado ao campo. Antes a lista era de valores inteiros
+    // ("tier-asc", "ano-desc"…); com o sentido separado, o corte é pelo campo,
+    // e os dois lados precisam entrar para o botão do menu não sumir junto.
+    //
+    // O valor é escrito direto, sem `setSort`: o `render` desta função já vem
+    // no fim, e despachar `change` aqui renderizaria a grade duas vezes.
+    const hiddenFields = ['tier', 'progresso', 'ano'];
+    if (hiddenFields.includes(sortField())) {
+      sortOrder.value = `data-${sortDirection()}`;
+      syncSortUi();
     }
   } else if (state.currentTab === 'pesquisa') {
     filterStatus.style.display = 'none';
@@ -2558,6 +2566,74 @@ sortOrder.addEventListener('change', render);
     toggleBtn.classList.toggle('active', active);
   }
 
+  // — Ordenar: um campo e um sentido
+  //
+  // O sentido morava colado na opção ("nome-asc", "nome-desc"), e o menu
+  // carregava dez itens para cinco campos: metade das opções repetia o mesmo
+  // campo só para trocar a seta. Agora o menu escolhe o campo e a seta ao lado
+  // escolhe o sentido.
+  //
+  // O sentido é único, não um por campo, e é compartilhado: trocar de campo
+  // preserva a seta que a pessoa escolheu, em vez de voltar ao padrão daquele
+  // campo. Por isso o `data-value` de cada opção é reescrito com o sentido
+  // vigente — o handler genérico de `.filter-option` continua sendo o único
+  // caminho para mexer no select.
+
+  /** Campo da ordenação atual ('nome', 'data', 'tier', 'progresso', 'ano'). */
+  function sortField() {
+    return String(sortOrder.value).split('-')[0];
+  }
+
+  /** Sentido da ordenação atual. */
+  function sortDirection() {
+    return String(sortOrder.value).split('-')[1] === 'asc' ? 'asc' : 'desc';
+  }
+
+  /** Reescreve o `data-value` das opções para o sentido vigente. */
+  function syncSortMenuValues() {
+    if (!sortMenu) return;
+    const dir = sortDirection();
+    sortMenu.querySelectorAll('.filter-option[data-field]').forEach(opt => {
+      opt.dataset.value = `${opt.dataset.field}-${dir}`;
+    });
+  }
+
+  /**
+   * A seta é o que diz o sentido, então ela é a única coisa que precisa mudar:
+   * ícone para cima quando crescente, para baixo quando decrescente, e o
+   * rótulo do botão acompanhando — uma seta sozinha não diz o que o clique
+   * faz, só onde a lista está.
+   */
+  function syncSortDirectionBtn() {
+    if (!sortDirectionBtn) return;
+    const asc = sortDirection() === 'asc';
+    const label = asc ? 'Ordem crescente' : 'Ordem decrescente';
+    const icon = sortDirectionBtn.querySelector('i');
+    if (icon) icon.className = asc ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
+    sortDirectionBtn.setAttribute('aria-label', label);
+    sortDirectionBtn.title = label;
+  }
+
+  /** Aplica uma chave de ordenação pelo mesmo caminho de um clique no menu. */
+  function setSort(key) {
+    sortOrder.value = key;
+    sortOrder.dispatchEvent(new Event('change'));
+  }
+
+  /**
+   * Menu, seta e destaque do botão, todos derivados do valor do select.
+   *
+   * A ordem importa: as opções carregam o sentido vigente no `data-value`, e
+   * comparar esse valor antes de reescrevê-lo deixaria o campo selecionado sem
+   * destaque logo depois de inverter a seta.
+   */
+  function syncSortUi() {
+    syncSortMenuValues();
+    syncSortDirectionBtn();
+    markMenuActive(sortMenu, sortOrder);
+    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+  }
+
   if (statusToggleBtn && statusMenu) {
     statusToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2656,9 +2732,28 @@ sortOrder.addEventListener('change', render);
     updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
   });
   sortOrder.addEventListener('change', () => {
-    markMenuActive(sortMenu, sortOrder);
-    updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+    // O `change` é o único caminho que muda a ordenação, então é aqui que as
+    // três peças se acertam — venha de um clique no menu, da seta ou do reset
+    // da aba "Próximos".
+    syncSortUi();
   });
+
+  if (sortDirectionBtn) {
+    sortDirectionBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const proximo = sortDirection() === 'asc' ? 'desc' : 'asc';
+      setSort(`${sortField()}-${proximo}`);
+      // Fecha o menu junto: quem inverteu a seta quer ver a grade reordenada, e
+      // o dropdown aberto fica por cima de exatamente o que veio para ver.
+      closeAllFilterMenus();
+    });
+  }
+
+  // O `selected` do <select> manda: o sentido do menu e o ícone da seta saem
+  // dele, e não do que estiver escrito no HTML. Sem isso, trocar o `selected`
+  // exigiria acertar as duas metades na mão, e a seta passaria a mentir sobre
+  // a ordem em uso.
+  syncSortUi();
 
   // Poster click toggles synopsis overlay
   const detailPosterWrap = document.getElementById('detailPosterWrap');
@@ -2819,32 +2914,6 @@ document.addEventListener('keydown', (e) => {
 
 // ========== PESQUISA TMDB ==========
 let pesquisaTimeout = null;
-let searchEnrichToken = 0;
-
-/**
- * Enriquece os cards da busca com temporadas/episódios e marca continuações.
- * Busca os detalhes só dos 6 primeiros resultados, em paralelo e com cache.
- */
-async function enrichSearchCards(results, grid, token) {
-  const targets = results.slice(0, 6);
-  const queue = [...targets];
-  const workers = Array.from({ length: 3 }, async () => {
-    while (queue.length) {
-      const res = queue.shift();
-      if (token !== searchEnrichToken) return;
-      const card = grid.querySelector(`.pesquisa-card[data-tmdb-id="${res.id}"]`);
-      if (!card) continue;
-      const details = await fetchTvDetailsCached(res.id);
-      if (!details || token !== searchEnrichToken) continue;
-      const parts = [];
-      if (details.number_of_seasons) parts.push(`${details.number_of_seasons} temporada${details.number_of_seasons > 1 ? 's' : ''}`);
-      if (details.number_of_episodes) parts.push(`${details.number_of_episodes} eps`);
-      const meta = card.querySelector('.pesquisa-card-meta');
-      if (meta && parts.length) meta.textContent = parts.join(' · ');
-    }
-  });
-  await Promise.allSettled(workers);
-}
 
 if (pesquisaInput) {
   pesquisaInput.addEventListener('input', () => {
@@ -2891,13 +2960,11 @@ if (pesquisaInput) {
           return;
         }
 
-        const token = ++searchEnrichToken;
         const fragment = document.createDocumentFragment();
         filteredResults.forEach(res => {
           const name = res.name || res.title;
           if (!name) return;
           const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
-          const mediaType = 'Serie';
           const poster = res.poster_path || '';
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);
@@ -2920,10 +2987,8 @@ if (pesquisaInput) {
               ${contTag ? `<span class="pesquisa-card-tag">${escapeHTML(contTag)}</span>` : ''}
             </div>
             <div class="pesquisa-card-body">
-              <span class="badge">${mediaType}</span>
               <h3 title="${safeName}">${safeName}</h3>
               ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
-              <span class="pesquisa-card-meta"></span>
             </div>
           `;
 
@@ -2938,7 +3003,6 @@ if (pesquisaInput) {
         });
 
         pesquisaGrid.appendChild(fragment);
-        enrichSearchCards(filteredResults, pesquisaGrid, token);
 
         if (typeof anime !== 'undefined') {
           const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');

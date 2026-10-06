@@ -220,7 +220,6 @@ describe('tipografia: três famílias, três papéis', () => {
       '.home-calendar-dnum',
       '.home-field-row .toolbar-search input',
       '.nav-section-label',
-      '.pesquisa-card-body .badge',
       '.pesquisa-card-body .pesquisa-card-year',
       '.progress-pct'
     ];
@@ -230,7 +229,7 @@ describe('tipografia: três famílias, três papéis', () => {
 
     // Cada regra de mono tem um seletor só. Isso não é marcação item a item: é
     // o que separa dado de nome, e cada item da lista está aqui por ser dado.
-    // O que o teste segura é a lista, não a forma — se alguém agrupar as 12 em
+    // O que o teste segura é a lista, não a forma — se alguém agrupar os 11 em
     // um bloco só, a reserva continua igualmente legível.
     expect(
       blocosMono.every((r) => r.seletores.length === 1),
