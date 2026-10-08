@@ -4,23 +4,22 @@
  */
 
 import { supabase } from './lib/supabase.js';
-import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, formatDateBR, isDuplicateInCatalog } from './lib/catalog.js';
-import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER } from './lib/catalog.js';
+import { callTMDB } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
-import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, trapFocus, releaseFocusTrap, setFieldError, clearFieldError, clearAllFieldErrors } from './components/uiHelpers.js';
-import { updateStepperValue, setupSteppers } from './lib/stepper.js';
-import { createCardElement } from './components/cards.js';
-import { setupDetailModal } from './components/detailModal.js';
+import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, setFieldError, clearFieldError } from './components/uiHelpers.js';
+import { createCardElement, cardMarkup, attachCardInteraction } from './components/cards.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
-import { setupTitleInfoModal, flagEmoji } from './components/titleInfoModal.js';
+import { setupTitleInfoModal } from './components/titleInfoModal.js';
 import { renderHome } from './components/homePage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
 import { buildFallbackQueries, sortByRelevance } from './lib/fuzzySearch.js';
 import anime from 'animejs';
-import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
+import Sortable from 'sortablejs';
+import { cacheClear } from './lib/cache.js';
 import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
 import dom from './lib/dom.js';
 if (typeof window !== 'undefined') window.anime = anime;
@@ -59,35 +58,6 @@ function showErrorToast(userMessage, error, duration = 3000) {
 const densityToggleBtn = dom.densityToggleBtn;
 const densityMenu = dom.densityMenu;
 const densityOptions = dom.densityOptions;
-const addListToggle = dom.addListToggle;
-const addListCheckboxes = dom.addListCheckboxes;
-const addEpisodesBtn = dom.addEpisodesBtn;
-const detailListToggle = dom.detailListToggle;
-const detailListCheckboxes = dom.detailListCheckboxes;
-const addTemporadaInput = dom.addTemporadaInput;
-const addEpisodioInput = dom.addEpisodioInput;
-const addTemporadaDisplay = dom.addTemporadaDisplay;
-const addEpisodioDisplay = dom.addEpisodioDisplay;
-const addTierBadge = dom.addTierBadge;
-const addTierDropdown = dom.addTierDropdown;
-const addYearDisplay = dom.addYearDisplay;
-const addLogoContainer = dom.addLogoContainer;
-const addLogoImg = dom.addLogoImg;
-const addOriginalTitle = dom.addOriginalTitle;
-const addSinopse = dom.addSinopse;
-const addSinopseLoading = dom.addSinopseLoading;
-const addBlurBg = dom.addBlurBg;
-const addPosterWrap = dom.addPosterWrap;
-const modalTitleText = dom.modalTitleText;
-const addPosterSteppersRow = dom.addPosterSteppersRow;
-const addSeasonMaxEl = dom.addSeasonMax;
-const addSeasonNameEl = dom.addSeasonName;
-const addEpMaxEl = dom.addEpMax;
-const addEpTitleEl = dom.addEpTitle;
-const addEpDateEl = dom.addEpDate;
-const addEpOverviewEl = dom.addEpOverview;
-const addEpLoadingEl = dom.addEpLoading;
-const detailSeasonName = dom.detailSeasonName;
 
 // Filtros da barra de ferramentas (selects ocultos + menus + opções)
 const filterStatus = dom.filterStatus;
@@ -140,30 +110,14 @@ const searchView = dom.searchView;
 const statusWrapper = dom.statusWrapper;
 const tierWrapper = dom.tierWrapper;
 const groupToggle = dom.groupToggle;
-const statusSelect = dom.statusSelect;
-const tierForm = dom.tierForm;
-const tipo = dom.tipo;
 const pesquisaGrid = dom.pesquisaGrid;
 const pesquisaEmpty = dom.pesquisaEmpty;
 const pesquisaLoading = dom.pesquisaLoading;
-const previewImg = dom.previewImg;
-const previewPlaceholder = dom.previewPlaceholder;
-const previewImgCard = dom.previewImgCard;
-const form = dom.form;
 const grid = dom.grid;
 const homeSection = dom.homeSection;
-const modalOverlay = dom.modalOverlay;
 const searchInput = dom.searchInput;
-const btnCancel = dom.btnCancel;
 const pesquisaInput = dom.pesquisaInput;
-const formLoading = dom.formLoading;
-const modalTitle = dom.modalTitle;
-const modalClose = dom.modalClose;
-const btnSubmit = dom.btnSubmit;
 const titleInfoModal = dom.titleInfoModal;
-// Não existe no index.html (só há addPanelSave): resolve para null e o
-// guard `if (addPanelDelete)` abaixo trata isso.
-const addPanelDelete = dom.addPanelDelete;
 
 function densityLabelForValue(v) {
   const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
@@ -178,7 +132,7 @@ setTimeout(() => {
         densityToggleBtn.setAttribute('title', label);
         densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
       }
-    } catch (err) { /* ignore if DOM not ready */ }
+    } catch { /* ignore if DOM not ready */ }
 }, 0);
 
 /**
@@ -210,6 +164,61 @@ if (showProgressBar) {
     // O menu cobre justamente os cards que a preferência muda, então ficar
     // aberto deixaria o clique sem resultado visível. Fecha para a tela
     // responder na hora.
+    closeProfileDropdown();
+  });
+}
+
+// ========== TEMA (claro/escuro) ==========
+// Três estados: 'system' (segue o sistema operacional), 'dark' e 'light'.
+// O script do <head> já pintou a primeira carga antes do CSS; aqui ficam a
+// troca ao vivo, a persistência e o rádio que reflete a escolha na UI.
+const prefersLight = window.matchMedia('(prefers-color-scheme: light)');
+
+function resolveTheme() {
+  if (state.theme === 'dark' || state.theme === 'light') return state.theme;
+  return prefersLight.matches ? 'light' : 'dark';
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = resolveTheme();
+  for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
+    radio.checked = radio.value === state.theme;
+  }
+  // O favicon é o mesmo rosto da marca e na aba clara o branco some na
+  // barra de tarefas — o único dos ativos da marca que não dá para trocar
+  // por CSS, porque `content` não muda o `href` de um <link>.
+  const favicon = document.querySelector('link[rel="icon"]');
+  if (favicon) {
+    favicon.href = resolveTheme() === 'light'
+      ? 'assets/favicon/favicon-32-light.svg'
+      : 'assets/favicon/favicon-32-dark.svg';
+  }
+}
+
+applyTheme();
+
+// 'Sistema' continua vivo com a página aberta: se o SO trocar de modo, o app
+// troca junto — mas só quando a preferência é justamente o sistema.
+const onSystemThemeChange = () => {
+  if (state.theme === 'system') applyTheme();
+};
+if (typeof prefersLight.addEventListener === 'function') {
+  prefersLight.addEventListener('change', onSystemThemeChange);
+} else if (typeof prefersLight.addListener === 'function') {
+  prefersLight.addListener(onSystemThemeChange);
+}
+
+for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
+  radio.addEventListener('change', () => {
+    if (!radio.checked) return;
+    state.theme = radio.value;
+    // Mesmo contrato da barra de progresso: falha de escrita não quebra a
+    // sessão, vale só até recarregar.
+    try {
+      localStorage.setItem(STORAGE_KEYS.THEME, state.theme);
+    } catch { /* preferência não persistida: vale só nesta sessão */ }
+    applyTheme();
+    // Mesma razão do toggle da barra: o menu cobre a tela que muda.
     closeProfileDropdown();
   });
 }
@@ -879,7 +888,7 @@ function renderNavbar() {
     // Remove dropdown anterior se existir
     const oldDropdown = document.getElementById('listsDropdown');
     if (oldDropdown) {
-      if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch(e){} }
+      if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch {} }
       oldDropdown.remove();
     }
     
@@ -891,11 +900,11 @@ function renderNavbar() {
 
 function initListsSortable() {
   const dropdown = document.getElementById('listsDropdown');
-  if (!dropdown || !window.Sortable) return;
-  if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch(e){} }
+  if (!dropdown) return;
+  if (state.listsSortable) { try { state.listsSortable.destroy(); state.listsSortable = null; } catch {} }
   const handleExists = dropdown.querySelector('.nav-drag-handle');
   if (!handleExists) return;
-  state.listsSortable = new window.Sortable(dropdown, {
+  state.listsSortable = new Sortable(dropdown, {
     handle: '.nav-drag-handle',
     animation: 150,
     ghostClass: 'sortable-ghost',
@@ -1130,109 +1139,10 @@ function cancelInlineEdit() {
 }
 
 // ========== SELEÇÃO DE LISTAS NOS MODAIS ==========
-function populateListCheckboxes(container, selectedIdSet) {
-  if (!container) return;
-  container.innerHTML = '';
-  const sorted = [...state.userLists].filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos').sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
-  sorted.forEach(list => {
-    const label = document.createElement('label');
-    label.className = 'list-checkbox-pill';
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = list.id;
-    checkbox.checked = selectedIdSet.has(list.id);
-    const icon = document.createElement('i');
-    icon.className = `fas ${list.is_system ? 'fa-heart' : 'fa-list'}`;
-    const text = document.createTextNode(` ${list.nome}`);
-    label.appendChild(checkbox);
-    label.appendChild(icon);
-    label.appendChild(text);
-    container.appendChild(label);
-  });
-}
-function populateAddListCheckboxes(preselectedIds = []) {
-  populateListCheckboxes(addListCheckboxes, new Set(preselectedIds));
-}
 
-function populateDetailListCheckboxes(itemLists = []) {
-  populateListCheckboxes(detailListCheckboxes, new Set(itemLists.map(l => l.id)));
-}
-// ========== STEPPER ADAPTERS ==========
-const addInputs = {
-  tempInput: addTemporadaInput,
-  epInput: addEpisodioInput,
-  epDisplay: addEpisodioDisplay,
-  tempDisplay: addTemporadaDisplay
-};
 
-let addEpisodeInfoRequestId = 0;
 
-function resetAddProgressPanel() {
-  const temp = parseInt(addTemporadaInput.value) || 1;
-  const ep = parseInt(addEpisodioInput.value) || 0;
-  const maxTemp = state.addSeasonLimits.maxTemp || 1;
-  const maxEp = state.addSeasonLimits.maxEpByTemp?.[temp] || 1;
 
-  addTemporadaDisplay.textContent = String(temp).padStart(2, '0');
-  addEpisodioDisplay.textContent = String(ep).padStart(2, '0');
-  if (addSeasonMaxEl) addSeasonMaxEl.textContent = String(maxTemp).padStart(2, '0');
-  if (addEpMaxEl) addEpMaxEl.textContent = String(maxEp || 1).padStart(2, '0');
-  if (addSeasonNameEl) addSeasonNameEl.textContent = '';
-  if (addEpTitleEl) addEpTitleEl.textContent = ep === 0 ? 'Ainda não iniciado' : `Episódio ${ep}`;
-  if (addEpDateEl) addEpDateEl.textContent = '';
-  if (addEpOverviewEl) addEpOverviewEl.textContent = '';
-  if (addEpLoadingEl) addEpLoadingEl.style.display = 'none';
-}
-
-async function syncAddProgressPanel() {
-  resetAddProgressPanel();
-
-  const temp = parseInt(addTemporadaInput.value) || 1;
-  const ep = parseInt(addEpisodioInput.value) || 0;
-
-  if (!state.selectedTmdbId || state.selectedMediaType !== 'tv' || ep === 0) return;
-
-  const requestId = ++state.addEpisodeInfoRequestId;
-
-  try {
-    const key = `season_${state.selectedTmdbId}:${temp}`;
-    let seasonData = cacheGet(key);
-    if (!seasonData) {
-      seasonData = await callTMDB(`tv/${state.selectedTmdbId}/season/${temp}`, {}, 'pt-BR');
-      cacheSet(key, seasonData);
-    }
-    if (requestId !== state.addEpisodeInfoRequestId) return;
-
-    if (addSeasonNameEl && seasonData?.name) addSeasonNameEl.textContent = seasonData.name;
-    if (addEpLoadingEl) addEpLoadingEl.style.display = 'flex';
-
-    const episode = seasonData.episodes?.find(e => Number(e.episode_number) === ep);
-    if (episode) {
-      if (addEpTitleEl) addEpTitleEl.textContent = episode.name || `Episódio ${ep}`;
-      if (addEpDateEl) addEpDateEl.textContent = episode.air_date ? formatDateBR(episode.air_date) : '';
-      if (addEpOverviewEl) addEpOverviewEl.textContent = episode.overview || 'Sinopse não disponível.';
-    } else if (addEpTitleEl) {
-      addEpTitleEl.textContent = `Episódio ${ep}`;
-    }
-  } catch (e) {
-    if (requestId !== state.addEpisodeInfoRequestId) return;
-    console.warn('Erro ao buscar detalhes do episódio:', e);
-    if (addEpTitleEl) addEpTitleEl.textContent = `Episódio ${ep}`;
-  } finally {
-    if (requestId === state.addEpisodeInfoRequestId && addEpLoadingEl) {
-      addEpLoadingEl.style.display = 'none';
-    }
-  }
-}
-
-function handleStepperUpdate(btn, modalType) {
-  updateStepperValue(btn, modalType, state.addSeasonLimits, detailModalAPI.getSeasonLimits(), addInputs, detailInputs);
-  if (modalType === 'detail') {
-    detailModalAPI.onStepperChange();
-  } else if (modalType === 'add') {
-    syncAddProgressPanel();
-  }
-}
 
 // ========== CONFIGURAÇÃO DE COMPONENTES ==========
 // Cards - agora abre página em vez de modal
@@ -1251,82 +1161,13 @@ const handleCardClick = (index) => {
   }
 };
 
-// Detail Modal
-const detailInputs = {
-  tempInput: dom.detailTemporadaInput,
-  epInput: dom.detailEpisodioInput,
-  epDisplay: dom.detailEpisodioDisplay,
-  tempDisplay: dom.detailTemporadaDisplay
-};
-
-const detailModalAPI = setupDetailModal({
-  detailModal: $('detailModal'),
-  detailClose: $('detailClose'),
-  detailTitle: $('detailTitle'),
-  detailSinopse: $('detailSinopse'),
-  detailLoading: $('detailLoading'),
-  detailTemporadaInput: detailInputs.tempInput,
-  detailEpisodioInput: detailInputs.epInput,
-  detailTemporadaDisplay: detailInputs.tempDisplay,
-  detailEpisodioDisplay: detailInputs.epDisplay,
-  detailStatus: $('detailStatus'),
-  detailTier: $('detailTier'),
-  detailTipo: $('detailTipo'),
-  detailTierBadge: $('detailTierBadge'),
-  detailTierDropdown: $('detailTierDropdown'),
-  detailAddedDate: $('detailAddedDate'),
-  detailSave: $('detailSave'),
-  detailDelete: $('detailDelete'),
-  detailPosterImg: $('detailPosterImg'),
-  detailPosterImgCard: $('detailPosterImgCard'),
-  detailStartYear: $('detailStartYear'),
-  detailEndYear: $('detailEndYear'),
-  detailStatusLabel: $('detailStatusLabel'),
-  detailOriginalTitle: $('detailOriginalTitle'),
-  detailLogoContainer: $('detailLogoContainer'),
-  detailLogoImg: $('detailLogoImg'),
-  detailTitleText: $('detailTitleText'),
-  detailWikiLink: $('detailWikiLink'),
-  detailImdbLink: $('detailImdbLink'),
-  detailYoutubeLink: $('detailYoutubeLink'),
-  detailEpisodesBtn: $('detailEpisodesBtn'),
-  detailListCheckboxes: $('detailListCheckboxes'),
-  detailEpMax: $('detailEpMax'),
-  detailEpTitle: $('detailEpTitle'),
-  detailEpDate: $('detailEpDate'),
-  detailEpOverview: $('detailEpOverview'),
-  detailEpLoading: $('detailEpLoading'),
-  posterSteppersRow: $('posterSteppersRow'),
-  detailSeasonName: $('detailSeasonName'),
-  detailCountryFlag: $('detailCountryFlag')
-}, {
-  onUpdateItem: updateItemInSupabase,
-  onDeleteItem: deleteItemFromSupabase,
-  onOpenEpisodes: (index, curTemp, curEp) => episodesModalAPI.open(index, state.items, curTemp, curEp),
-  populateDetailListCheckboxes: (itemLists) => populateDetailListCheckboxes(itemLists),
-  onAddItemToList: (itemId, listId) => addItemToList(itemId, listId),
-  onRemoveItemFromList: (itemId, listId) => removeItemFromList(itemId, listId),
-  onGetUserLists: () => state.userLists,
-  updateEpisodeLimit: (stepperType, temp, limits, modalType) => {
-    const inputs = modalType === 'add' ? addInputs : detailInputs;
-    const maxEp = limits.maxEpByTemp?.[temp] || 1;
-    const currentEp = parseInt(inputs.epInput.value) || 0;
-    if (currentEp > maxEp) {
-      inputs.epInput.value = maxEp;
-      if (inputs.epDisplay) inputs.epDisplay.textContent = modalType === 'add' ? maxEp : String(maxEp).padStart(2, '0');
-    }
-  },
-  onRefreshGrid: () => render()
-});
-
 // Episodes Modal
 const episodesModalAPI = setupEpisodesModal({
   episodesModal: $('episodesModal'),
   episodesClose: $('episodesClose'),
   episodesTitle: $('episodesTitle'),
   episodesLoading: $('episodesLoading'),
-  episodesContent: $('episodesContent'),
-  detailModal: $('detailModal')
+  episodesContent: $('episodesContent')
 }, {
   onUpdateItem: updateItemInSupabase,
   onToast: showToast
@@ -1435,233 +1276,6 @@ function handleHomeContinueAdd() {
   setTimeout(() => { const inp = document.getElementById('pesquisaInput'); if (inp) inp.focus(); }, 100);
 }
 
-async function openAddModalWithTmdbResult(raw) {
-  // Normaliza raw vindo de search/multi ou trending
-  const tmdbId = raw.id;
-  const mediaType = raw.media_type || raw.mediaType || 'tv';
-  const displayTitle = raw.title || raw.name || '';
-  const posterPath = raw.poster_path || raw.posterPath || '';
-  const rawYear = raw.first_air_date || raw.release_date || raw.date || '';
-  const year = rawYear ? String(rawYear).substring(0,4) : '';
-  const posterUrl = posterPath ? `https://image.tmdb.org/t/p/w342${posterPath}` : (raw.posterUrl || '');
-
-  if (state.editingIndex !== null) cancelEdit();
-  clearAllFieldErrors(form);
-  clearPreview();
-  state.cachedShowDetails = null;
-  statusSelect.value = 'assistindo';
-  const addPosterStatusBar = document.getElementById('addPosterStatusBar');
-  if (addPosterStatusBar) addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(b => b.classList.toggle('active', b.dataset.status === statusSelect.value));
-  tierForm.value = '';
-  const addTierBadgeEl = document.getElementById('addTierBadge');
-  if (addTierBadgeEl) { addTierBadgeEl.textContent = '?'; addTierBadgeEl.className = 'tier-badge-large'; addTierBadgeEl.style.display = 'flex'; }
-  const addYearDisplayEl = document.getElementById('addYearDisplay');
-  if (addYearDisplayEl) addYearDisplayEl.textContent = year || '--';
-  const addCountryFlagEl = document.getElementById('addCountryFlag');
-  if (addCountryFlagEl) addCountryFlagEl.style.display = 'none';
-  state.selectedTmdbId = tmdbId;
-  state.selectedMediaType = mediaType;
-  state.selectedPosterPath = posterPath;
-  state.selectedAno = year || null;
-  state.selectedName = displayTitle;
-  const addTemporadaInputEl = document.getElementById('addTemporada');
-  const addTemporadaDisplayEl = document.getElementById('addTemporadaDisplay');
-  const addEpisodioInputEl = document.getElementById('addEpisodio');
-  const addEpisodioDisplayEl = document.getElementById('addEpisodioDisplay');
-  if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
-  if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
-  if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
-  if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
-  state.addSeasonLimits = {};
-  resetAddProgressPanel();
-  const existing = state.items.find(it => it.tmdb_id && String(it.tmdb_id) === String(tmdbId)) || null;
-  state.existingItemForSearch = existing;
-  const preselectedIds = existing ? (existing.lists || []).map(l => l.id) : [];
-  populateAddListCheckboxes(preselectedIds);
-  const addListCheckboxesEl = document.getElementById('addListCheckboxes');
-  if (existing && preselectedIds.length > 0 && addListCheckboxesEl) {
-    addListCheckboxesEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-      cb.closest('.list-checkbox-pill')?.classList.add('list-existing');
-    });
-  }
-  const addPosterSteppersRowEl = document.getElementById('addPosterSteppersRow');
-  if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = (mediaType === 'tv') ? 'flex' : 'none';
-  const addLogoContainerEl = document.getElementById('addLogoContainer');
-  const addLogoImgEl = document.getElementById('addLogoImg');
-  const addOriginalTitleEl = document.getElementById('addOriginalTitle');
-  const addSinopseEl = document.getElementById('addSinopse');
-  const addSinopseLoadingEl = document.getElementById('addSinopseLoading');
-  const addBlurBgEl = document.getElementById('addBlurBg');
-  const addPosterWrapEl = document.getElementById('addPosterWrap');
-  if (addLogoContainerEl) addLogoContainerEl.style.display = 'none';
-  if (addLogoImgEl) addLogoImgEl.src = '';
-  if (addOriginalTitleEl) { addOriginalTitleEl.style.display = 'none'; addOriginalTitleEl.textContent = ''; }
-  if (addSinopseEl) addSinopseEl.textContent = '';
-  if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'flex';
-  if (addBlurBgEl) addBlurBgEl.style.backgroundImage = '';
-  if (addPosterWrapEl) addPosterWrapEl.classList.remove('sinopse-open');
-  const modalTitleEl = document.getElementById('modalTitle');
-  if (modalTitleEl) modalTitleEl.style.display = 'none';
-  const previewImgEl = document.getElementById('previewImg');
-  const previewImgCardEl = document.getElementById('previewImgCard');
-  const previewPlaceholderEl = document.getElementById('previewPlaceholder');
-  // Episódios button
-  if (addEpisodesBtn) {
-    if (mediaType === 'tv') {
-      addEpisodesBtn.style.display = 'inline-flex';
-      if (existing) {
-        addEpisodesBtn.onclick = () => {
-          const existingIndex = state.items.indexOf(existing);
-          if (existingIndex !== -1) { closeModal(); episodesModalAPI.open(existingIndex, state.items); }
-        };
-      } else {
-        addEpisodesBtn.onclick = () => {
-          const tempItem = { id: Date.now(), nome: displayTitle || 'Série', tmdb_id: tmdbId, tipo: 'serie', temporada: parseInt(document.getElementById('addTemporada')?.value) || 1, episodio: parseInt(document.getElementById('addEpisodio')?.value) || 0 };
-          try { if (typeof episodesModalAPI !== 'undefined' && episodesModalAPI.open) episodesModalAPI.open(0, [tempItem]); } catch (e) { console.error('Erro ao abrir episódios para novo item', e); }
-        };
-      }
-    } else {
-      addEpisodesBtn.style.display = 'none';
-      addEpisodesBtn.onclick = null;
-    }
-  }
-  // Fetch details
-  (async () => {
-    try {
-      let details = null;
-      if (mediaType === 'tv') {
-        details = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-        const seasons = details.seasons || [];
-        const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
-        const maxEpByTemp = {};
-        seasons.forEach(s => { if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0; });
-        const yr = details.first_air_date ? details.first_air_date.substring(0,4) : year;
-        state.addSeasonLimits = { maxTemp, maxEpByTemp };
-        if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
-        if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
-        if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
-        if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
-        if (addYearDisplayEl) addYearDisplayEl.textContent = yr || '--';
-        if (yr) state.selectedAno = yr;
-        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'flex';
-        syncAddProgressPanel();
-        const genres = details.genre_ids || (details.genres || []).map(g => g.id);
-        const countries = details.origin_country || [];
-        const isAnimation = genres.includes(16);
-        const isJapanese = countries.includes('JP');
-        let detectedTipo = 'serie';
-        if (isAnimation && isJapanese) detectedTipo = 'anime';
-        else if (isAnimation) detectedTipo = 'animacao';
-        tipo.value = detectedTipo;
-      } else {
-        // Sistema é apenas para mídias seriadas - fallback trata como tv
-        details = await callTMDB(`tv/${tmdbId}`, {}, 'pt-BR');
-        const seasons = details.seasons || [];
-        const maxTemp = seasons.filter(s => s.season_number > 0).length || 1;
-        const maxEpByTemp = {};
-        seasons.forEach(s => { if (s.season_number > 0) maxEpByTemp[s.season_number] = s.episode_count || 0; });
-        state.addSeasonLimits = { maxTemp, maxEpByTemp };
-        if (addTemporadaInputEl) addTemporadaInputEl.value = 1;
-        if (addTemporadaDisplayEl) addTemporadaDisplayEl.textContent = '01';
-        if (addEpisodioInputEl) addEpisodioInputEl.value = 0;
-        if (addEpisodioDisplayEl) addEpisodioDisplayEl.textContent = '00';
-        tipo.value = 'serie';
-        if (addPosterSteppersRowEl) addPosterSteppersRowEl.style.display = 'flex';
-        syncAddProgressPanel();
-      }
-      let backdropUrl = '';
-      if (details && details.backdrop_path) {
-        backdropUrl = `https://image.tmdb.org/t/p/w1280${details.backdrop_path}`;
-        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
-        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-      } else if (posterPath) {
-        backdropUrl = `https://image.tmdb.org/t/p/w1280${posterPath}`;
-        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
-        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-      } else if (posterUrl) {
-        backdropUrl = posterUrl.replace('w342','w1280');
-        if (previewImgEl) { previewImgEl.src = backdropUrl; previewImgEl.style.display = 'block'; }
-        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-      }
-      if (previewImgCardEl) {
-        if (posterPath) { previewImgCardEl.src = `https://image.tmdb.org/t/p/w342${posterPath}`; previewImgCardEl.style.display = 'block'; }
-        else if (posterUrl) { previewImgCardEl.src = posterUrl; previewImgCardEl.style.display = 'block'; }
-        else if (backdropUrl) { previewImgCardEl.src = backdropUrl; previewImgCardEl.style.display = 'block'; }
-        else { previewImgCardEl.style.display = 'none'; previewImgCardEl.src = ''; }
-      }
-      if (addBlurBgEl && backdropUrl) addBlurBgEl.style.backgroundImage = `url(${backdropUrl})`;
-      if (addSinopseEl) addSinopseEl.textContent = details?.overview || 'Sinopse não disponível.';
-      if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'none';
-      if (details) {
-        const originalName = details.original_name || details.original_title || '';
-        if (originalName && originalName !== displayTitle && addOriginalTitleEl) {
-          addOriginalTitleEl.textContent = originalName;
-          addOriginalTitleEl.style.display = '';
-        }
-
-        // País de origem com bandeira
-        const addCountryFlagEl = document.getElementById('addCountryFlag');
-        const originCountry = details.origin_country?.[0] || details.production_countries?.[0]?.iso_3166_1;
-        if (originCountry && addCountryFlagEl) {
-          const countryName = details.production_countries?.[0]?.name || originCountry;
-          const flagImg = document.createElement('img');
-          flagImg.src = `https://flagcdn.com/${originCountry.toLowerCase()}.svg`;
-          flagImg.alt = originCountry;
-          flagImg.className = 'country-flag-img';
-          flagImg.style.width = '24px';
-          flagImg.style.height = '16px';
-          flagImg.style.objectFit = 'contain';
-          flagImg.onerror = () => {
-            flagImg.textContent = flagEmoji(originCountry);
-            flagImg.style.fontSize = '1.2em';
-          };
-          addCountryFlagEl.innerHTML = '';
-          addCountryFlagEl.appendChild(flagImg);
-          const countrySpan = document.createElement('span');
-          countrySpan.textContent = countryName;
-          addCountryFlagEl.appendChild(countrySpan);
-          addCountryFlagEl.style.display = 'flex';
-        } else if (addCountryFlagEl) {
-          addCountryFlagEl.style.display = 'none';
-        }
-      }
-      // O logo nunca era buscado aqui: restou a referência `logoUrlParallel`
-      // de um refactor anterior e fetchTitleLogo (importado) não era chamado.
-      const logoUrl = await fetchTitleLogo(tmdbId, mediaType);
-      if (logoUrl && addLogoImgEl && addLogoContainerEl) {
-        addLogoImgEl.src = logoUrl;
-        addLogoImgEl.alt = `Logo de ${displayTitle}`;
-        addLogoContainerEl.style.display = 'flex';
-        if (modalTitleEl) modalTitleEl.style.display = 'none';
-      } else {
-        if (addLogoContainerEl) addLogoContainerEl.style.display = 'none';
-        if (modalTitleEl) modalTitleEl.style.display = '';
-        const modalTitleTextEl = document.getElementById('modalTitleText');
-        if (modalTitleTextEl) modalTitleTextEl.textContent = displayTitle;
-      }
-    } catch (err) {
-      console.warn('Erro ao buscar detalhes:', err);
-      if (posterUrl && previewImgEl) {
-        const fallbackUrl = posterUrl.replace('w342','w1280');
-        previewImgEl.src = fallbackUrl; previewImgEl.style.display = 'block';
-        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-        if (previewImgCardEl) { previewImgCardEl.src = posterUrl; previewImgCardEl.style.display = 'block'; }
-        if (addBlurBgEl) addBlurBgEl.style.backgroundImage = `url(${fallbackUrl})`;
-      } else if (posterPath) {
-        const fallbackUrl = `https://image.tmdb.org/t/p/w1280${posterPath}`;
-        previewImgEl.src = fallbackUrl; previewImgEl.style.display = 'block';
-        if (previewPlaceholderEl) previewPlaceholderEl.style.display = 'none';
-        if (previewImgCardEl) { previewImgCardEl.src = `https://image.tmdb.org/t/p/w342${posterPath}`; previewImgCardEl.style.display = 'block'; }
-        if (addBlurBgEl) addBlurBgEl.style.backgroundImage = `url(${fallbackUrl})`;
-      }
-      if (addSinopseEl) addSinopseEl.textContent = 'Erro ao carregar sinopse.';
-      if (addSinopseLoadingEl) addSinopseLoadingEl.style.display = 'none';
-      if (modalTitleEl) modalTitleEl.style.display = '';
-    }
-  })();
-  openModal();
-}
-
 async function handleTrendingAdd(trendingItem) {
   const raw = {
     id: trendingItem.id,
@@ -1766,7 +1380,7 @@ async function relinkSearch(query) {
       frag.appendChild(row);
     });
     results.appendChild(frag);
-  } catch (e) {
+  } catch {
     loading.style.display = 'none';
     results.innerHTML = '<p class="relink-empty">Erro ao buscar no TMDB.</p>';
   }
@@ -1884,7 +1498,6 @@ function render() {
 
   const filtered = sortItems(filterItems(state.items, { currentTab: state.currentTab, search, statusFilter, tierFilter, currentListId: state.currentListId }), sortKey);
 
-  const count = filtered.length;
   let label = '';
   
   // Determinar label baseado na aba ou lista atual
@@ -1973,301 +1586,19 @@ function render() {
   }
 }
 
-// ========== UTILS ==========
-function clearPreview() {
-  previewImg.style.display = 'none';
-  previewImg.src = '';
-  if (previewImgCard) { previewImgCard.style.display = 'none'; previewImgCard.src = ''; }
-  previewPlaceholder.style.display = 'block';
-}
 
-function setLoading(show) {
-  formLoading.style.display = show ? 'flex' : 'none';
-  btnSubmit.disabled = show;
-  btnCancel.disabled = show;
-}
 
-// ========== FORMULÁRIO ==========
-let addItemInFlight = false;
 
-async function addItem(e) {
-  e.preventDefault();
 
-  if (addItemInFlight) return;
 
-  const nomeVal = state.selectedName.trim();
-  const tempVal = parseInt(addTemporadaInput.value);
-  const epVal = parseInt(addEpisodioInput.value);
-  const statusVal = statusSelect.value;
-  const tierVal = tierForm.value || null;
 
-  clearAllFieldErrors(form);
 
-  let hasError = false;
-  if (!nomeVal) { hasError = true; }
-  if (nomeVal.length > 150) { hasError = true; }
-  if (isNaN(tempVal) || tempVal < 1) { setFieldError(addTemporadaInput, 'Temporada inválida.'); hasError = true; }
-  if (isNaN(epVal) || epVal < 0) { setFieldError(addEpisodioInput, 'Episódio inválido.'); hasError = true; }
-  if (hasError) { showToast('Corrija os campos destacados.'); return; }
-  // Validate at least one list selected
-  const selectedListCheckboxes = addListCheckboxes ? addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked') : [];
-  if (selectedListCheckboxes.length === 0) {
-    showToast('Selecione pelo menos uma lista.');
-    const addListModal = document.getElementById('addListModal');
-    if (addListModal) addListModal.classList.add('active');
-    return;
-  }
-  const tipoVal = tipo.value;
 
-  addItemInFlight = true;
-  setLoading(true);
 
-  try {
-    let totalEp = 0, seasonEpisodesMap = {};
-    let ano = state.selectedAno;
-    
-    if (!state.cachedShowDetails || state.cachedShowDetails.totalEpisodes === 0) {
-      showToast('Buscando informações do título...', 2000);
-      
-      if (state.selectedTmdbId && state.selectedMediaType) {
-        if (state.selectedMediaType === 'tv') {
-          const data = await callTMDB(`tv/${state.selectedTmdbId}`, {}, 'pt-BR');
-          state.cachedShowDetails = { totalEpisodes: data.number_of_episodes || 0, seasons: data.seasons || [] };
-        } else {
-          state.cachedShowDetails = { totalEpisodes: 1, seasons: [{ season_number: 1, episode_count: 1 }] };
-        }
-      } else {
-        const data = await callTMDB('search/tv', { query: nomeVal }, 'pt-BR');
-        const result = data.results?.find(r => r.media_type === 'tv') || data.results?.[0];
-        if (result) {
-          const tvData = await callTMDB(`tv/${result.id}`, {}, 'pt-BR');
-          state.cachedShowDetails = { totalEpisodes: tvData.number_of_episodes || 0, seasons: tvData.seasons || [] };
-        } else {
-          // NÃO usar 1 aqui. Salvar total 1 faz calcularProgresso devolver
-          // 100% para qualquer episodio, sem nenhum aviso. Deixa 0 para o
-          // guard abaixo recusar a gravacao com mensagem clara.
-          state.cachedShowDetails = { totalEpisodes: 0, seasons: [] };
-        }
-      }
-    }
-    
-    if (state.cachedShowDetails && state.cachedShowDetails.totalEpisodes > 0) {
-      totalEp = state.cachedShowDetails.totalEpisodes;
-      state.cachedShowDetails.seasons.forEach(s => { 
-        if (s.season_number !== 0) seasonEpisodesMap[s.season_number] = s.episode_count || 0; 
-      });
-      if (state.cachedShowDetails.first_air_date) {
-        ano = parseInt(state.cachedShowDetails.first_air_date.substring(0,4));
-      } else if (state.cachedShowDetails.release_date) {
-        ano = parseInt(state.cachedShowDetails.release_date.substring(0,4));
-      }
-    } else {
-      // Mantém totalEp em 0 de propósito. Antes aqui virava 1, e o guard
-      // logo abaixo (que existe exatamente para isso) nunca disparava —
-      // resultado: título salvo com 1 episódio e barra em 100%.
-      totalEp = 0;
-      seasonEpisodesMap = {};
-    }
 
-    if (totalEp === 0) {
-      showToast('Não foi possível obter o total de episódios. Verifique a conexão e tente de novo.', 4000);
-      setLoading(false);
-      addItemInFlight = false;
-      return;
-    }
-
-    // If opened from search and item already exists, just add to new lists
-    if (state.existingItemForSearch) {
-      const existingItem = state.existingItemForSearch;
-      const selectedListIds = Array.from(addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-      const existingListIds = (existingItem.lists || []).map(l => l.id);
-      const toAdd = selectedListIds.filter(id => !existingListIds.includes(id));
-
-      if (toAdd.length > 0) {
-        const addPromises = toAdd.map(listId => addItemToList(existingItem.id, listId));
-        await Promise.allSettled(addPromises);
-        const addedLists = state.userLists.filter(l => toAdd.includes(l.id));
-        existingItem.lists = [...(existingItem.lists || []), ...addedLists];
-        showToast(`Adicionado a ${toAdd.length > 1 ? toAdd.length + ' listas' : addedLists[0]?.nome || 'nova lista'}.`);
-      } else {
-        showToast('Este título já pertence a todas as listas selecionadas.');
-      }
-
-      state.existingItemForSearch = null;
-      render();
-      closeModal();
-      form.reset();
-      clearPreview();
-      state.cachedShowDetails = null;
-      state.selectedTmdbId = null;
-      state.selectedMediaType = null;
-      state.selectedPosterPath = null;
-      state.selectedAno = null;
-      state.selectedName = '';
-      addTemporadaInput.value = 1;
-      addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-      addEpisodioInput.value = 0;
-      addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-      state.addSeasonLimits = {};
-      resetAddProgressPanel();
-      return;
-    }
-
-    const duplicate = isDuplicateInCatalog({ tmdb_id: state.selectedTmdbId || null, nome: nomeVal, tipo: tipoVal, ano }, state.items, state.editingIndex);
-    if (duplicate) {
-      showToast('Este título já existe no seu catálogo.');
-      setLoading(false);
-      addItemInFlight = false;
-      return;
-    }
-
-    const newItem = {
-      tipo: tipoVal, nome: nomeVal, temporada: tempVal, episodio: epVal, totalEpisodios: totalEp,
-      seasonEpisodesMap: seasonEpisodesMap, status: statusVal, tier: tierVal, tmdb_id: state.selectedTmdbId || null,
-      ano: ano,
-      imagem: null, dataCriacao: new Date().toISOString()
-    };
-    
-    const saved = await addItemToSupabase(newItem);
-    state.items.push(saved);
-    
-    // Adicionar às listas selecionadas no modal
-    const selectedListIds = Array.from(addListCheckboxes.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-    const listPromises = selectedListIds.map(listId => addItemToList(saved.id, listId));
-    await Promise.allSettled(listPromises);
-    saved.lists = state.userLists.filter(l => selectedListIds.includes(l.id));
-    
-    showToast('Item adicionado!');
-    
-    if (state.selectedPosterPath) {
-      const imagemUrl = `https://image.tmdb.org/t/p/original${state.selectedPosterPath}`;
-      await updateItemInSupabase(saved.id, { imagem: imagemUrl });
-      state.items[state.items.length - 1].imagem = imagemUrl;
-    }
-    
-    render();
-    closeModal();
-    form.reset();
-    clearPreview();
-    state.cachedShowDetails = null;
-    state.selectedTmdbId = null;
-    state.selectedMediaType = null;
-    state.selectedPosterPath = null;
-    state.selectedAno = null;
-    state.selectedName = '';
-    state.existingItemForSearch = null;
-    addTemporadaInput.value = 1;
-    addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-    addEpisodioInput.value = 0;
-    addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-    state.addSeasonLimits = {};
-    resetAddProgressPanel();
-  } catch (error) {
-    // Corrida entre dispositivos estourou o índice único: o título já existe.
-    if (error?.code === '23505') showToast(error.message);
-    else showErrorToast('Não foi possível salvar o item. Tente novamente.', error);
-  } finally {
-    setLoading(false);
-    addItemInFlight = false;
-  }
-}
-
-// ========== MODAL DE ADIÇÃO ==========
-function updateAddTierBadge(tier) {
-  const badge = addTierBadge;
-  badge.textContent = tier || '?';
-  badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
-  badge.style.display = 'flex';
-  badge.setAttribute('aria-expanded', 'false');
-}
-
-function toggleAddTierDropdown() {
-  const dropdown = addTierDropdown;
-  const badge = addTierBadge;
-  const isVisible = dropdown.style.display === 'flex';
-  dropdown.style.display = isVisible ? 'none' : 'flex';
-  badge.setAttribute('aria-expanded', !isVisible);
-}
-
-function hideAddTierDropdown() {
-  addTierDropdown.style.display = 'none';
-  addTierBadge.setAttribute('aria-expanded', 'false');
-}
-
-function selectAddTier(tier) {
-  const badge = addTierBadge;
-  badge.textContent = tier || '?';
-  badge.className = tier ? `tier-badge-large ${getTierClass(tier)}` : 'tier-badge-large';
-  badge.style.display = 'flex';
-  badge.setAttribute('aria-expanded', 'false');
-  tierForm.value = tier || '';
-  hideAddTierDropdown();
-  if (typeof window !== 'undefined' && window.anime) {
-    window.anime({ targets: badge, scale: [0.5, 1.2, 1], duration: 400, easing: 'easeOutQuad' });
-  }
-}
-
-function openModal() {
-  modalOverlay.classList.add('active');
-  lockScreen();
-  const modalElem = modalOverlay.querySelector('.modal');
-  trapFocus(modalElem);
-  if (typeof window !== 'undefined' && window.anime) {
-    window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-  }
-  syncAddStatusBtns();
-}
-
-function closeModal() {
-  modalOverlay.classList.remove('active');
-  const addListModal = document.getElementById('addListModal');
-  if (addListModal) addListModal.classList.remove('active');
-  if (addEpisodesBtn) { addEpisodesBtn.style.display = 'none'; addEpisodesBtn.onclick = null; }
-  unlockScreen();
-  releaseFocusTrap();
-}
-
-function cancelEdit() {
-  state.editingIndex = null;
-  btnSubmit.innerHTML = '<i class="fas fa-save"></i> Salvar';
-  modalTitleText.textContent = 'Adicionar título';
-  modalTitle.style.display = '';
-  btnCancel.style.display = 'inline-flex';
-  clearAllFieldErrors(form);
-  form.reset();
-  clearPreview();
-  state.cachedShowDetails = null;
-  updateAddTierBadge('');
-  hideAddTierDropdown();
-  addYearDisplay.textContent = '--';
-  if (addLogoContainer) addLogoContainer.style.display = 'none';
-  if (addLogoImg) addLogoImg.src = '';
-  if (addOriginalTitle) { addOriginalTitle.style.display = 'none'; addOriginalTitle.textContent = ''; }
-  if (addSinopse) addSinopse.textContent = '';
-  if (addSinopseLoading) addSinopseLoading.style.display = 'none';
-  if (addBlurBg) addBlurBg.style.backgroundImage = '';
-  if (addPosterWrap) addPosterWrap.classList.remove('sinopse-open');
-  closeModal();
-  setLoading(false);
-  state.selectedTmdbId = null;
-  state.selectedMediaType = null;
-  state.selectedPosterPath = null;
-  state.selectedAno = null;
-  state.selectedName = '';
-  state.existingItemForSearch = null;
-  addTemporadaInput.value = 1;
-  addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-  addEpisodioInput.value = 1;
-  addEpisodioDisplay.textContent = String(1).padStart(2, '0');
-  state.addSeasonLimits = {};
-  resetAddProgressPanel();
-}
 
 // ========== INICIALIZAÇÃO ==========
 
-// Configurar steppers
-setupSteppers('#modalOverlay .stepper-btn', 'add', handleStepperUpdate);
-setupSteppers('#detailModal .stepper-btn', 'detail', handleStepperUpdate);
 
 // Event listeners de autenticação
 authForm.addEventListener('submit', (e) => {
@@ -2471,28 +1802,6 @@ setupConfirmModal();
 setAuthMode('login');
 checkSession();
 
-// Tier badge e dropdown do modal de adição
-addTierBadge.addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleAddTierDropdown();
-});
-
-addTierDropdown.addEventListener('click', (e) => {
-  if (e.target.classList.contains('tier-option')) {
-    const tier = e.target.dataset.tier;
-    selectAddTier(tier);
-  }
-});
-
-// Fechar dropdown ao clicar fora
-document.addEventListener('click', (e) => {
-  if (!addTierBadge.contains(e.target) && !addTierDropdown.contains(e.target)) {
-    hideAddTierDropdown();
-  }
-});
-
-modalClose.addEventListener('click', () => { cancelEdit(); closeModal(); });
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) { cancelEdit(); closeModal(); } });
 
 let searchDebounceTimer = null;
 if (searchInput) {
@@ -2668,45 +1977,7 @@ sortOrder.addEventListener('change', render);
     });
   }
 
-  // Modal list toggles — show/hide list checkboxes
-  if (addListToggle && addListCheckboxes) {
-    const addListModal = document.getElementById('addListModal');
-    const addListModalClose = document.getElementById('addListModalClose');
-    addListToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (addListModal) addListModal.classList.add('active');
-    });
-    if (addListModalClose) {
-      addListModalClose.addEventListener('click', () => {
-        addListModal.classList.remove('active');
-      });
-    }
-    if (addListModal) {
-      addListModal.addEventListener('click', (e) => {
-        if (e.target === addListModal) addListModal.classList.remove('active');
-      });
-    }
-  }
-  if (detailListToggle && detailListCheckboxes) {
-    const detailListModal = document.getElementById('detailListModal');
-    const detailListModalClose = document.getElementById('detailListModalClose');
-    detailListToggle.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (detailListModal) detailListModal.classList.add('active');
-    });
-    if (detailListModalClose) {
-      detailListModalClose.addEventListener('click', () => {
-        detailListModal.classList.remove('active');
-      });
-    }
-    if (detailListModal) {
-      detailListModal.addEventListener('click', (e) => {
-        if (e.target === detailListModal) detailListModal.classList.remove('active');
-      });
-    }
-  }
-
-  // Clicking an option sets the hidden select and triggers change
+// Clicking an option sets the hidden select and triggers change
   filterMenuOptions.forEach(opt => {
     opt.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2755,61 +2026,7 @@ sortOrder.addEventListener('change', render);
   // a ordem em uso.
   syncSortUi();
 
-  // Poster click toggles synopsis overlay
-  const detailPosterWrap = document.getElementById('detailPosterWrap');
-  if (detailPosterWrap) {
-    const togglePosterSinopse = () => {
-      detailPosterWrap.classList.toggle('sinopse-open');
-    };
-    detailPosterWrap.addEventListener('click', (e) => {
-      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.poster-top-links')) return;
-      togglePosterSinopse();
-    });
-    detailPosterWrap.addEventListener('keydown', (e) => {
-      if (e.target.closest('.poster-steppers-row')) return;
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        togglePosterSinopse();
-      }
-    });
-    // Close overlay when detail modal closes
-    const detailModalEl = document.getElementById('detailModal');
-    if (detailModalEl) {
-      const observer = new MutationObserver(() => {
-        if (!detailModalEl.classList.contains('active')) {
-          detailPosterWrap.classList.remove('sinopse-open');
-        }
-      });
-      observer.observe(detailModalEl, { attributes: true, attributeFilter: ['class'] });
-    }
-  }
-
-  // Add modal poster sinopse toggle
-  if (addPosterWrap) {
-    const toggleAddSinopse = () => {
-      addPosterWrap.classList.toggle('sinopse-open');
-    };
-    addPosterWrap.addEventListener('click', (e) => {
-      if (e.target.closest('.poster-bottom-bar') || e.target.closest('.poster-steppers-row') || e.target.closest('.add-poster-bar')) return;
-      toggleAddSinopse();
-    });
-    addPosterWrap.addEventListener('keydown', (e) => {
-      if (e.target.closest('.poster-steppers-row')) return;
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAddSinopse(); }
-    });
-    // Auto-close sinopse when add modal closes
-    const addModalEl = document.getElementById('modalOverlay');
-    if (addModalEl) {
-      const addModalObserver = new MutationObserver(() => {
-        if (!addModalEl.classList.contains('active')) {
-          addPosterWrap.classList.remove('sinopse-open');
-        }
-      });
-      addModalObserver.observe(addModalEl, { attributes: true, attributeFilter: ['class'] });
-    }
-  }
-
-  // ensure toolbar toggles reflect current select values on init
+// ensure toolbar toggles reflect current select values on init
   updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
   updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
   updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
@@ -2824,43 +2041,6 @@ groupToggle.addEventListener('click', () => {
   groupToggle.innerHTML = state.groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
   render();
 });
-
-// Add modal status buttons sync
-const addPosterStatusBar = document.getElementById('addPosterStatusBar');
-if (addPosterStatusBar) {
-  addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const newStatus = btn.dataset.status;
-      const prevStatus = statusSelect.value;
-      statusSelect.value = newStatus;
-      statusSelect.dispatchEvent(new Event('change'));
-      syncAddStatusBtns();
-      // Concluído: auto-set max temporada/episodio
-      if (newStatus === 'concluido' && prevStatus !== 'concluido') {
-        const maxTemp = state.addSeasonLimits.maxTemp || 1;
-        if (maxTemp > 0) {
-          addTemporadaInput.value = maxTemp;
-          addTemporadaDisplay.textContent = String(maxTemp).padStart(2, '0');
-          const maxEp = state.addSeasonLimits.maxEpByTemp?.[maxTemp] || 1;
-          addEpisodioInput.value = maxEp;
-          addEpisodioDisplay.textContent = String(maxEp).padStart(2, '0');
-        }
-      } else if (prevStatus === 'concluido' && newStatus !== 'concluido') {
-        // Revert to defaults when leaving concluido
-        addTemporadaInput.value = 1;
-        addTemporadaDisplay.textContent = String(1).padStart(2, '0');
-        addEpisodioInput.value = 0;
-        addEpisodioDisplay.textContent = String(0).padStart(2, '0');
-      }
-    });
-  });
-}
-function syncAddStatusBtns() {
-  if (!addPosterStatusBar) return;
-  addPosterStatusBar.querySelectorAll('.dm-status-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.status === statusSelect.value);
-  });
-}
 
 // Navegação por abas (removido - agora usando renderNavbar dinâmico)
 
@@ -2880,21 +2060,6 @@ function updateLogos() {
   }
 }
 
-// Form submit
-if (form) {
-  form.addEventListener('submit', addItem);
-} else {
-  console.error('Elemento form não encontrado');
-}
-if (btnCancel) {
-  btnCancel.addEventListener('click', cancelEdit);
-} else {
-  console.error('Elemento btnCancel não encontrado');
-}
-if (addPanelDelete) {
-  addPanelDelete.addEventListener('click', cancelEdit);
-}
-
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -2902,9 +2067,6 @@ document.addEventListener('keydown', (e) => {
     else if ($('titleInfoModal').classList.contains('active')) titleInfoModalAPI.close();
     else if ($('relinkModal').classList.contains('active')) closeRelinkModal();
     else if ($('detailListModal')?.classList.contains('active')) $('detailListModal').classList.remove('active');
-    else if ($('addListModal')?.classList.contains('active')) $('addListModal').classList.remove('active');
-    else if ($('detailModal').classList.contains('active')) detailModalAPI.close();
-    else if (modalOverlay.classList.contains('active')) { cancelEdit(); closeModal(); }
     else if (state.currentTab === 'pesquisa') {
       setActiveTab('all', null);
     }
@@ -2969,10 +2131,12 @@ if (pesquisaInput) {
           const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
           const safeName = escapeHTML(name);
           const safePoster = escapeHTML(posterUrl);
-          const contTag = getContinuationTag(name);
 
+          // O resultado da busca não tem progresso nem episódio, mas é o
+          // MESMO card do resto do app: markup do modelo único, só imagem
+          // e título — sem ano, sem selo.
           const card = document.createElement('div');
-          card.className = 'pesquisa-card';
+          card.className = 'card';
           card.dataset.tmdbId = res.id;
           card.dataset.mediaType = res.media_type || 'tv';
           card.dataset.poster = poster;
@@ -2981,23 +2145,14 @@ if (pesquisaInput) {
           card.setAttribute('role', 'listitem');
           card.setAttribute('tabindex', '0');
           card.setAttribute('aria-label', `Adicionar ${name}`);
-          card.innerHTML = `
-            <div class="pesquisa-card-img">
-              ${safePoster ? `<img src="${safePoster}" alt="${safeName}" loading="lazy" />` : `<i class="fas fa-film"></i>`}
-              ${contTag ? `<span class="pesquisa-card-tag">${escapeHTML(contTag)}</span>` : ''}
-            </div>
-            <div class="pesquisa-card-body">
-              <h3 title="${safeName}">${safeName}</h3>
-              ${year ? `<span class="pesquisa-card-year">${year}</span>` : ''}
-            </div>
-          `;
+          card.innerHTML = cardMarkup({
+            posterUrl: safePoster,
+            titleHtml: safeName,
+            titleAttr: name
+          });
 
           const openPreview = () => openTitlePageForSearch(res, filteredResults);
-
-          card.addEventListener('click', openPreview);
-          card.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPreview(); }
-          });
+          attachCardInteraction(card, openPreview);
 
           fragment.appendChild(card);
         });
@@ -3005,7 +2160,7 @@ if (pesquisaInput) {
         pesquisaGrid.appendChild(fragment);
 
         if (typeof anime !== 'undefined') {
-          const cards = pesquisaGrid.querySelectorAll('.pesquisa-card');
+          const cards = pesquisaGrid.querySelectorAll('.card');
           if (cards.length) {
             anime({ targets: cards, translateY: [24, 0], opacity: [0, 1], duration: 500, delay: anime.stagger(60), easing: 'easeOutQuad' });
           }

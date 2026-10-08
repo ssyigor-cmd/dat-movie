@@ -172,18 +172,6 @@ function row(label, value, opts = {}) {
   return `<div class="ti-row"><span class="ti-label">${escapeHTML(label)}</span><span class="ti-value">${opts.prefix || ''}${escapeHTML(value)}${opts.suffix || ''}</span></div>`;
 }
 
-/**
- * Marcador de status: ícone + classe de tom, para a linha e para o badge do topo.
- * @param {string} status - `details.status` cru do TMDB.
- * @returns {{ icon: string, tone: string }}
- */
-function statusMarker(status) {
-  return {
-    icon: STATUS_ICON[status] || 'fa-circle-question',
-    tone: STATUS_TONE[status] || 'is-planned'
-  };
-}
-
 function section(title, icon, inner) {
   if (!inner) return '';
   return `<section class="ti-section"><h3 class="ti-section-title"><i class="fas ${icon}"></i> ${escapeHTML(title)}</h3>${inner}</section>`;
@@ -288,13 +276,11 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         : '';
       const language = details.original_language ? details.original_language.toUpperCase() : '';
       const statusPt = STATUS_PT[details.status] || details.status || '';
-      const status = statusMarker(details.status);
       // Bandeira: `origin_country` é onde a série foi criada;
       // `production_countries` é onde foi produzida. Serve o primeiro que vier.
       const isoCountry = (details.origin_country || [])[0]
         || (details.production_countries || [])[0]?.iso_3166_1
         || '';
-      const flag = flagEmoji(isoCountry);
       const flagImg = flagTag(isoCountry, countryNames[0] || countries[0] || '');
       const countryText = (countryNames.length ? countryNames : countries).join(', ');
       // O código ISO 639-1 virava "Inglês" em vez de "EN".

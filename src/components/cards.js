@@ -9,13 +9,15 @@
  *
  * Agora existe um só. A anatomia e a tipografia vivem em `.card` no
  * `style.css`, e o markup mora aqui — `cardMarkup` é a única função que escreve
- * a estrutura, chamada tanto por `createCardElement` quanto por `createHomeCard`.
- * O que muda entre as telas não é o cartão, é a **largura**: o Catálogo usa a
- * coluna do grid, a Home usa o trilho. Isso é `.card--rail`.
+ * a estrutura, chamada por `createCardElement`, por `createHomeCard` e pela
+ * busca da aba Pesquisar (que era a última exceção declarada e migrou: só
+ * imagem e título, sem ano nem selo). O que muda entre as telas não é o
+ * cartão, é a **largura**: o Catálogo usa a coluna do grid, a Home usa o
+ * trilho. Isso é `.card--rail`.
  *
- * As exceções ao modelo (`.pesquisa-card`, o cartão da Roleta) mantêm a própria
- * anatomia porque não têm os mesmos dados — mas não inventam raio, borda,
- * sombra nem tipografia: saem dos mesmos tokens.
+ * Sobrou uma exceção: o cartão da Roleta, que mostra dados que nenhum outro
+ * card tem. Ele mantém a própria anatomia, mas não inventa raio, borda, sombra
+ * nem tipografia: sai dos mesmos tokens.
  */
 
 import { calcularProgresso, getTierClass, escapeHTML } from '../lib/catalog.js';
@@ -29,31 +31,39 @@ import { fetchTitleLogo, callTMDB, resolveItemPosterUrl } from '../lib/api.js';
 const IMG_FALLBACK = '<i class="fas fa-film"></i>';
 
 /**
- * Markup único de card: pôster 2/3 → título → linha de metadado → barra de
- * progresso. Tudo que uma tela não tem simplesmente não vem — a linha de
- * metadado e a barra são opcionais porque a pesquisa e a Home não têm progresso
- * para mostrar, e forçá-las a renderizar um trilho vazio seria pior.
+ * Markup único de card: pôster 2/3 com o título por cima → barra de progresso
+ * no corpo. Tudo que uma tela não tem simplesmente não vem — a barra é
+ * opcional porque a pesquisa e a Home não têm progresso para mostrar, e
+ * forçá-las a renderizar um trilho vazio seria pior.
+ *
+ * O título mora dentro de `.card-img`, não no corpo: no hover a imagem
+ * escurece (overlay) e o nome aparece; sem hover — toque — o primeiro clique
+ * revela e o segundo entra no card, que é o que `attachCardInteraction`
+ * coordena. O corpo ficou só com a barra, então ele some junto com ela
+ * quando a preferência do perfil esconde a barra.
+ *
+ * A linha de metadado (`.info`, "T1 - Ep 05") saiu da anatomia: com nome,
+ * temporada/episódio e porcentagem no mesmo rodapé, o card era poluído
+ * demais. O dado continua no modal de detalhe.
  *
  * @param {Object} o
  * @param {string} [o.posterUrl] - URL do pôster; vazio usa o placeholder.
  * @param {string} [o.titleHtml] - Título já escapado (o Catálogo junta o ano).
  * @param {string} [o.titleAttr] - Texto do atributo `title`; puro, escapado aqui.
- * @param {string} [o.metaHtml] - Linha de metadado (`.info`) já montada.
- * @param {string} [o.extraHtml] - Conteúdo específico da seção, depois da meta.
+ * @param {string} [o.extraHtml] - Conteúdo específico da seção, no corpo do card.
  * @param {string} [o.stampHtml] - Selo sobre o pôster (tier).
  * @param {string} [o.imgAttrs] - Atributos extras no `<img>` do pôster.
  * @returns {string} HTML do interior do card.
  */
-export function cardMarkup({ posterUrl = '', titleHtml = '', titleAttr = '', metaHtml = '', extraHtml = '', stampHtml = '', imgAttrs = '' }) {
+export function cardMarkup({ posterUrl = '', titleHtml = '', titleAttr = '', extraHtml = '', stampHtml = '', imgAttrs = '' }) {
   const label = escapeHTML(titleAttr || titleHtml.replace(/<[^>]*>/g, ''));
   return `
     <div class="card-img">
       ${posterUrl ? `<img src="${escapeHTML(posterUrl)}" alt="${label}" loading="lazy" ${imgAttrs} />` : IMG_FALLBACK}
       ${stampHtml}
+      <h3 class="card-title" title="${label}">${titleHtml}</h3>
     </div>
     <div class="card-body">
-      <h3 title="${label}">${titleHtml}</h3>
-      ${metaHtml}
       ${extraHtml}
     </div>`;
 }
@@ -62,10 +72,30 @@ export function cardMarkup({ posterUrl = '', titleHtml = '', titleAttr = '', met
  * Liga o card ao clique e ao teclado. Mesmo par de eventos em todas as telas —
  * era o Catálogo com `role="listitem"` e a Home com `role="button"`, e a
  * diferença de papel é que a Home não tem lista por trás.
+ *
+ * Sem hover (toque) não existe passar o mouse para ver o nome, então o clique
+ * vira de dois tempos: o primeiro só revela o título sobre a imagem, o segundo
+ * entra no card. Só um card fica revelado por vez. Quem usa teclado não paga
+ * essa conta — Enter e Espaço abrem direto.
  */
 export function attachCardInteraction(card, onActivate) {
   if (typeof onActivate !== 'function') return;
-  card.addEventListener('click', onActivate);
+  const semHover = () =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: none)').matches;
+
+  card.addEventListener('click', (e) => {
+    if (semHover() && !card.classList.contains('is-revealed')) {
+      document.querySelectorAll('.card.is-revealed').forEach((outro) => {
+        if (outro !== card) outro.classList.remove('is-revealed');
+      });
+      card.classList.add('is-revealed');
+      return;
+    }
+    card.classList.remove('is-revealed');
+    onActivate(e);
+  });
   card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(e); }
   });
@@ -120,7 +150,6 @@ export function createCardElement(item, items, onCardClick) {
       ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>`
       : '',
     imgAttrs: `data-index="${realIndex}"`,
-    metaHtml: `<div class="info"><span>T${item.temporada} - Ep ${String(item.episodio).padStart(2, '0')}</span></div>`,
     extraHtml: `
       <div class="progress-wrap">
         <div class="progress-track"><div class="progress-bar" style="width:${progress}%;"></div></div>

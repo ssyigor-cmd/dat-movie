@@ -134,7 +134,6 @@ appCache.clear = () => { _origClear(); try { localStorage.removeItem(LS_KEY); } 
 
 export function cacheGet(key) { return appCache.get(key); }
 export function cacheSet(key, value, ttl) { appCache.set(key, value, ttl); }
-export function cacheHas(key) { return appCache.has(key); }
 export function cacheClear() { appCache.clear(); }
 /**
  * Invalida somente as entradas cujo prefixo bate, preservando o resto.

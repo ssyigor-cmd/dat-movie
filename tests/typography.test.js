@@ -212,15 +212,14 @@ describe('tipografia: três famílias, três papéis', () => {
     // dado, o mono deixa de alinhar em coluna e vira só mais uma textura.
     const esperados = [
       '.card-body .badge',
-      '.card-body .info',
       '.episode-airdate',
       '.episode-number',
       '.group-header .group-count',
       '.home-affinity-option small',
       '.home-calendar-dnum',
+      '.home-calendar-epnum',
       '.home-field-row .toolbar-search input',
       '.nav-section-label',
-      '.pesquisa-card-body .pesquisa-card-year',
       '.progress-pct'
     ];
 
@@ -229,7 +228,7 @@ describe('tipografia: três famílias, três papéis', () => {
 
     // Cada regra de mono tem um seletor só. Isso não é marcação item a item: é
     // o que separa dado de nome, e cada item da lista está aqui por ser dado.
-    // O que o teste segura é a lista, não a forma — se alguém agrupar os 11 em
+    // O que o teste segura é a lista, não a forma — se alguém agrupar os 10 em
     // um bloco só, a reserva continua igualmente legível.
     expect(
       blocosMono.every((r) => r.seletores.length === 1),
@@ -246,29 +245,34 @@ describe('tipografia: três famílias, três papéis', () => {
     expect(nosDois, 'seletor nos dois papéis ao mesmo tempo').toEqual([]);
   });
 
-  it('o card nomeia em display e detalha em mono', () => {
+  it('o card nomeia em display e o rodapé detalha em mono', () => {
     // O caso que o usuário reclamou, e a razão de existirem três famílias. O
-    // título do card nomeia o filme e a meta diz "T1 · Ep 02": uma nomeia, a
-    // outra detalha. Com uma fonte só, qualquer escolha quebra metade — uma
-    // larga deixa o card sem o ar de cartaz, uma condensada deixa a meta
-    // ilegível a 0.68rem.
+    // título do card nomeia o filme e a porcentagem da barra detalha o dado:
+    // uma nomeia, a outra detalha. Com uma fonte só, qualquer escolha quebra
+    // metade — uma larga deixa o card sem o ar de cartaz, uma condensada deixa
+    // a porcentagem ilegível a 0.56rem. A antiga linha de metadado (`.info`)
+    // saiu da anatomia; o mono do rodapé agora é só a barra de progresso.
     const blocoDisplay = regras().find(
       (r) => r.corpo.includes('var(--font-display)') && !r.seletores.every((s) => /^h[1-6]$/.test(s))
     );
     const selDoDisplay = new Set(blocoDisplay.seletores);
 
-    expect(selDoDisplay.has('.card-body h3'), '.card-body h3 tem que estar no bloco de display').toBe(true);
-    expect(selDoDisplay.has('.card-body .info'), '.info não pode estar: é a meta').toBe(false);
+    expect(selDoDisplay.has('.card-title'), '.card-title tem que estar no bloco de display').toBe(true);
 
-    // E a hierarquia dentro do card continua inteira: o título ainda é maior
-    // que a meta, e ainda tem cor própria.
-    const tamanho = (c) => Number(c.match(/font-size:\s*([\d.]+)rem/)[1]);
-    const regraInfo = regras().find((r) => r.seletores.includes('.card-body .info'));
-    const h3 = regras().find((r) => r.seletores.includes('.card-body h3') && r.corpo.includes('text-overflow'));
-    expect(h3, '.card-body h3 do modelo').toBeTruthy();
-    expect(tamanho(h3.corpo), 'título maior que a meta').toBeGreaterThan(tamanho(regraInfo.corpo));
-    expect(h3.corpo).toMatch(/color:\s*var\(--text-primary\)/);
-    expect(regraInfo.corpo).toMatch(/color:\s*var\(--text-(?:secondary|muted)\)/);
+    // E a hierarquia dentro do card continua: o título tem cor própria, e o
+    // dado do rodapé não disputa com ele nem herda o display. A cor não é da
+    // rampa: o nome mora sobre o overlay PRETO do pôster, em qualquer tema —
+    // se voltar para `--text-primary`, no claro o texto fica quase-preto
+    // sobre quase-preto e o hover não mostra nada.
+    const h3 = regras().find((r) => r.seletores.includes('.card-title') && r.corpo.includes('line-clamp'));
+    expect(h3, '.card-title do modelo').toBeTruthy();
+    expect(h3.corpo).toMatch(/color:\s*var\(--text-on-photo\)/);
+    expect(selDoDisplay.has('.progress-pct'), '.progress-pct é dado, não nome').toBe(false);
+
+    const pct = regras().find((r) => r.seletores.includes('.progress-pct'));
+    expect(pct, '.progress-pct do rodapé').toBeTruthy();
+    expect(pct.corpo).toMatch(/font-family:\s*var\(--font-mono\)/);
+    expect(pct.corpo).toMatch(/color:\s*var\(--text-(?:secondary|muted)\)/);
   });
 
   it('todo peso usado é carregado de verdade, em cada família', () => {

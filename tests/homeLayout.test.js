@@ -121,16 +121,20 @@ describe('padrão do card: um modelo só', () => {
     }
   });
 
-  it('a linha de metadado é a mesma em todas as telas', () => {
-    // A linha `T1 · Ep 02` é o mesmo dado em todo o app. A home a emitia como
-    // `home-card-subtitle`, que herdava a base do `body`; o Catálogo a emitia
-    // como `.info`, em `--font-mono`. Um papel só.
-    expect(css).not.toContain('.home-card-subtitle');
-    expect(css).toMatch(/^\.card-body \.info \{[^}]*font-size/m);
+  it('o rodapé do card não tem linha de metadado', () => {
+    // A linha `T1 · Ep 02` saiu da anatomia: com nome, temporada/episódio e
+    // porcentagem no mesmo rodapé, o card era poluído demais. O dado vive no
+    // modal de detalhe; aqui sobra título + barra de progresso. Nenhuma tela
+    // pode voltar a emitir `.info` por conta própria.
+    expect(css).not.toContain('.card-body .info');
+    for (const arq of ['components/cards.js', 'components/homePage.js']) {
+      const src = readFileSync(join(raiz, 'src', arq), 'utf8');
+      expect(src, arq).not.toContain('class="info"');
+    }
   });
 
   it('a anatomia do card é escrita num lugar só', () => {
-    // `.card-img` > `img`, depois `.card-body` > `h3`. Duas fábricas
+    // `.card-img` > `img` + título, depois `.card-body` > barra. Duas fábricas
     // escreviam essa estrutura em templates separados; agora `cardMarkup` é a
     // única, e as duas telas passam por ela.
     const cards = readFileSync(join(raiz, 'src/components/cards.js'), 'utf8');

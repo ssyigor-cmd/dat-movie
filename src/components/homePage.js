@@ -2,8 +2,8 @@
  * HomePage - Renderiza a página inicial do Dat-Movie
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
-import { escapeHTML, getTierClass, calcularProgresso } from '../lib/catalog.js';
-import { getTrendingToSuggest, getFavorites, formatAirDate, getTitlesByGenre, getTitlesByYear, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getAffinityRecommendations, normalizeTrendingItem, pickVariety, getAffinityRail, getAffinityRails, AFFINITY_RAIL_COUNT } from '../lib/trendingApi.js';
+import { escapeHTML, calcularProgresso } from '../lib/catalog.js';
+import { getTrendingToSuggest, getFavorites, formatAirDate, getTitlesByGenre, getTitlesByYear, getUpcomingTitles, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getAffinityRecommendations, normalizeTrendingItem, pickVariety, getAffinityRail, getAffinityRails, AFFINITY_RAIL_COUNT } from '../lib/trendingApi.js';
 import { callTMDB } from '../lib/api.js';
 import { cardMarkup, attachCardInteraction, resolveCardPoster } from './cards.js';
 import { pickWithMix } from '../lib/recommendScoring.js';
@@ -176,17 +176,17 @@ function railHTML(index) {
  * função, enquanto escrevia o `home-card` com regras próprias, a origem da
  * fonte diferente entre a home e o resto do app.
  *
- * A anatomia é única: imagem + título + linha de metadado + `extraHtml`. Os
+ * A anatomia é única: imagem com o título por cima + `extraHtml` no corpo. Os
  * parâmetros `badge` e `actionBtnHtml` que já existiram aqui renderizavam um
  * selo de tier e um botão flutuante, e nenhuma das nove seções que usam esta
  * função passava um nem o outro — eram 44 linhas de CSS para duas formas que
  * ninguém produzia. Se um dia um selo voltar, ele volta pelo `stampHtml` de
  * `cardMarkup`.
  *
- * @param {Object} o - { posterUrl, title, subtitle, onClick, extraHtml, item }.
+ * @param {Object} o - { posterUrl, title, onClick, extraHtml, item }.
  * @returns {HTMLElement} Card.
  */
-function createHomeCard({ posterUrl, title, subtitle, onClick, extraHtml = '', item = null }) {
+function createHomeCard({ posterUrl, title, onClick, extraHtml = '', item = null }) {
   const card = document.createElement('div');
   card.className = 'card card--rail';
   card.setAttribute('tabindex', '0');
@@ -197,7 +197,6 @@ function createHomeCard({ posterUrl, title, subtitle, onClick, extraHtml = '', i
     posterUrl: posterUrl || '',
     titleHtml: safeTitle,
     titleAttr: title,
-    metaHtml: subtitle ? `<div class="info"><span>${escapeHTML(subtitle)}</span></div>` : '',
     extraHtml
   });
   attachCardInteraction(card, onClick);
@@ -270,6 +269,14 @@ export function renderHomeBase(container, context) {
       <div class="home-h-scroll" id="homeAffinityGrid" style="display:none;"></div>
       <div class="home-h-scroll home-skeleton" id="homeAffinitySkeleton" style="display:none;">${skeletonHTML()}</div>
       <div class="home-error" id="homeAffinityError" style="display:none;"></div>
+    </section>
+
+    <section class="home-section" id="homeUpcomingSection" aria-label="Próximos lançamentos" style="display:none;">
+      <div class="home-section-head">
+        <h2 class="home-section-title"><i class="fas fa-rocket"></i> Em Breve</h2>
+      </div>
+      <div class="home-h-scroll" id="homeUpcomingGrid"></div>
+      <div class="home-h-scroll home-skeleton" id="homeUpcomingSkeleton">${skeletonHTML()}</div>
     </section>
 
     ${railHTML(3)}
@@ -355,7 +362,7 @@ export function renderHomeBase(container, context) {
 /**
  * Renderiza Continuar Assistindo (carrossel horizontal máx. 20)
  */
-export function renderHomeContinue(container, items, onCardClick, onOpenAddModal) {
+export function renderHomeContinue(container, items, onCardClick) {
   const grid = container.querySelector('#homeContinueGrid');
   const empty = container.querySelector('#homeContinueEmpty');
   const section = container.querySelector('#homeContinueSection');
@@ -390,7 +397,6 @@ export function renderHomeContinue(container, items, onCardClick, onOpenAddModal
     const card = createHomeCard({
       posterUrl: item.imagem || '',
       title: item.nome,
-      subtitle: `T${item.temporada} · Ep ${String(item.episodio).padStart(2, '0')}`,
       extraHtml: extra,
       onClick: () => onCardClick && onCardClick(items.indexOf(item)),
       item
@@ -424,7 +430,6 @@ export function renderHomeFavorites(container, items, onCardClick) {
     const card = createHomeCard({
       posterUrl,
       title: item.nome,
-      subtitle: '',
       onClick: () => onCardClick && onCardClick(items.indexOf(item)),
       item
     });
@@ -483,7 +488,6 @@ export async function loadAndRenderByYear(container, items, onAddFromTrending, a
       const card = createHomeCard({
         posterUrl: t.posterUrl,
         title: t.title,
-        subtitle: t.date ? formatAirDate(t.date) : 'Série',
         onClick: () => onAddFromTrending && onAddFromTrending(t)
       });
       grid.appendChild(card);
@@ -532,7 +536,88 @@ function setupYearPicker(container, items, onAddFromTrending) {
   // não um "atualizar" que voltaria para o ano corrente por baixo dos panos.
 }
 
-export async function loadAndRenderTrending(container, items, onAddFromTrending) {
+/**
+ * Carrega e pinta o carrossel "Em Breve", logo após a descoberta por afinidade.
+ *
+ * A seção mostra o que ainda vai estrear, então a janela de busca é o futuro
+ * (quem decide o que aparece é o `sort_by` do pedido). A semente alterna a
+ * ordenação da busca (data de estreia mais próxima ↔ mais esperados), e a
+ * seleção (`pickForSection`) escolhe dentro do pool o que ainda não foi
+ * exibido — antes o loader pintava o topo do pool inteiro, então o clique de
+ * atualizar só trocava entre duas listas fixas.
+ *
+ * O pedido é o dobro da largura porque o getter já devolve só `limit` itens
+ * (com folga interna para pôster ausente): pedir o dobro deixa material para
+ * a seleção variar sem repetir, e o que não cabe é descartado na escolha.
+ *
+ * @param {HTMLElement} container - Container da home.
+ * @param {Array} items - Catálogo do usuário.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {Object} [opts] - { fresh }: o clique de atualizar pede dado novo da
+ *   TMDb em vez de reexibir o pool do cache.
+ * @returns {Promise<void>}
+ */
+export async function loadAndRenderUpcoming(container, items, onAddFromTrending, opts = {}) {
+  const section = container.querySelector('#homeUpcomingSection');
+  const grid = container.querySelector('#homeUpcomingGrid');
+  const skel = container.querySelector('#homeUpcomingSkeleton');
+  if (!section || !grid || !skel) return;
+
+  setupSectionRefresh(section, () => {
+    bumpSeed('upcoming');
+    loadAndRenderUpcoming(container, items, onAddFromTrending, { fresh: true });
+  }, 'Atualizar em breve');
+
+  section.style.display = '';
+  grid.style.display = 'none';
+  skel.style.display = '';
+
+  try {
+    const seed = getVariety('upcoming').seed;
+    const largura = getFullWidthCount();
+    const pool = await getUpcomingTitles(items, largura * 2, {
+      sortBy: seed % 2 === 0 ? 'first_air_date.asc' : 'popularity.desc',
+      fresh: opts.fresh
+    });
+    const escolhidos = pickForSection('upcoming', pool, largura);
+    skel.style.display = 'none';
+    if (!escolhidos || escolhidos.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    grid.style.display = '';
+    grid.innerHTML = '';
+    escolhidos.forEach((t) => {
+      // A data de estreia é o motivo da seção existir: sem ela o card "Em
+      // Breve" é idêntico ao de qualquer outro trilho.
+      const data = t.date ? `<div class="home-upcoming-date"><i class="fas fa-calendar-day"></i> ${escapeHTML(formatAirDate(t.date))}</div>` : '';
+      const card = createHomeCard({
+        posterUrl: t.posterUrl,
+        title: t.title,
+        extraHtml: data,
+        onClick: () => onAddFromTrending && onAddFromTrending(t)
+      });
+      grid.appendChild(card);
+    });
+    animateCards(grid);
+  } catch (e) {
+    skel.style.display = 'none';
+    // Spec: se busca falhar ocultar a seção
+    section.style.display = 'none';
+    console.warn('Erro upcoming:', e);
+  }
+}
+
+/**
+ * Carrossel "Em Alta".
+ *
+ * @param {Element} container - Container da home.
+ * @param {Array} items - Catálogo.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {Object} [opts] - { fresh }: o clique de atualizar pede dado novo da
+ *   TMDb em vez de reexibir o pool do cache.
+ */
+export async function loadAndRenderTrending(container, items, onAddFromTrending, opts = {}) {
   const section = container.querySelector('#homeTrendingSection');
   const grid = container.querySelector('#homeTrendingGrid');
   const skel = container.querySelector('#homeTrendingSkeleton');
@@ -541,7 +626,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 
   setupSectionRefresh(section, () => {
     bumpSeed('trending');
-    loadAndRenderTrending(container, items, onAddFromTrending);
+    loadAndRenderTrending(container, items, onAddFromTrending, { fresh: true });
   }, 'Atualizar em alta');
 
   section.style.display = '';
@@ -551,7 +636,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
 
   try {
     const seed = getVariety('trending').seed;
-    const pool = await getTrendingToSuggest(items, null, { window: seed % 2 === 0 ? 'week' : 'day' });
+    const pool = await getTrendingToSuggest(items, null, { window: seed % 2 === 0 ? 'week' : 'day', fresh: opts.fresh });
     const trending = pickScoredForSection('trending', pool, getFullWidthCount());
     skel.style.display = 'none';
     if (!trending || trending.length === 0) {
@@ -561,11 +646,9 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending)
     grid.style.display = '';
     grid.innerHTML = '';
     trending.forEach((t) => {
-      const subtitle = t.date ? formatAirDate(t.date) : 'Série';
       const card = createHomeCard({
         posterUrl: t.posterUrl,
         title: t.title,
-        subtitle,
         onClick: () => onAddFromTrending && onAddFromTrending(t)
       });
       grid.appendChild(card);
@@ -647,7 +730,6 @@ function railPaint(section, index, rail, onAddFromTrending) {
     grid.appendChild(createHomeCard({
       posterUrl: t.posterUrl,
       title: t.title,
-      subtitle: t.date ? formatAirDate(t.date) : 'Série',
       onClick: () => onAddFromTrending && onAddFromTrending(t)
     }));
   });
@@ -718,9 +800,11 @@ function railNeighbours(container, index) {
  * @param {Array} items - Catálogo do usuário.
  * @param {Function} onAddFromTrending - Callback dos cards.
  * @param {number} [onlyIndex] - Recarrega só esta faixa.
+ * @param {Object} [opts] - { fresh }: o clique de atualizar pede as
+ *   recomendações da rede em vez do cache de 1h.
  * @returns {Promise<void>}
  */
-export async function loadAndRenderAffinityRails(container, items, onAddFromTrending, onlyIndex = null) {
+export async function loadAndRenderAffinityRails(container, items, onAddFromTrending, onlyIndex = null, opts = {}) {
   const todas = Array.from({ length: AFFINITY_RAIL_COUNT }, (_, i) => railSection(container, i)).filter(Boolean);
   if (todas.length === 0) return;
 
@@ -728,7 +812,7 @@ export async function loadAndRenderAffinityRails(container, items, onAddFromTren
   if (primeiro) {
     todas.forEach((section, i) => {
       setupSectionRefresh(section, () => {
-        loadAndRenderAffinityRails(container, items, onAddFromTrending, i);
+        loadAndRenderAffinityRails(container, items, onAddFromTrending, i, { fresh: true });
       }, 'Atualizar recomendações');
       railLoading(section, i);
     });
@@ -757,11 +841,12 @@ export async function loadAndRenderAffinityRails(container, items, onAddFromTren
     const rail = await getAffinityRail(items, {
       offset: bumpSeed('affinity'),
       excludeTitles: vizinhas.titles,
-      excludeBaseIds: vizinhas.bases
+      excludeBaseIds: vizinhas.bases,
+      fresh: opts.fresh
     });
     const section = railSection(container, onlyIndex);
     if (section) railPaint(section, onlyIndex, rail, onAddFromTrending);
-  } catch (e) {
+  } catch {
     const indices = primeiro
       ? todas.map((_, i) => i)
       : [onlyIndex];
@@ -798,9 +883,11 @@ const CAT_SORT = 'popularity.desc';
  * @param {Array} items - Catálogo.
  * @param {Object} cat - Categoria { id, name, icon }.
  * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {Object} [opts] - { fresh }: o clique de atualizar pede dado novo da
+ *   TMDb em vez de reexibir o pool do cache.
  * @returns {Promise<void>}
  */
-function renderCategorySection(container, items, cat, onAddFromTrending) {
+function renderCategorySection(container, items, cat, onAddFromTrending, opts = {}) {
   const wrap = container.querySelector('#homeCategories');
   if (!wrap) return Promise.resolve();
   const key = `cat-${cat.id}`;
@@ -828,7 +915,7 @@ function renderCategorySection(container, items, cat, onAddFromTrending) {
 
   return (async () => {
     try {
-      const pool = await getTitlesByGenre(cat.id, items, null, { sortBy: CAT_SORT });
+      const pool = await getTitlesByGenre(cat.id, items, null, { sortBy: CAT_SORT, fresh: opts.fresh });
       const titles = pickScoredForSection(key, pool, getFullWidthCount());
       skel.style.display = 'none';
       if (!titles || titles.length === 0) {
@@ -837,7 +924,7 @@ function renderCategorySection(container, items, cat, onAddFromTrending) {
       }
       setupSectionRefresh(section, () => {
         bumpSeed(key);
-        renderCategorySection(container, items, cat, onAddFromTrending);
+        renderCategorySection(container, items, cat, onAddFromTrending, { fresh: true });
       }, `Atualizar ${cat.name}`);
       grid.style.display = '';
       grid.innerHTML = '';
@@ -845,7 +932,6 @@ function renderCategorySection(container, items, cat, onAddFromTrending) {
         const card = createHomeCard({
           posterUrl: t.posterUrl,
           title: t.title,
-          subtitle: t.date ? formatAirDate(t.date) : 'Série',
           onClick: () => onAddFromTrending && onAddFromTrending(t)
         });
         grid.appendChild(card);
@@ -885,20 +971,20 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
  * de bom foi preservado aqui: bot�o de atualizar, card clic�vel e still do
  * epis�dio quando o t�tulo n�o tem p�ster.
  */
-export async function loadAndRenderCalendar(container, items, onCardClick) {
+export async function loadAndRenderCalendar(container, items, onCardClick, opts = {}) {
   const section = container.querySelector('#homeCalendarSection');
   const grid = container.querySelector('#homeCalendarGrid');
   const skel = container.querySelector('#homeCalendarSkeleton');
   const hint = container.querySelector('#homeCalendarHint');
   if (!section || !grid || !skel) return;
   setupSectionRefresh(section, () => {
-    loadAndRenderCalendar(container, items, onCardClick);
+    loadAndRenderCalendar(container, items, onCardClick, { fresh: true });
   }, 'Atualizar calend�rio');
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';
   try {
-    const week = await getCalendarWeek(items);
+    const week = await getCalendarWeek(items, { fresh: opts.fresh });
     skel.style.display = 'none';
     if (!week || week.length === 0) { section.style.display = 'none'; return; }
     grid.style.display = '';
@@ -938,15 +1024,18 @@ export async function loadAndRenderCalendar(container, items, onCardClick) {
       eps.forEach(({ item, episode }) => {
         // Sem pôster do título, usa a still do episódio: melhor que cartão vazio.
         const posterUrl = item.imagem || (episode.still_path ? `https://image.tmdb.org/t/p/w300${episode.still_path}` : '');
-        const epName = episode.name || '';
+        // O corpo deste card é o único da Home que não é barra de progresso:
+        // ele diz qual episódio sai naquela data — número e nome.
+        const epNum = `T${episode.season_number} · E${episode.episode_number}`;
+        const epNome = episode.name || '';
         const c = createHomeCard({
           posterUrl,
           title: item.nome,
-          // Temporada e episódio na linha de metadado, como nos outros cards.
-          // O nome do episódio não caberia nela — que é de uma linha com
-          // ellipsis — então vai abaixo, como `extraHtml`.
-          subtitle: `T${episode.season_number} · E${episode.episode_number}`,
-          extraHtml: epName ? `<span class="home-calendar-epname" title="${escapeHTML(epName)}">${escapeHTML(epName)}</span>` : '',
+          extraHtml: `
+            <div class="home-calendar-epinfo">
+              <span class="home-calendar-epnum">${epNum}</span>
+              ${epNome ? `<span class="home-calendar-epname" title="${escapeHTML(epNome)}">${escapeHTML(epNome)}</span>` : ''}
+            </div>`,
           onClick: () => onCardClick && onCardClick(items.indexOf(item)),
           item
         });
@@ -974,8 +1063,7 @@ export function loadAndRenderAbandoned(container, items, onCardClick) {
   }, 'Atualizar abandonados');
   grid.innerHTML = '';
   list.forEach(item => {
-    const days = Math.floor((Date.now() - new Date(item.dataAtualizacao || item.dataCriacao || 0).getTime())/86400000);
-    const card = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, subtitle: `há ${days}d • T${item.temporada} E${item.episodio}`, onClick: () => onCardClick && onCardClick(items.indexOf(item)), item });
+    const card = createHomeCard({ posterUrl: item.imagem || '', title: item.nome, onClick: () => onCardClick && onCardClick(items.indexOf(item)), item });
     grid.appendChild(card);
   });
   animateCards(grid);
@@ -1132,11 +1220,11 @@ function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
       grid.style.display = 'flex';
       grid.innerHTML = '';
       recs.forEach(t => {
-        const card = createHomeCard({ posterUrl: t.posterUrl, title: t.title, subtitle: t.date ? formatAirDate(t.date) : 'Série', onClick: () => onAddFromTrending && onAddFromTrending(t) });
+        const card = createHomeCard({ posterUrl: t.posterUrl, title: t.title, onClick: () => onAddFromTrending && onAddFromTrending(t) });
         grid.appendChild(card);
       });
       animateCards(grid);
-    } catch (e) {
+    } catch {
       skel.style.display = 'none';
       if (errEl) { errEl.textContent = 'Erro ao buscar recomendações.'; errEl.style.display = 'block'; }
     } finally {
@@ -1175,6 +1263,9 @@ export async function renderHome(container, context) {
   setupRoulette(container, items, context.onCardClick, context.onAddFromTrending);
   loadAndRenderAbandoned(container, items, context.onCardClick);
   setupAffinityDiscovery(container, items, context.onAddFromTrending);
+  // Em Breve vem depois da afinidade no template; a chamada acompanha, para
+  // a ordem de resolução seguir a ordem de leitura da página.
+  loadAndRenderUpcoming(container, items, context.onAddFromTrending);
   setupYearPicker(container, items, context.onAddFromTrending);
   loadAndRenderByYear(container, items, context.onAddFromTrending);
   // Async seções existentes - don't block
