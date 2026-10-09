@@ -38,7 +38,7 @@ export function clearTrendingCache() {
  *   renova o cache em vez de deixá-lo velho até o TTL vencer.
  * @returns {Promise<any>} Dados da TMDb (ou do cache).
  */
-async function cachedCallTMDB(endpoint, params = {}, lang = 'pt-BR', opts = {}) {
+export async function cachedCallTMDB(endpoint, params = {}, lang = 'pt-BR', opts = {}) {
   const key = cacheKey(endpoint, params, lang);
   if (!opts.fresh) {
     const cached = cacheGet(key);
@@ -108,14 +108,24 @@ const MAX_PAGES = 15;
  * Pagina o endpoint até acumular `needed` itens já filtrados (ou esgotar as páginas)
  *
  * O 6º parâmetro era `seedResults` (lista semente de itens já coletados) e era
- * membro morto: nenhum chamador passava. Virou `opts`, que hoje carrega só o
- * `fresh` repassado a cada página.
+ * membro morto: nenhum chamador passava. Virou `opts`, que hoje carrega o
+ * `fresh` repassado a cada página e o `seen` compartilhado.
  *
- * @param {Object} [opts] - { fresh }: cada página vai à rede em vez do cache.
+ * O `seen` é o que permite coletar duas fontes da mesma âncora sem que a
+ * segunda repita o que a primeira já trouxe: quem chama passa o mesmo conjunto
+ * nas duas chamadas, e a dedupe interna passa a valer para as duas.
+ *
+ * A página que não traz nada novo encerra o laço, mesmo sem `total_pages`.
+ * Endpoints que ignoram o `page` devolvem a mesma lista para sempre, e sem
+ * este corte a busca gastaria as 15 páginas para coletar nada — que é
+ * exatamente o que acontece com `tv/{id}/recommendations`.
+ *
+ * @param {Object} [opts] - { fresh, seen }: cada página vai à rede em vez do
+ *   cache; `seen` é o conjunto de ids já coletados (criado quando ausente).
  */
 async function collectFiltered(endpoint, params, lang, catalogItems, needed, opts = {}) {
   const collected = [];
-  const seen = new Set();
+  const seen = opts.seen instanceof Set ? opts.seen : new Set();
   for (let page = 1; page <= MAX_PAGES && collected.length < needed; page++) {
     let data;
     try {
@@ -126,6 +136,7 @@ async function collectFiltered(endpoint, params, lang, catalogItems, needed, opt
     }
     const results = (data && data.results) || [];
     if (results.length === 0) break;
+    const antes = collected.length;
     for (const r of results) {
       const id = String(r.id);
       if (seen.has(id)) continue;
@@ -135,6 +146,7 @@ async function collectFiltered(endpoint, params, lang, catalogItems, needed, opt
       if (collected.length >= needed) break;
     }
     if (data.total_pages && page >= data.total_pages) break;
+    if (collected.length === antes) break;
   }
   return collected;
 }
@@ -497,8 +509,14 @@ export async function getAffinityRecommendations(selectedTmdbIds, catalogItems, 
 /**
  * Ordena os títulos do catálogo como possíveis bases para a seção
  * "Se você gostou de X vai gostar disso", do mais relevante para o menos.
- * Considera progresso, tier e recência de atualização; sem `assistindo`,
- * cai para os tiers mais altos e depois para o primeiro título com tmdb_id.
+ * Considera progresso, tier e recência de atualização.
+ *
+ * Os `assistindo` vêm primeiro: é o material em que a recomendação se apoia com
+ * mais propriedade. O resto do catálogo vem atrás, e é o que faz uma lista com
+ * um ou dois títulos em andamento ainda ancorar as quatro faixas — antes, quem
+ * tinha pouco `assistindo` perdia faixa, e o carrossel acabava girando sempre
+ * nas mesmas duas ou três âncoras.
+ *
  * @param {Array} catalogItems - Itens do catálogo.
  * @returns {Array<Object>} Itens ordenados (sem repetição).
  */
@@ -507,50 +525,99 @@ export function rankRecommendationBases(catalogItems) {
   const tierBonusOf = (item) => (item.tier === 'S+' ? 20 : item.tier === 'S' ? 12 : item.tier === 'A' ? 5 : 0);
   const recencyOf = (item) => Math.max(0, 10 - Math.floor((Date.now() - new Date(item.dataAtualizacao || item.dataCriacao || 0).getTime()) / (1000 * 60 * 60 * 24 * 7)));
 
-  const assistindo = catalogItems.filter(i => i.status === 'assistindo' && i.tmdb_id);
-  let ranked = assistindo;
-  if (ranked.length === 0) {
-    const byTier = [...catalogItems].filter(i => (i.tier === 'S+' || i.tier === 'S') && i.tmdb_id)
-      .sort((a, b) => (a.tier === 'S+' && b.tier !== 'S+' ? -1 : 1));
-    const rest = catalogItems.filter(i => i.tmdb_id && !byTier.includes(i));
-    ranked = [...byTier, ...rest];
-  }
-  if (ranked.length === 0) return [];
-
-  return ranked
+  const comId = catalogItems.filter(i => i.tmdb_id);
+  if (comId.length === 0) return [];
+  const ordem = (lista) => lista
     .map(item => ({ item, score: calcularProgresso(item) + tierBonusOf(item) + recencyOf(item) }))
     .sort((a, b) => b.score - a.score)
     .map(s => s.item);
+
+  const assistindo = comId.filter(i => i.status === 'assistindo');
+  const outros = comId.filter(i => i.status !== 'assistindo');
+  return [...ordem(assistindo), ...ordem(outros)];
 }
 
 /**
- * Recommendations for a single base, with `similar` as fallback.
+ * Tamanho do pool de uma faixa de afinidade.
  *
- * @param {Object} base - Catalog item serving as base.
- * @param {Array} catalogItems - The user's catalog.
- * @param {Object} [opts] - { fresh }: recomendações vêm da rede.
- * @returns {Promise<Array|null>} Normalized pool, or null on failure/empty.
+ * `recommendations` costuma devolver uma página só — e é a página que mais se
+ * repete com o catálogo do usuário, porque é o topo do gosto geral. Com ~20
+ * candidatos para 18 vagas, a faixa pintava o pool inteiro: não sobrava nada
+ * para o botão de atualizar trocar, e era por isso que o carrossel girava
+ * sempre entre os mesmos títulos.
+ *
+ * O fator é 5, e não os 15 do `poolSizeFor`: estas páginas são sequenciais
+ * dentro de uma faixa, e as quatro faixas também são. Quinze páginas × quatro
+ * faixas atrasariam o carregamento inteiro sem ganho, porque quem segura a
+ * repetição entre aberturas é o registro de já exibidos (`affinityMemory`),
+ * não o tamanho do pool. Cinco vezes a largura dá quatro ou cinco cliques de
+ * material novo por âncora, e a âncora gira.
+ */
+const RAIL_POOL_FACTOR = 5;
+
+/**
+ * Pool de uma âncora: `recommendations` e, como complemento, o `similar`.
+ *
+ * As duas fontes são paginadas e deduplicadas entre si: o `recommendations`
+ * entra primeiro por ser o mais relevante, e o `similar` completa até o pool
+ * desejado — é ele que existe em página suficiente, enquanto o recommendations
+ * raramente passa da primeira.
+ *
+ * Base sem material em nenhuma das duas devolve null, como antes: quem chama
+ * testa e segue para a próxima âncora.
+ *
+ * @param {Object} base - Item do catálogo que ancora a faixa.
+ * @param {Array} catalogItems - Catálogo do usuário.
+ * @param {Object} [opts] - { fresh, limit }: recomendações vêm da rede; `limit`
+ *   é o que a faixa exibe, daí o tamanho do pool.
+ * @returns {Promise<Array|null>} Pool normalizado, ou null se não houver nada.
  */
 async function fetchBasePool(base, catalogItems, opts = {}) {
   if (!base || !base.tmdb_id) return null;
+  const lim = opts.limit ?? getFullWidthCount();
+  const needed = Math.max(1, lim) * RAIL_POOL_FACTOR;
+  const cat = catalogItems || [];
+  // O mesmo `seen` nas duas fontes: sem ele, o similar repetiria o que o
+  // recommendations já trouxe e a folga do pool seria ilusória.
+  const seen = new Set();
+  const coletar = async (endpoint) => collectFiltered(endpoint, {}, 'pt-BR', cat, needed, { fresh: opts.fresh, seen });
+
+  let collected = [];
   try {
-    let data;
-    try {
-      data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR', opts);
-    } catch {
-      data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR', opts);
-    }
-    const results = data.results || [];
-    const pool = filterNotInCatalog(results, catalogItems).map(normalizeTrendingItem);
-    return pool.length > 0 ? pool : null;
-  } catch (e) {
-    console.warn('Erro recomendações', e);
-    return null;
+    collected = await coletar(`tv/${base.tmdb_id}/recommendations`);
+  } catch {
+    // Fora do ar: o `similar` abaixo é o plano B, como era antes.
   }
+  if (collected.length < needed) {
+    try {
+      const extras = await coletar(`tv/${base.tmdb_id}/similar`);
+      collected.push(...extras);
+    } catch (e) {
+      if (collected.length === 0) {
+        console.warn('Erro recomendações', e);
+        return null;
+      }
+    }
+  }
+  return collected.length > 0 ? collected.map(normalizeTrendingItem) : null;
 }
 
 /** Quantas faixas de afinidade a home monta de uma vez. */
 export const AFFINITY_RAIL_COUNT = 4;
+
+/**
+ * Quantas âncoras uma faixa consulta antes de desistir.
+ *
+ * O laço dá duas voltas na lista de bases porque uma base seca precisa de
+ * sucessora. O teto existe desde que a lista passou a incluir o catálogo
+ * inteiro: sem ele, um clique podia varrer dezenas de âncoras — cada uma com
+ * duas fontes paginadas — atrás de material que já sabia não existir.
+ *
+ * Doze é o suficiente para achar uma âncora viva (as ocupadas pelas vizinhas
+ * nem entram na conta, porque são puladas sem buscar) e curto o bastante para
+ * o clique de atualizar não virar uma varredura do catálogo.
+ */
+const MAX_BASE_ATTEMPTS = 12;
 
 /**
  * As faixas "Se você gostou de X vai gostar disso", uma para cada base.
@@ -599,11 +666,14 @@ export async function getAffinityRail(catalogItems, opts = {}) {
 
   // Duas voltas na lista de bases: uma base sem resultado precisa de uma
   // sucessora, e uma volta só cortaria a faixa mesmo havendo material válido
-  // logo adiante.
-  for (let i = 0; i < ranked.length * 2; i++) {
+  // logo adiante. Só as buscas contam para o teto — base ocupada pela vizinha
+  // é pulada sem custo.
+  let buscas = 0;
+  for (let i = 0; i < ranked.length * 2 && buscas < MAX_BASE_ATTEMPTS; i++) {
     const base = ranked[(start + i) % ranked.length];
     if (!base || !base.tmdb_id) continue;
     if (takenBases.has(String(base.tmdb_id))) continue;
+    buscas++;
     const pool = await fetchBasePool(base, catalogItems, { fresh: opts.fresh });
     if (!pool) continue;
     const fresh = pool.filter((t) => !seen.has(String(t.id)));

@@ -9,14 +9,14 @@ import { callTMDB } from './lib/api.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, setFieldError, clearFieldError } from './components/uiHelpers.js';
-import { createCardElement, cardMarkup, attachCardInteraction } from './components/cards.js';
+import { createCardElement } from './components/cards.js';
 import { setupEpisodesModal } from './components/episodesModal.js';
 import { setupTitleInfoModal } from './components/titleInfoModal.js';
 import { renderHome } from './components/homePage.js';
+import { setupSearchPage } from './components/searchPage.js';
 import { setupConfirmModal, showConfirm } from './components/confirmModal.js';
 import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.js';
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
-import { buildFallbackQueries, sortByRelevance } from './lib/fuzzySearch.js';
 import anime from 'animejs';
 import Sortable from 'sortablejs';
 import { cacheClear } from './lib/cache.js';
@@ -31,6 +31,10 @@ const $ = (id) => {
 };
 const titlePageEl = $('titlePage');
 const toast = document.getElementById('toast');
+
+// Preenchido no fim do módulo, quando a tela de pesquisa é montada. O `render`
+// pode rodar antes disso, daí o acesso guardado com `?.`.
+let searchPageApi = null;
 
 function setActiveTab(tab, listId = null) {
   if (typeof hideTitlePage === 'function' && titlePageEl && titlePageEl.style.display !== 'none') {
@@ -110,13 +114,9 @@ const searchView = dom.searchView;
 const statusWrapper = dom.statusWrapper;
 const tierWrapper = dom.tierWrapper;
 const groupToggle = dom.groupToggle;
-const pesquisaGrid = dom.pesquisaGrid;
-const pesquisaEmpty = dom.pesquisaEmpty;
-const pesquisaLoading = dom.pesquisaLoading;
 const grid = dom.grid;
 const homeSection = dom.homeSection;
 const searchInput = dom.searchInput;
-const pesquisaInput = dom.pesquisaInput;
 const titleInfoModal = dom.titleInfoModal;
 
 function densityLabelForValue(v) {
@@ -1450,9 +1450,14 @@ function render() {
   const toolbarSearchLocal = document.getElementById('toolbarSearchLocal');
   const toolbarSearchTmdb = document.getElementById('toolbarSearchTmdb');
   const mainHeader = document.querySelector('.main-header');
+  const toolbarFilters = document.querySelector('.toolbar-filters');
   if (toolbarSearchLocal) toolbarSearchLocal.style.display = state.currentTab === 'pesquisa' ? 'none' : (state.currentTab === 'home' ? 'none' : '');
   if (toolbarSearchTmdb) toolbarSearchTmdb.style.display = state.currentTab === 'pesquisa' ? '' : 'none';
   if (mainHeader) mainHeader.style.display = state.currentTab === 'home' ? 'none' : '';
+  // Na aba Pesquisar os filtros da barra (status/tier, ordenar, agrupar,
+  // densidade) agem sobre a grade do catálogo — que ali está escondida. A
+  // pesquisa tem os filtros próprios no bloco lateral, então esconde a cápsula.
+  if (toolbarFilters) toolbarFilters.style.display = state.currentTab === 'pesquisa' ? 'none' : '';
 
   // Home tab
   if (state.currentTab === 'home') {
@@ -1479,6 +1484,7 @@ function render() {
     headerListName.textContent = 'Pesquisar';
     const headerSubtitlePesquisa = document.getElementById('headerSubtitle');
     if (headerSubtitlePesquisa) headerSubtitlePesquisa.textContent = 'Explore e garimpe novidades';
+    if (searchPageApi) searchPageApi.activate();
     return;
   }
 
@@ -2074,103 +2080,7 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ========== PESQUISA TMDB ==========
-let pesquisaTimeout = null;
-
-if (pesquisaInput) {
-  pesquisaInput.addEventListener('input', () => {
-    clearTimeout(pesquisaTimeout);
-    const q = pesquisaInput.value.trim();
-
-    if (q.length < 2) {
-      pesquisaGrid.innerHTML = '';
-      pesquisaEmpty.style.display = '';
-      pesquisaLoading.style.display = 'none';
-      pesquisaEmpty.querySelector('p').textContent = 'Digite pelo menos 2 caracteres para buscar';
-      return;
-    }
-
-    pesquisaLoading.style.display = '';
-    pesquisaEmpty.style.display = 'none';
-    pesquisaGrid.innerHTML = '';
-
-    pesquisaTimeout = setTimeout(async () => {
-      try {
-        const data = await callTMDB('search/tv', { query: q }, 'pt-BR');
-        let filteredResults = sortSearchResults(data.results || [], q);
-
-        // A busca do TMDb tem índice próprio e não tolera muito erro de
-        // digitação. Se vier vazio, tenta grafias alternativas (sem acento,
-        // sem artigo, só a palavra mais longa) antes de desistir.
-        if (filteredResults.length === 0) {
-          for (const alt of buildFallbackQueries(q)) {
-            const retry = await callTMDB('search/tv', { query: alt }, 'pt-BR');
-            if (!retry.results || retry.results.length === 0) continue;
-            // Reordena pela query ORIGINAL (com o erro de digitação), não
-            // pela alternativa. Buscando "banks" o TMDb devolve vários
-            // títulos; sem isso, o que o usuário queria não viria primeiro.
-            filteredResults = sortByRelevance(q, retry.results, (r) => r.name || r.title || '');
-            break;
-          }
-        }
-
-        pesquisaLoading.style.display = 'none';
-
-        if (filteredResults.length === 0) {
-          pesquisaEmpty.style.display = '';
-          pesquisaEmpty.querySelector('p').textContent = 'Nenhum resultado encontrado';
-          return;
-        }
-
-        const fragment = document.createDocumentFragment();
-        filteredResults.forEach(res => {
-          const name = res.name || res.title;
-          if (!name) return;
-          const year = res.release_date ? res.release_date.substring(0, 4) : (res.first_air_date ? res.first_air_date.substring(0, 4) : '');
-          const poster = res.poster_path || '';
-          const posterUrl = poster ? `https://image.tmdb.org/t/p/w342${poster}` : '';
-          const safeName = escapeHTML(name);
-          const safePoster = escapeHTML(posterUrl);
-
-          // O resultado da busca não tem progresso nem episódio, mas é o
-          // MESMO card do resto do app: markup do modelo único, só imagem
-          // e título — sem ano, sem selo.
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.dataset.tmdbId = res.id;
-          card.dataset.mediaType = res.media_type || 'tv';
-          card.dataset.poster = poster;
-          card.dataset.name = name;
-          card.dataset.year = year;
-          card.setAttribute('role', 'listitem');
-          card.setAttribute('tabindex', '0');
-          card.setAttribute('aria-label', `Adicionar ${name}`);
-          card.innerHTML = cardMarkup({
-            posterUrl: safePoster,
-            titleHtml: safeName,
-            titleAttr: name
-          });
-
-          const openPreview = () => openTitlePageForSearch(res, filteredResults);
-          attachCardInteraction(card, openPreview);
-
-          fragment.appendChild(card);
-        });
-
-        pesquisaGrid.appendChild(fragment);
-
-        if (typeof anime !== 'undefined') {
-          const cards = pesquisaGrid.querySelectorAll('.card');
-          if (cards.length) {
-            anime({ targets: cards, translateY: [24, 0], opacity: [0, 1], duration: 500, delay: anime.stagger(60), easing: 'easeOutQuad' });
-          }
-        }
-      } catch (err) {
-        pesquisaLoading.style.display = 'none';
-        pesquisaEmpty.style.display = '';
-        pesquisaEmpty.querySelector('p').textContent = 'Erro ao buscar. Tente novamente.';
-        console.warn('Erro na pesquisa TMDB:', err);
-      }
-    }, 400);
-  });
-}
+// ========== PESQUISA TMDB COM FILTROS ==========
+// Toda a lógica (busca por nome, discover com filtros, paginação) vive em
+// `searchPage.js`. Aqui só montamos a tela e injetamos a abertura de título.
+searchPageApi = setupSearchPage({ onOpenTitle: openTitlePageForSearch });

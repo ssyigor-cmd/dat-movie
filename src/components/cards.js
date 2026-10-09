@@ -48,7 +48,7 @@ const IMG_FALLBACK = '<i class="fas fa-film"></i>';
  *
  * @param {Object} o
  * @param {string} [o.posterUrl] - URL do pôster; vazio usa o placeholder.
- * @param {string} [o.titleHtml] - Título já escapado (o Catálogo junta o ano).
+ * @param {string} [o.titleHtml] - Título já escapado por quem chama.
  * @param {string} [o.titleAttr] - Texto do atributo `title`; puro, escapado aqui.
  * @param {string} [o.extraHtml] - Conteúdo específico da seção, no corpo do card.
  * @param {string} [o.stampHtml] - Selo sobre o pôster (tier).
@@ -141,11 +141,14 @@ export function createCardElement(item, items, onCardClick) {
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `Ver detalhes de ${item.nome}`);
 
-  const ano = item.ano ? ` (${item.ano})` : '';
+  // O ano de lançamento não vem ao lado do nome. Ele continua no dado, onde
+  // ordena e deduplica; no cartão era o mesmo texto do tooltip do navegador e
+  // mais uma coisa pendurada no título, que já é o elemento mais apertado do
+  // card.
   card.innerHTML = cardMarkup({
     posterUrl: item.imagem || '',
-    titleHtml: escapeHTML(item.nome) + ano,
-    titleAttr: `${item.nome}${ano}`,
+    titleHtml: escapeHTML(item.nome),
+    titleAttr: item.nome,
     stampHtml: item.tier
       ? `<div class="tier-stamp ${getTierClass(item.tier)}">${escapeHTML(item.tier)}</div>`
       : '',

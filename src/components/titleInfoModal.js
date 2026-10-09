@@ -65,6 +65,34 @@ export const LANG_PT = {
 };
 
 /**
+ * Escolhe a classificação etária a exibir.
+ *
+ * O `content_ratings` traz uma lista por país. O app é pt-BR, então a nota
+ * brasileira vem primeiro ("16", "14", "L"); sem ela, cai para a americana
+ * ("TV-MA") — a mesma faixa usada nos filtros da Pesquisar. Entradas sem
+ * `rating` (que significam "não classificada") são ignoradas.
+ * @param {Object} contentRatings - Bloco `content_ratings` do TMDB.
+ * @param {string[]} [preferidos] - Países em ordem de prioridade.
+ * @returns {Object|null} `{ iso_3166_1, rating, descriptors }` ou null.
+ */
+export function pickContentRating(contentRatings, preferidos = ['BR', 'US']) {
+  const results = Array.isArray(contentRatings?.results) ? contentRatings.results : [];
+  const comNota = results.filter(r => r && r.rating);
+  for (const code of preferidos) {
+    const hit = comNota.find(r => r.iso_3166_1 === code);
+    if (hit) return hit;
+  }
+  return comNota[0] || null;
+}
+
+/** Texto da classificação: nota + país de referência (ex.: "16 · BR"). */
+export function formatAgeRating(rating) {
+  if (!rating || !rating.rating) return '';
+  const pais = rating.iso_3166_1 ? ` · ${rating.iso_3166_1}` : '';
+  return `${rating.rating}${pais}`;
+}
+
+/**
  * Converte ISO 3166-1 alpha-2 no emoji da bandeira.
  *
  * O TMDB entrega o país como `origin_country: ['US']` ou em
@@ -253,7 +281,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       if (!tmdbId) throw new Error('Sem TMDB ID');
 
       const [details, credits, logoUrl] = await Promise.all([
-        callTMDB(`tv/${tmdbId}`, {}, 'pt-BR'),
+        callTMDB(`tv/${tmdbId}`, { append_to_response: 'content_ratings' }, 'pt-BR'),
         callTMDB(`tv/${tmdbId}/aggregate_credits`, {}, 'pt-BR').catch(() => null),
         fetchTitleLogo(tmdbId, 'tv').catch(() => null)
       ]);
@@ -287,6 +315,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       const langCode = String(details.original_language || '').toLowerCase();
       const langText = LANG_PT[langCode] || language;
       const typePt = TYPE_PT[details.type] || details.type || '';
+      const ageText = formatAgeRating(pickContentRating(details.content_ratings));
       const release = details.first_air_date
         ? `${formatDateBR(details.first_air_date)}${details.last_air_date ? ` — ${formatDateBR(details.last_air_date)}` : ''}`
         : '';
@@ -319,6 +348,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         row('Produtora', producers.join(', ')),
         row('Gênero', genres.join(', ')),
         row('Tipo', typePt),
+        row('Classificação etária', ageText),
         row('Duração', runtime),
 row('Idioma original', langText),
         row('Status', statusPt),

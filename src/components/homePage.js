@@ -7,6 +7,7 @@ import { getTrendingToSuggest, getFavorites, formatAirDate, getTitlesByGenre, ge
 import { callTMDB } from '../lib/api.js';
 import { cardMarkup, attachCardInteraction, resolveCardPoster } from './cards.js';
 import { pickWithMix } from '../lib/recommendScoring.js';
+import { affinityShown, rememberAffinity, nextAffinitySeed, nextAffinityOffset } from '../lib/affinityMemory.js';
 import { filterNotInCatalog } from '../lib/catalog.js';
 
 /**
@@ -54,6 +55,30 @@ function pickForSection(key, pool, count) {
 function pickScoredForSection(key, pool, count) {
   const v = getVariety(key);
   return pickWithMix(pool, count, { seed: v.seed, seen: v.seen });
+}
+
+/**
+ * Escolhe os títulos de uma faixa de afinidade com a memória que atravessa o F5.
+ *
+ * As outras seções guardam vistos e semente num `Map` do módulo, que morre no
+ * recarregamento — e nelas isso basta, porque o pool delas é grande e muda de
+ * origem. Nas faixas de afinidade não bastava: mesma âncora, mesma semente e o
+ * mesmo cache de 1h desenhavam exatamente os mesmos cartões a cada abertura, e
+ * o "atualizar" parecia não fazer nada.
+ *
+ * Aqui o conjunto de já exibidos e a semente vêm do `affinityMemory`, que grava
+ * no localStorage. A semente avança a cada pintura mesmo quando o pool não
+ * mudou: o material esgotado ainda sai em outra composição.
+ *
+ * @param {Array} pool - Candidatos da faixa.
+ * @param {number} count - Quantidade exibida.
+ * @returns {Array} Itens escolhidos.
+ */
+function pickAffinity(pool, count) {
+  const seen = affinityShown();
+  const chosen = pickWithMix(pool, count, { seed: nextAffinitySeed(), seen });
+  rememberAffinity(chosen.map((t) => String(t.id)));
+  return chosen;
 }
 
 /**
@@ -665,11 +690,15 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending,
 /**
  * Uma faixa "Se você gostou de X vai gostar disso".
  *
- * Cada faixa tem estado próprio — âncora, títulos exibidos e semente de
- * seleção — e é o que faz o botão atualizar **uma** faixa e não a página. O
- * estado vive no DOM (`dataset`) em vez de num `Map` do módulo porque a home é
- * remontada do zero a cada render: um `Map` guardaria as âncoras da instância
- * anterior, e a faixa recém-carregada receberia um filtro de títulos obsoleto.
+ * Cada faixa tem estado próprio — âncora e títulos exibidos — e é o que faz o
+ * botão atualizar **uma** faixa e não a página. Esse estado vive no DOM
+ * (`dataset`) em vez de num `Map` do módulo porque a home é remontada do zero a
+ * cada render: um `Map` guardaria as âncoras da instância anterior, e a faixa
+ * recém-carregada receberia um filtro de títulos obsoleto.
+ *
+ * O que precisa atravessar um F5 (o que já foi exibido, a semente do sorteio,
+ * o offset das âncoras) está em `affinityMemory`, que grava no localStorage —
+ * `dataset` não sobrevive ao recarregamento.
  *
  * @param {Element} section - A `<section>` da faixa.
  * @param {number} index - Posição da faixa.
@@ -712,12 +741,11 @@ function railPaint(section, index, rail, onAddFromTrending) {
   const titleEl = section.querySelector(`#homeRail${index}Title`);
   if (skel) skel.style.display = 'none';
 
-  const chosen = rail ? pickScoredForSection(`affinity${index}`, rail.pool, getFullWidthCount()) : null;
+  const chosen = rail ? pickAffinity(rail.pool, getFullWidthCount()) : null;
   if (!rail || !grid || !chosen || chosen.length === 0) {
     section.style.display = 'none';
     delete section.dataset.baseId;
     delete section.dataset.shown;
-    delete section.dataset.seed;
     return false;
   }
 
@@ -740,23 +768,7 @@ function railPaint(section, index, rail, onAddFromTrending) {
   // sobrevive ao remount.
   section.dataset.baseId = String(rail.base.tmdb_id);
   section.dataset.shown = chosen.map((t) => String(t.id)).join(',');
-  section.dataset.seed = String(bumpSeedIfNew(section));
   return true;
-}
-
-/**
- * Lê (e cria) a semente de seleção de cards da faixa.
- *
- * Não é a semente da âncora: é a do `pickWithMix`, que decide a ordem dos
- * títulos dentro da faixa. Vive no `dataset` pelo mesmo motivo do resto.
- *
- * @param {Element} section - A `<section>` da faixa.
- * @returns {number} Semente atual.
- */
-function bumpSeedIfNew(section) {
-  const atual = Number(section.dataset.seed || 0);
-  section.dataset.seed = String(atual + 1);
-  return atual;
 }
 
 /**
@@ -824,22 +836,31 @@ export async function loadAndRenderAffinityRails(container, items, onAddFromTren
 
   try {
     if (primeiro) {
-      const dados = await getAffinityRails(items, { count: AFFINITY_RAIL_COUNT });
-      dados.forEach((rail, i) => {
+      // O offset vem da memória persistida: é o que muda a âncora de
+      // carregamento para carregamento. Em vez disso, a home abria sempre no
+      // mesmo começo da lista e as quatro faixas nasciam iguais a cada F5.
+      const dados = await getAffinityRails(items, { count: AFFINITY_RAIL_COUNT, offset: nextAffinityOffset() });
+      // Faixa sem material se apaga em vez de ficar com o esqueleto girando.
+      // O `railPaint` já trata o rail nulo escondendo a seção e limpando o
+      // `dataset`, então o caso em que o catálogo não ancora quatro faixas
+      // termina em três faixas de verdade, não em quatro com uma oca.
+      for (let i = 0; i < AFFINITY_RAIL_COUNT; i++) {
         const section = railSection(container, i);
-        if (section) railPaint(section, i, rail, onAddFromTrending);
-      });
+        if (section) railPaint(section, i, dados[i] || null, onAddFromTrending);
+      }
       return;
     }
 
-    // A faixa que está se atualizando libera a própria âncora e os próprios
-    // títulos: são eles que estão sendo trocados. Sem isso, a faixa estaria
-    // excluindo de si mesma e nunca encontraria material novo.
+    // A faixa que está se atualizando libera a própria âncora: sem isso, ela
+    // ficaria excluindo de si mesma e nunca trocaria de base. Os títulos que
+    // ela mesma exibiu ficam de fora da *seleção* (o registro de já exibidos),
+    // mas não do pool — material repetido é o que ainda tem, e repetir é melhor
+    // do que apagar a faixa.
     const vizinhas = railNeighbours(container, onlyIndex);
     const baseAtual = railSection(container, onlyIndex)?.dataset.baseId;
     if (baseAtual) vizinhas.bases.add(baseAtual);
     const rail = await getAffinityRail(items, {
-      offset: bumpSeed('affinity'),
+      offset: nextAffinityOffset(),
       excludeTitles: vizinhas.titles,
       excludeBaseIds: vizinhas.bases,
       fresh: opts.fresh

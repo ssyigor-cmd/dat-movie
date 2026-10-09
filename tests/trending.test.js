@@ -92,13 +92,17 @@ describe('getCatalogStats único passe', () => {
 });
 
 describe('rankRecommendationBases', () => {
-  it('ordena assistindo por progresso + tier + recencia, sem repetir', () => {
+  it('ordena por progresso + tier + recência, sem repetir', () => {
+    // A fórmula soma as três notas, então o progresso pode virar por cima do
+    // tier: A assistiu 3 de 12 (25%) e ainda é tier A, o que vale mais que os
+    // 4% de C (tier S+) e de B (tier S). O tier desempata C à frente de B,
+    // porque as duas têm o mesmo progresso e a mesma recência.
     const items = [
       { nome: 'A', status: 'assistindo', tmdb_id: 1, tier: 'A', episodio: 3, seasonEpisodesMap: { 1: 12 } },
       { nome: 'B', status: 'assistindo', tmdb_id: 2, tier: 'S', episodio: 1, seasonEpisodesMap: { 1: 24 } },
       { nome: 'C', status: 'assistindo', tmdb_id: 3, tier: 'S+', episodio: 1, seasonEpisodesMap: { 1: 24 } }
     ];
-    expect(rankRecommendationBases(items).map(r => r.nome)).toEqual(['C', 'B', 'A']);
+    expect(rankRecommendationBases(items).map(r => r.nome)).toEqual(['A', 'C', 'B']);
   });
 
   it('sem assistindo, usa tiers S+/S e depois o resto', () => {
@@ -108,6 +112,29 @@ describe('rankRecommendationBases', () => {
       { nome: 'Z', status: 'planejado', tier: 'A' }
     ];
     expect(rankRecommendationBases(items).map(r => r.nome)).toEqual(['Y', 'X']);
+  });
+
+  it('quem está assistindo ancora primeiro, e o resto do catálogo vem atrás', () => {
+    // Era o outro defeito da lista: só os `assistindo` eram candidatos, então
+    // quem tinha um título em andamento girava sempre nas mesmas duas ou três
+    // âncoras. O resto entra atrás, ordenado pelo mesmo score.
+    const items = [
+      { nome: 'Planejado', status: 'planejado', tmdb_id: 3, tier: 'C' },
+      { nome: 'Assistindo', status: 'assistindo', tmdb_id: 1, tier: 'A' },
+      { nome: 'Concluído', status: 'concluido', tmdb_id: 2, tier: 'S+' },
+      { nome: 'Sem id', status: 'planejado', tier: 'S' }
+    ];
+    expect(rankRecommendationBases(items).map(r => r.nome)).toEqual(['Assistindo', 'Concluído', 'Planejado']);
+  });
+
+  it('recência desempata dois itens de mesmo tier e progresso', () => {
+    const agora = new Date();
+    const velho = new Date(agora.getTime() - 40 * 7 * 24 * 60 * 60 * 1000).toISOString();
+    const items = [
+      { nome: 'Velho', status: 'planejado', tmdb_id: 1, tier: 'A', dataAtualizacao: velho },
+      { nome: 'Novo', status: 'planejado', tmdb_id: 2, tier: 'A', dataAtualizacao: agora.toISOString() }
+    ];
+    expect(rankRecommendationBases(items).map(r => r.nome)).toEqual(['Novo', 'Velho']);
   });
 
   it('ignora titulos sem tmdb_id e entradas invalidas', () => {

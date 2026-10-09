@@ -89,4 +89,12 @@ describe('cardMarkup: uma anatomia, uma escrita', () => {
       }
     }
   });
+
+  it('o card mostra só o nome, sem o ano de lançamento ao lado', () => {
+    // O ano continua no dado (ordena por ele e desempata homônimos no dedupe),
+    // mas o cartão exibe um nome só: pendurá-lo no título duplicava o tooltip e
+    // reaparecia em toda tela que monta card pelo mesmo modelo.
+    const src = readFileSync(join(raiz, 'src/components/cards.js'), 'utf8');
+    expect(src).not.toContain('item.ano');
+  });
 });

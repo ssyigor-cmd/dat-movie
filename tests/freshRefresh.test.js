@@ -134,22 +134,26 @@ describe('fresh: o ciclo do cache', () => {
   });
 
   it('Afinidade: fresh refaz as recomendações da âncora', async () => {
+    // A faixa pagina o `recommendations` e completa com o `similar`, então o
+    // carregamento não é uma chamada só — e é justamente essa sequência que o
+    // `fresh` tem de refazer por inteiro.
     const api_ = vi.fn(async (endpoint) => {
       if (endpoint.endsWith('/recommendations')) return { results: [raw()] };
-      return { results: [raw()], total_pages: 1 };
+      return { results: [raw({ id: 901 })], total_pages: 1 };
     });
     const catalogo = [item()];
 
     await withMock(api_, async (mod) => {
       const a = await mod.getAffinityRail(catalogo, { offset: 0 });
       expect(a, 'faixa montada').toBeTruthy();
-      expect(api_).toHaveBeenCalledTimes(1);
+      const montar = api_.mock.calls.length;
+      expect(montar, 'recommendations paginado + similar').toBeGreaterThan(1);
 
       await mod.getAffinityRail(catalogo, { offset: 0 });
-      expect(api_, 'cache atende').toHaveBeenCalledTimes(1);
+      expect(api_, 'cache atende').toHaveBeenCalledTimes(montar);
 
       await mod.getAffinityRail(catalogo, { offset: 0, fresh: true });
-      expect(api_, 'fresh vai à rede').toHaveBeenCalledTimes(2);
+      expect(api_, 'fresh vai à rede').toHaveBeenCalledTimes(montar * 2);
     });
   });
 });
