@@ -285,14 +285,74 @@
     </header>
 
     <section class="search-view" id="searchView" style="display:none;">
-      <div id="pesquisaGrid" class="grid grid-cols-8" role="list"></div>
-      <div class="pesquisa-empty" id="pesquisaEmpty">
-        <i class="fas fa-search"></i>
-        <p>Digite pelo menos 2 caracteres para buscar</p>
-      </div>
-      <div class="pesquisa-loading" id="pesquisaLoading" style="display:none;">
-        <i class="fas fa-spinner fa-spin"></i>
-        <p>Buscando...</p>
+      <aside class="adv-filters" id="advFilters" aria-label="Filtros de busca">
+        <div class="adv-header">
+          <span class="adv-title"><i class="fas fa-sliders-h"></i> Filtros</span>
+          <span class="adv-count" id="advFiltersCount" hidden>0</span>
+        </div>
+        <div class="adv-panel" id="advFiltersPanel">
+          <div class="adv-group">
+            <span class="adv-group-label">Gêneros</span>
+            <div class="adv-chips adv-chips--scroll" id="advGenres" role="group" aria-label="Gêneros"></div>
+          </div>
+          <div class="adv-grid">
+            <label class="adv-field">
+              <span class="adv-field-label">Classificação de idade</span>
+              <select id="advCertification" class="adv-select"></select>
+            </label>
+            <label class="adv-field">
+              <span class="adv-field-label">Duração do episódio</span>
+              <select id="advRuntime" class="adv-select"></select>
+            </label>
+            <label class="adv-field">
+              <span class="adv-field-label">Idioma original</span>
+              <select id="advLanguage" class="adv-select"></select>
+            </label>
+            <label class="adv-field">
+              <span class="adv-field-label">Status</span>
+              <select id="advStatus" class="adv-select"></select>
+            </label>
+            <label class="adv-field">
+              <span class="adv-field-label">Formato</span>
+              <select id="advType" class="adv-select"></select>
+            </label>
+            <label class="adv-field">
+              <span class="adv-field-label">Ordenar por</span>
+              <select id="advSort" class="adv-select"></select>
+            </label>
+            <div class="adv-field adv-field--year">
+              <span class="adv-field-label">Ano de lançamento</span>
+              <div class="adv-year">
+                <input type="number" id="advYearFrom" min="1900" max="2100" placeholder="De" inputmode="numeric" aria-label="Ano inicial" />
+                <input type="number" id="advYearTo" min="1900" max="2100" placeholder="Até" inputmode="numeric" aria-label="Ano final" />
+              </div>
+            </div>
+          </div>
+          <div class="adv-group">
+            <span class="adv-group-label">País de origem</span>
+            <div class="adv-chips adv-chips--scroll" id="advCountries" role="group" aria-label="Países de origem"></div>
+          </div>
+          <div class="adv-actions">
+            <button type="button" id="advClear" class="adv-clear"><i class="fas fa-eraser"></i> Limpar filtros</button>
+          </div>
+        </div>
+      </aside>
+      <div class="pesquisa-results">
+        <p class="pesquisa-summary" id="pesquisaSummary" hidden></p>
+        <div id="pesquisaGrid" class="grid grid-cols-8" role="list"></div>
+        <div class="pesquisa-empty" id="pesquisaEmpty">
+          <i class="fas fa-search"></i>
+          <p>Digite pelo menos 2 caracteres para buscar</p>
+        </div>
+        <div class="pesquisa-loading" id="pesquisaLoading" style="display:none;">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Buscando...</p>
+        </div>
+        <div class="pesquisa-more" id="pesquisaMore" style="display:none;">
+          <button type="button" id="pesquisaMoreBtn" class="adv-more-btn">
+            <i class="fas fa-plus"></i> Carregar mais
+          </button>
+        </div>
       </div>
     </section>
 

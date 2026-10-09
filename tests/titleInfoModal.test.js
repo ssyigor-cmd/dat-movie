@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { flagEmoji, flagUrl, LANG_PT, STATUS_ICON, STATUS_TONE } from '../src/components/titleInfoModal.js';
+import { flagEmoji, flagUrl, LANG_PT, STATUS_ICON, STATUS_TONE, pickContentRating, formatAgeRating } from '../src/components/titleInfoModal.js';
 
 describe('flagEmoji', () => {
   it('converte ISO 3166-1 alpha-2 no par de simbolos regionais', () => {
@@ -45,6 +45,49 @@ describe('LANG_PT', () => {
       expect(k).toMatch(/^[a-z]{2}$/);
       expect(LANG_PT[k]).toBeTruthy();
     }
+  });
+});
+
+describe('classificação etária (content_ratings)', () => {
+  const ratings = {
+    results: [
+      { iso_3166_1: 'US', rating: 'TV-MA' },
+      { iso_3166_1: 'BR', rating: '16' },
+      { iso_3166_1: 'DE', rating: '16' }
+    ]
+  };
+
+  it('prioriza o Brasil, que é o público do app', () => {
+    const escolhida = pickContentRating(ratings);
+    expect(escolhida.iso_3166_1).toBe('BR');
+    expect(escolhida.rating).toBe('16');
+  });
+
+  it('sem nota brasileira, cai para a americana', () => {
+    const soUs = { results: [{ iso_3166_1: 'US', rating: 'TV-14' }] };
+    expect(pickContentRating(soUs).iso_3166_1).toBe('US');
+  });
+
+  it('sem BR nem US, usa a primeira disponível', () => {
+    const soDe = { results: [{ iso_3166_1: 'DE', rating: '12' }] };
+    expect(pickContentRating(soDe).iso_3166_1).toBe('DE');
+  });
+
+  it('ignora país sem nota ("não classificada")', () => {
+    const vazios = { results: [{ iso_3166_1: 'BR', rating: '' }, { iso_3166_1: 'US', rating: 'TV-G' }] };
+    expect(pickContentRating(vazios).iso_3166_1).toBe('US');
+  });
+
+  it('devolve null quando não há classificação alguma', () => {
+    expect(pickContentRating({ results: [] })).toBeNull();
+    expect(pickContentRating()).toBeNull();
+    expect(pickContentRating({ results: [{ iso_3166_1: 'BR', rating: '' }] })).toBeNull();
+  });
+
+  it('formata a nota com o país de referência', () => {
+    expect(formatAgeRating({ iso_3166_1: 'BR', rating: '16' })).toBe('16 · BR');
+    expect(formatAgeRating(null)).toBe('');
+    expect(formatAgeRating({ iso_3166_1: 'BR', rating: '' })).toBe('');
   });
 });
 

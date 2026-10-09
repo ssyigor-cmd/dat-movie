@@ -260,6 +260,57 @@ describe('getAffinityRail', () => {
     }));
     expect(faixa).toBeNull();
   });
+
+  it('pagina o recommendations e completa com o similar', async () => {
+    // Com ~20 candidatos por página e 18 vagas, uma página só pintava o pool
+    // inteiro: não sobrava nada para o próximo clique de atualizar. O similar
+    // entra como complemento porque é ele que existe em página suficiente.
+    const fake = async (endpoint, params) => {
+      const page = params.page || 1;
+      if (endpoint.includes('/recommendations')) {
+        const inicio = (page - 1) * 20;
+        return {
+          total_pages: 3,
+          results: Array.from({ length: 20 }, (_, i) => raw({ id: inicio + i + 1, name: `R${inicio + i + 1}` }))
+        };
+      }
+      return { total_pages: 1, results: [raw({ id: 5000, name: 'Do similar' })] };
+    };
+    const faixa = await withMock(fake, (mod) => mod.getAffinityRail([item()], {}));
+    expect(faixa.pool.length, '3 páginas de 20 + o similar').toBe(61);
+    expect(faixa.pool.map((t) => t.id)).toContain(5000);
+  });
+
+  it('para na página que não traz nada novo, mesmo sem total_pages', async () => {
+    // É o `recommendations` na vida real: ignora o `page` e devolve a mesma
+    // lista para sempre. Sem este corte a busca gastaria as 15 páginas para
+    // coletar nada, e o carregamento da home ficaria preso numa âncora.
+    let chamadas = 0;
+    const fake = async () => {
+      chamadas++;
+      return { results: [raw({ id: 700 }), raw({ id: 701 })] };
+    };
+    const faixa = await withMock(fake, (mod) => mod.getAffinityRail([item()], {}));
+    expect(chamadas, 'recommendations 2 páginas + similar 1 página').toBe(3);
+    expect(faixa.pool.map((t) => t.id)).toEqual([700, 701]);
+  });
+
+  it('não varre o catálogo inteiro atrás de material seco: há teto de âncoras', async () => {
+    // A lista de âncoras passou a ser o catálogo inteiro. Sem teto, um clique
+    // consultava todas as bases, cada uma com duas fontes paginadas — e uma
+    // âncora seca já bastava para o laço tentar a próxima.
+    let chamadas = 0;
+    const fake = async () => {
+      chamadas++;
+      return { results: [] };
+    };
+    const catalogo = Array.from({ length: 15 }, (_, i) => item({ id: i + 1, tmdb_id: 100 + i, nome: `T${i}` }));
+    const faixa = await withMock(fake, (mod) => mod.getAffinityRail(catalogo, {}));
+    expect(faixa).toBeNull();
+    // 12 âncoras consultadas × (recommendations + similar) = 24 chamadas.
+    // Sem o teto seriam 30 âncoras (15 × 2 voltas) = 60.
+    expect(chamadas).toBe(24);
+  });
 });
 
 describe('AFFINITY_RAIL_COUNT', () => {

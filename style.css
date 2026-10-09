@@ -1870,6 +1870,10 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
   background: var(--bg-elevated-hover);
 }
 
+input, select, textarea {
+  font-family: var(--font-body);
+}
+
 button {
   background: var(--accent); color: var(--accent-ink); border: none; padding: 10px 22px;
   border-radius: var(--radius-pill); font-weight: 600; font-size: 0.85rem; font-family: var(--font-body);
@@ -2530,9 +2534,17 @@ a:focus-visible,
    PESQUISA (TMDB Search View)
    ================================================================ */
 .search-view {
-  padding: 24px 32px;
   flex: 1;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  /* Alinhado à barra superior: sem padding lateral próprio (o pai já aplica
+     `--page-pad-x`) e puxado para cima para encostar na borda inferior dela. */
+  margin-top: -24px;
 }
+
+.pesquisa-results { min-width: 0; padding-top: 24px; }
 
 .pesquisa-empty,
 .pesquisa-loading {
@@ -2556,6 +2568,210 @@ a:focus-visible,
 .pesquisa-loading p {
   font-size: 0.9rem;
   margin: 0;
+}
+
+/* Filtros avançados da aba Pesquisar — bloco lateral fixo.
+   Pendurado na barra superior: sem borda no topo e cantos de cima retos,
+   para a borda inferior do header virar o topo desta coluna (o "L"). */
+.adv-filters {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-left-color: transparent;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: transparent;
+}
+
+.adv-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.adv-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.adv-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.adv-panel { display: block; }
+
+.adv-group { margin-bottom: 14px; }
+
+.adv-group-label,
+.adv-field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.adv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adv-chips--scroll {
+  max-height: 132px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.adv-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.adv-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.adv-chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.adv-chip.excluded {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-weight: 600;
+}
+
+.adv-chip.excluded::before { content: '⊘ '; font-weight: 700; }
+
+.adv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px 18px;
+  margin-bottom: 14px;
+}
+
+.adv-field { display: block; min-width: 0; }
+
+.adv-select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.adv-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.adv-year { display: flex; align-items: center; gap: 8px; }
+
+.adv-year input {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+.adv-year input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.adv-actions { display: flex; }
+
+.adv-clear {
+  display: inline-flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.adv-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+.pesquisa-summary {
+  margin: 0 0 14px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.pesquisa-more {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 12px;
+}
+
+.adv-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.adv-more-btn:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--accent); }
+
+/* Em telas estreitas o bloco lateral vira uma faixa acima dos resultados. */
+@media (max-width: 900px) {
+  .search-view { grid-template-columns: 1fr; margin-top: 0; }
+  .adv-filters {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .pesquisa-results { padding-top: 0; }
 }
 
 /* ================================================================
