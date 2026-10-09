@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createCache, cacheGet, cacheSet, cacheClear, cacheClearPrefix, appCache } from '../src/lib/cache.js';
+import { describe, it, expect } from 'vitest';
+import { createCache, cacheGet, cacheSet, cacheClear, cacheClearPrefix } from '../src/lib/cache.js';
 
 describe('cache', () => {
   it('set e get funcionam', () => {

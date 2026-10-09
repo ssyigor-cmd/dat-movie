@@ -18,8 +18,7 @@ export function setupEpisodesModal(elements, callbacks) {
     episodesClose,
     episodesTitle,
     episodesLoading,
-    episodesContent,
-    detailModal
+    episodesContent
   } = elements;
 
   const {
@@ -29,16 +28,11 @@ export function setupEpisodesModal(elements, callbacks) {
 
   function closeEpisodesModal() {
     episodesModal.classList.remove('active');
-    if (!detailModal.classList.contains('active')) {
-      unlockScreen();
-    }
+    unlockScreen();
     episodesContent.innerHTML = '';
     episodesContent.style.display = 'none';
     episodesLoading.style.display = 'flex';
     releaseFocusTrap();
-    if (detailModal.classList.contains('active')) {
-      trapFocus(detailModal.querySelector('.modal'));
-    }
   }
 
   async function openEpisodesModal(index, items, curTemp, curEp) {

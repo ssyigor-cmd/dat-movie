@@ -17,14 +17,8 @@ export function setupConfirmModal() {
     confirmModal.classList.remove('active');
     unlockScreen();
     releaseFocusTrap();
-    // Re-trap detail modal if still open
-    const detailModal = document.getElementById('detailModal');
-    if (detailModal && detailModal.classList.contains('active')) {
-      const m = detailModal.querySelector('.modal');
-      if (m) trapFocus(m);
-    }
     if (previousFocus && typeof previousFocus.focus === 'function') {
-      try { previousFocus.focus(); } catch (_) {}
+      try { previousFocus.focus(); } catch {}
     }
     if (confirmResolver) {
       const r = confirmResolver;

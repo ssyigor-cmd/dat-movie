@@ -9,7 +9,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, formatDateBR, calcularProgresso, totalDeEpisodiosDaSerie } from '../lib/catalog.js';
+import { getTierClass, formatDateBR, totalDeEpisodiosDaSerie } from '../lib/catalog.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
 import { resolveSeasonPosterUrl, shouldUseSeasonArt } from '../lib/seasonArt.js';
@@ -18,7 +18,6 @@ import { createAutoRotate } from '../lib/autoRotate.js';
 // ================================================================
 // 1) ESTADO & CALLBACKS
 // ================================================================
-let currentItem = null;
 let onUpdate = null;
 let onDelete = null;
 let onBack = null;
@@ -142,9 +141,7 @@ async function persistirTotaisCorrigidos(item, mapaTmdb, totalTmdb) {
 // 3) RENDER
 // ================================================================
 function renderTitlePage(item, container) {
-  currentItem = item;
   const tierClass = item.tier ? getTierClass(item.tier) : '';
-  const progress = calcularProgresso(item); // mantido para cálculo interno, UI removida
   const { maxTemp: computedMaxTemp, map: seasonMap } = getSeasonLimits(item);
   const displayMaxTemp = String(computedMaxTemp).padStart(2, '0');
   const curTempInit = String(item.temporada || 1).padStart(2, '0');
@@ -171,7 +168,7 @@ function renderTitlePage(item, container) {
           </div>
           <div class="tp-meta-group" id="tpMetaGroup" style="display:none;">
             <div id="titleOriginalName" style="font-size:0.68rem; color:var(--text-muted); font-style:italic; display:none;"></div>
-            <div id="titleDates" style="font-size:0.62rem; color:rgba(255,255,255,0.35); display:none; align-items:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
+            <div id="titleDates" style="font-size:0.62rem; color:var(--text-faint); display:none; align-items:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
           </div>
         </div>
         <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
@@ -528,7 +525,7 @@ function renderTitlePage(item, container) {
         if (epDateEl) epDateEl.textContent = '';
         if (epSynopsisEl) epSynopsisEl.textContent = 'Sinopse não disponível.';
       }
-    } catch (e) {
+    } catch {
       if (requestId !== epRequestId) return;
       if (epTitleEl) epTitleEl.textContent = `Episódio ${curEp}`;
       if (epSynopsisEl) epSynopsisEl.textContent = 'Erro ao carregar sinopse.';
@@ -601,8 +598,8 @@ function renderTitlePage(item, container) {
     try {
       const saved = await onUpdate(item.id, { temporada: curTemp, episodio: curEp, status: newStatus, tier: newTier });
       Object.assign(item, saved);
-      const box = document.getElementById('detailListCheckboxes')?.querySelectorAll('input[type="checkbox"]:checked').length ? document.getElementById('detailListCheckboxes') : document.getElementById('addListCheckboxes');
-      if (box && onAddItemToList && onRemoveItemFromList && onGetUserLists) {
+      const box = document.getElementById('detailListCheckboxes');
+      if (box && box.querySelectorAll('input[type="checkbox"]:checked').length && onAddItemToList && onRemoveItemFromList && onGetUserLists) {
         const selectedIds = Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
         const currentIds = (item.lists || []).map(l => l.id);
         const toAdd = selectedIds.filter(id => !currentIds.includes(id));
@@ -616,7 +613,6 @@ function renderTitlePage(item, container) {
         Object.assign(item, saved);
       }
       document.getElementById('detailListModal')?.classList.remove('active');
-      document.getElementById('addListModal')?.classList.remove('active');
       onBack();
     } catch (e) { console.error(e); }
   });
@@ -633,7 +629,7 @@ function renderTitlePage(item, container) {
     // próprio status, então a marcação do item manda no lugar disso.
     const newStatus = container.querySelector('#titlePageStatusBar .dm-status-btn.active')?.dataset.status || item.status || 'assistindo';
     const newTier = currentTier || null;
-    const box = document.getElementById('detailListCheckboxes')?.querySelectorAll('input[type="checkbox"]').length ? document.getElementById('detailListCheckboxes') : document.getElementById('addListCheckboxes');
+    const box = document.getElementById('detailListCheckboxes');
     const selectedIds = box ? Array.from(box.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value) : [];
     const payload = {
       nome: item.nome,
@@ -654,7 +650,6 @@ function renderTitlePage(item, container) {
       addBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adicionando...';
       const created = await onCreateItem(payload);
       document.getElementById('detailListModal')?.classList.remove('active');
-      document.getElementById('addListModal')?.classList.remove('active');
       // atualiza item para modo catálogo e volta
       if (created) Object.assign(item, created);
       onBack();
@@ -670,14 +665,13 @@ function renderTitlePage(item, container) {
       document.body.appendChild(m);
       m.style.zIndex = '300';
     }
-    // também garante addListModal como fallback
-    return m || document.getElementById('addListModal');
+    return m;
   }
   const tpListBtn = container.querySelector('#tpListBtn');
   const tpEpisodesBtn = container.querySelector('#tpEpisodesBtn');
   if (tpListBtn) tpListBtn.addEventListener('click', () => {
     const modal = ensureListModalAtBody();
-    const box = document.getElementById('detailListCheckboxes') || document.getElementById('addListCheckboxes');
+    const box = document.getElementById('detailListCheckboxes');
     if (!modal || !box) return;
     const userLists = onGetUserLists ? onGetUserLists() : [];
     const selected = new Set((item.lists || []).map(l => l.id));
@@ -710,13 +704,11 @@ function renderTitlePage(item, container) {
   if (tpDismissParentBtn) tpDismissParentBtn.addEventListener('click', () => {
     tpDismissParentBtn.closest('.tp-parent-hint')?.remove();
   });
-  // fechar modais de listas (detail e add)
-  ['detailListModal','addListModal'].forEach(id => {
-    const m = document.getElementById(id);
-    const closeBtn = document.getElementById(id === 'detailListModal' ? 'detailListModalClose' : 'addListModalClose');
-    if (closeBtn && m) closeBtn.onclick = () => m.classList.remove('active');
-    if (m) m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
-  });
+  // fechar modal de listas do título
+  const detailListModalEl = document.getElementById('detailListModal');
+  const detailListCloseBtn = document.getElementById('detailListModalClose');
+  if (detailListCloseBtn && detailListModalEl) detailListCloseBtn.onclick = () => detailListModalEl.classList.remove('active');
+  if (detailListModalEl) detailListModalEl.addEventListener('click', (e) => { if (e.target === detailListModalEl) detailListModalEl.classList.remove('active'); });
 
   // — Links externos ficam no modal de Detalhes
 
@@ -772,7 +764,6 @@ function renderTitlePage(item, container) {
         }
       } catch {
         const backdrop = container.querySelector('#titleBackdrop');
-        const backdropPh = container.querySelector('#titleBackdropPlaceholder');
         if (backdrop && details.backdrop_path) {
           backdropImages = [details.backdrop_path];
           showBackdropAt(0);
@@ -853,5 +844,4 @@ export function hideTitlePage(container) {
   stopBackdropAutoRotate();
   container.style.display = 'none';
   container.innerHTML = '';
-  currentItem = null;
 }

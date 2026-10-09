@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety, clearTrendingCache, getTitlesByYear } from '../src/lib/trendingApi.js';
+import { isWithin7DaysWindow, getFavorites, getCatalogStats, rankRecommendationBases, rotateList, shuffleList, pickVariety, clearTrendingCache } from '../src/lib/trendingApi.js';
 import { cacheSet, cacheGet, cacheClear } from '../src/lib/cache.js';
 
 describe('clearTrendingCache', () => {
@@ -324,7 +324,6 @@ describe('getCalendarWeek', () => {
   const assistindo = [{ tmdb_id: 1, status: 'assistindo', tipo: 'serie', nome: 'A' }];
 
   it('usa o que vem quando ha episodio agendado', async () => {
-    const mod = await import('../src/lib/trendingApi.js');
     const week = await (async () => {
       const withMock = async (fn) => {
         vi.resetModules();
@@ -395,7 +394,7 @@ describe('getTitlesByYear', () => {
   });
 
   it('normaliza os itens como os demais carrosséis', async () => {
-    const fake = async (endpoint, params) => {
+    const fake = async (endpoint) => {
       if (endpoint === 'discover/tv') {
         return { results: [
           { id: 1, name: 'Título Um', first_air_date: '2020-03-10', poster_path: '/a.jpg', vote_average: 8 },
@@ -412,7 +411,7 @@ describe('getTitlesByYear', () => {
   });
 
   it('não repete título que já está no catálogo', async () => {
-    const fake = async (endpoint, params) => {
+    const fake = async (endpoint) => {
       if (endpoint === 'discover/tv') {
         return { results: [
           { id: 100, name: 'Já Tenho', poster_path: '/a.jpg' },

@@ -21,7 +21,6 @@ describe('cardMarkup: a anatomia do card', () => {
     titleHtml: escapeHTML('Breaking Bad') + ' (2008)',
     titleAttr: 'Breaking Bad (2008)',
     stampHtml: '<div class="tier-stamp tier-S">S</div>',
-    metaHtml: '<div class="info"><span>T1 &middot; Ep 02</span></div>',
     extraHtml: '<div class="progress-wrap"></div>'
   });
 
@@ -30,17 +29,30 @@ describe('cardMarkup: a anatomia do card', () => {
     expect(completo).toContain('class="card-body"');
   });
 
-  it('põe o título como primeiro filho do corpo', () => {
-    // A meta e o `extraHtml` são opcionais; se o `<h3>` deixar de vir primeiro,
-    // a linha de metadado sobe para o topo do card quando a tela a escreve
-    // antes — que era como a Home desalinhava com o Catálogo.
+  it('põe o título dentro da imagem, e o corpo vem depois', () => {
+    // O nome mora sobre o pôster — hover escurece e mostra, toque revela — e
+    // não no rodapé: se ele voltar para dentro de `.card-body`, a barra de
+    // progresso volta a ser empurrada por texto que não é dela.
+    const img = completo.slice(completo.indexOf('class="card-img"'), completo.indexOf('class="card-body"'));
+    expect(img).toContain('class="card-title"');
     const corpo = completo.slice(completo.indexOf('class="card-body"'));
-    expect(corpo.indexOf('<h3')).toBeLessThan(corpo.indexOf('class="info"'));
+    expect(corpo).not.toContain('<h3');
+    expect(corpo).toContain('class="progress-wrap"');
+  });
+
+  it('no toque, o primeiro clique revela o nome e o segundo entra no card', () => {
+    // Sem hover não existe passar o mouse: o contrato é um clique para ver o
+    // nome e outro para abrir. O CSS precisa responder à mesma classe que o
+    // JS aplica — os dois lados do contrato, cada um no seu arquivo.
+    const src = readFileSync(join(raiz, 'src/components/cards.js'), 'utf8');
+    expect(src).toContain("matchMedia('(hover: none)')");
+    expect(src).toContain("'is-revealed'");
+    expect(css).toMatch(/\.card\.is-revealed \.card-img::after[^}]*opacity:\s*1/);
+    expect(css).toMatch(/\.card\.is-revealed \.card-title[^}]*opacity:\s*1/);
   });
 
   it('esconde as peças que a tela não tem, em vez de renderizar vazio', () => {
     const semNada = cardMarkup({ titleHtml: 'X', titleAttr: 'X' });
-    expect(semNada).not.toContain('class="info"');
     expect(semNada).not.toContain('class="progress-wrap"');
     expect(semNada).not.toContain('class="tier-stamp"');
   });

@@ -2,6 +2,12 @@
    VARIÁVEIS E TEMA - MONOCROMÁTICO SÓLIDO (5 cores base)
    ================================================================ */
 :root {
+  /* O escuro é o tema base: ele mora aqui, sem sufixo. O claro é o override
+     no bloco [data-theme="light"] logo abaixo. O `color-scheme` avisa o
+     navegador para pintar rolagem, selects e controles nativos no mesmo
+     tom — sem ele, o app fica claro com barra de rolagem escura. */
+  color-scheme: dark;
+
   /* Paleta base - 5 cores monocromáticas */
   --bg-primary: #0A0A0A;       /* Background principal */
   --bg-primary-rgb: 10, 10, 10;
@@ -162,7 +168,132 @@
   --page-pad-x: 32px;
   --page-pad-top: 120px;   /* navbar 64px + 56 */
   --page-pad-bottom: 28px;
+
+  /* ==============================================================
+     TOKENS DE TEMA — os que precisam virar de lado no modo claro
+     --------------------------------------------------------------
+     Todo valor `rgba(255,255,255,α)` que pintava superfície da
+     interface (não mídia) virou token: branco sobre branco é invisível,
+     e era o que quebrava ao clarear. Cada um tem par no bloco claro.
+     ============================================================== */
+
+  /* Superfície "poço": fundo de select nativo e botões stepper. Era
+     `rgb(19,18,19)` escrito à mão em cinco regras. */
+  --bg-well: rgb(19, 18, 19);
+
+  /* Superfícies fantasma do Title Page: painéis quase invisíveis que
+     ganham profundidade por diferença de tom, não por sombra. */
+  --ghost-bg: rgba(255, 255, 255, 0.012);
+  --ghost-border: rgba(255, 255, 255, 0.022);
+  --ghost-bg-hover: rgba(255, 255, 255, 0.035);
+  --ghost-strong: rgba(255, 255, 255, 0.06);
+
+  /* Rampa de texto fraco. Antes eram oito alfas soltos (0.22 … 0.85);
+     agora são cinco degraus com nome, e o claro só troca o alfa por
+     preto — a hierarquia do Title Page sobrevive à troca de tema. */
+  --text-faintest: rgba(255, 255, 255, 0.22);
+  --text-faint: rgba(255, 255, 255, 0.30);
+  --text-dim: rgba(255, 255, 255, 0.45);
+  --text-soft: rgba(255, 255, 255, 0.58);
+  --text-strong: rgba(255, 255, 255, 0.82);
+
+  /* Texto sobre foto: o card escurece a imagem com gradiente PRETO em
+     qualquer tema, então aqui a cor não acompanha a rampa — no claro,
+     `--text-primary` seria quase-preto sobre quase-preto e o nome some
+     no hover. Branco nos dois temas, por definição do overlay. */
+  --text-on-photo: #fff;
+
+  /* Perigo como fantasma (botão destrutivo do Title Page) e como TEXTO.
+     `--danger` continua sendo a cor cheia (fundo, borda); quem é rótulo
+     usa estes, porque vermelho-claro sobre branco não se lê. */
+  --danger-ghost-bg: rgba(239, 68, 68, 0.035);
+  --danger-ghost-border: rgba(239, 68, 68, 0.08);
+  --danger-ghost-text: rgba(255, 150, 150, 0.80);
+  --danger-text: #f87171;
+  --success-text: #4ade80;
+  --warning-text: #fbbf24;
+
+  /* Tinta de hover dos steppers de temporada/episódio: somar levemente
+     verde, subtrair levemente vermelho. Translúcida de propósito — o
+     fundo aparece embaixo, então o mesmo valor vale nos dois temas sem
+     precisar de override no claro. */
+  --success-soft: rgba(34, 197, 94, 0.15);
+  --danger-soft: rgba(239, 68, 68, 0.15);
 }
+
+/* ================================================================
+   TEMA CLARO — a mesma paleta, de cabeça para baixo
+   --------------------------------------------------------------
+   Nada de seletor novo por componente: o claro é uma lista de tokens
+   que o `[data-theme]` põe no `<html>`, e quem consome `var(--...)`
+   (que é todo mundo) troca de tom sozinho. O que não estava em token
+   foi promovido a token justamente para entrar aqui — as superfícies
+   fantasma e a rampa de texto fraco do Title Page, que eram
+   `rgba(255,255,255,α)` na mão.
+
+   Convenção do bloco: cinza claro de fundo sob texto quase preto,
+   acento escuro (o monocromático inverte, não desaparece), sombra
+   mais rasa e `color-scheme: light` para os controles nativos.
+   ================================================================ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-primary: #F7F7F7;
+  --bg-primary-rgb: 247, 247, 247;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-elevated-hover: #EFEFEF;
+  --bg-secondary: #F2F2F2;
+  --bg-hover: #EBEBEB;
+  --bg-well: #ECECEC;
+  --border: #E3E3E3;
+  --border-strong: #C9C9C9;
+
+  --text-primary: #171717;
+  --text-secondary: #555555;
+  --text-muted: #8C8C8C;
+  --text: #171717;
+
+  --accent: #1F1F1F;
+  --accent-rgb: 31, 31, 31;
+  --accent-hover: #333333;
+  --accent-ink: #F7F7F7;
+  --accent-soft: rgba(0, 0, 0, 0.07);
+
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.20);
+
+  /* Fantasma: tinta branca vira tinta preta, mesma função. */
+  --ghost-bg: rgba(0, 0, 0, 0.02);
+  --ghost-border: rgba(0, 0, 0, 0.06);
+  --ghost-bg-hover: rgba(0, 0, 0, 0.045);
+  --ghost-strong: rgba(0, 0, 0, 0.09);
+
+  /* Texto fraco: mesmo degrau, alfa de preto. Um tique mais denso que
+     o branco correspondente, porque preto sobre claro respira menos. */
+  --text-faintest: rgba(0, 0, 0, 0.40);
+  --text-faint: rgba(0, 0, 0, 0.50);
+  --text-dim: rgba(0, 0, 0, 0.55);
+  --text-soft: rgba(0, 0, 0, 0.68);
+  --text-strong: rgba(0, 0, 0, 0.85);
+
+  --danger-ghost-bg: rgba(239, 68, 68, 0.06);
+  --danger-ghost-border: rgba(239, 68, 68, 0.20);
+  --danger-ghost-text: #B91C1C;
+
+  --danger-text: #B91C1C;
+  --success-text: #15803D;
+  --warning-text: #A16207;
+}
+
+/* A marca tem variante para cada tema (assets/BRAND_GUIDELINES.md): os
+   arquivos `-dark` são brancos e somem sobre as superfícies claras da
+   navbar e do login. O `content` troca a imagem renderizada junto com o
+   `data-theme` — o script anti-flash pinta o atributo antes do CSS, então
+   não existe frame com o ícone branco, e sem depender do JS carregar. */
+[data-theme="light"] .navbar-brand-icon { content: url('assets/icon/icon-face-light.svg'); }
+[data-theme="light"] .auth-logo-img { content: url('assets/logo/stacked-light.svg'); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -182,47 +313,21 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
-/* ================================================================
-   PAPEL DE DISPLAY
-   ================================================================
-   A base é a Inter e não se declara em mais lugar nenhum: sinopse, meta,
-   detalhe, botão, badge e input herdam dela, e é isso que resolve a
-   legibilidade. Aqui fica só o que *nomeia* algo, que é onde a Space Grotesk
-   ajuda em vez de atrapalhar — título, cabeçalho, número grande,
-   e o nome da lista na navbar.
-
-   O corte é semântico, não por tamanho. `.epp-season-label` a 0.65rem e
-   `.card-body h3` a 0.85rem são quase do mesmo tamanho, mas um é um rótulo de
-   detalhe e o outro é o nome do filme: o segundo é que vai de display. O que
-   é dado técnico — número de episódio, data, ano, contagem, porcentagem —
-   nem entra aqui: vai para `--font-mono`, porque precisa alinhar em coluna.
-
-   Os `i` não aparecem aqui: são Font Awesome, e a fonte deles não interfere. */
-.card-body h3,
-.pesquisa-card-body h3,
+.card-title,
 .home-section-title,
 .group-header h3,
 .season-header h3,
 .header-list-name,
 .header-subtitle,
-.epp-season-val,
-.epp-season-max,
-.epp-max,
-.epp-ep-badge,
-.epp-season-text,
-.epp-episode-title,
-.detail-header-center h2,
 .modal-header h2,
 .auth-box h2,
 .ti-name,
 .home-greeting-title,
 .episode-title,
 .season-toggle,
-#addListModalTitle,
 #detailListModalTitle,
 #titleEpTitle,
 .relink-name,
-.dm-original-title,
 .tier-option,
 .home-affinity-chip {
   font-family: var(--font-display);
@@ -341,12 +446,6 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--border);
 }
 .nav-item.active i { color: var(--accent); }
-
-/* Menu "Listas" (listas dinâmicas) */
-.navbar-lists {
-  position: relative;
-  flex-shrink: 0;
-}
 .nav-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -474,6 +573,30 @@ h1, h2, h3, h4, h5, h6 {
 }
 .profile-pref:hover { color: var(--text-primary); }
 .profile-pref input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 3px; }
+
+/* Tema: mesma linha de preferência, mas são três rádios em vez de um
+   checkbox — Sistema, Escuro, Claro. O `role="radiogroup"` fica no HTML;
+   aqui é só apresentação. O rádio é nativo de propósito, igual ao checkbox
+   acima: o `accent-color` pinta no tema vigente sem código extra. */
+.profile-pref--theme { cursor: default; flex-wrap: wrap; }
+.theme-options { display: flex; gap: 12px; margin-left: auto; }
+.theme-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.theme-option:hover { color: var(--text-primary); }
+.theme-option input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.theme-option input:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 50%; }
 .profile-pref-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Cabeçalho: avatar de iniciais + nome e email empilhados. */
@@ -787,340 +910,6 @@ img { max-width: 100%; height: auto; display: block; }
 /* hide toolbar selects visually but keep modal selects visible (we prefer native selects inside modals) */
 #filterStatus, #filterTier, #sortOrder { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
-/* Acessibilidade: aumentar contraste e estilizar selects dentro dos modais (detailModal e modalOverlay)
-   - Texto centralizado e mais pesado
-   - Fundo mais destacado, borda mais visível e foco com sombra
-   - Estilização das options para melhor legibilidade onde suportado
-*/
-#modalOverlay select,
-#modalOverlay .select {
-  background: rgb(19, 18, 19);
-  color: var(--text-primary);
-  border: none;
-  padding: 8px 10px;
-  border-radius: 10px;
-  -webkit-appearance: none;
-  appearance: none;
-  text-align: center;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  min-height: 32px;
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  box-shadow: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23E5E5E5' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
-/* Remover seta padrão em alguns navegadores para manter o estilo */
-#modalOverlay select::-ms-expand {
-  display: none;
-}
-
-#modalOverlay select:focus {
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(212,212,212,0.1);
-  border-color: rgba(212,212,212,0.4);
-}
-
-/* Opções de select */
-#modalOverlay option {
-  background: rgb(19, 18, 19);
-  color: var(--text-primary);
-  text-align: center;
-  font-weight: 600;
-  padding: 8px 10px;
-}
-
-/* Forçar contraste adicional para badges e controles que possam usar os mesmos tons */
-#detailModal .badge,
-#modalOverlay .badge {
-  color: var(--text-primary);
-  background: var(--bg-surface);
-}
-
-/* ================================================================
-   DETAIL MODAL – STREAMING LAYOUT
-   ================================================================ */
-
-.modal.modal-detail {
-  width: 100%;
-  max-width: min(1100px, 96%);
-  height: auto;
-  max-height: min(90dvh, 860px);
-  padding: 0;
-  background: var(--bg-primary);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-strong);
-  transform: translateY(30px) scale(0.96);
-  opacity: 0;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-.modal-overlay.active .modal.modal-detail {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-}
-
-#detailModal {
-  background: rgba(0, 0, 0, 0.75);
-}
-.modal.modal-detail .detail-header { flex-shrink: 0; min-height: clamp(56px, 8vh, 72px); padding: clamp(12px,1.5vh,20px) 0 clamp(6px,1vh,8px); }
-/* ── Imagens do modal: proporção natural, sem corte e sem barra ──────
-   São duas imagens de razões diferentes (pôster 2/3, backdrop 16/9).
-   Para ficarem lado a lado sem barra, elas precisam COMPARTILHAR a mesma
-   altura. Antes cada uma tinha a sua e o `align-items: center` centralizava
-   o backdrop no espaço do pôster — daí a faixa vazia ao redor dele.
-
-   A altura é limitada por três tetos. O teto em `cqw` (27%) é o mais
-   importante: ele dimensiona pelo PIOR CASO, que é as DUAS imagens em
-   16/9 (soma 3,556) e não o par misto 2:3 + 16/9 (soma 2,444).
-   Dimensionar pelo par misto estourava a largura e a imagem era cortada.
-
-   O `container-type` fica no PRÓPRIO wrap, não no modal: o wrap tem 94%
-   (regra por id em #addPosterWrap/#detailPosterWrap) e é a largura
-   realmente disponível. Medir pelo modal dava folga demais — o flex
-   encolhia as duas imagens e o `contain` abria barra vertical em volta. */
-.modal.modal-detail .dm-poster-wrap {
-  /* 0 1 auto: o bloco ABRAÇA a linha de imagens em vez de esticar e deixar
-     sobras ao redor (era a "borda"). O painel de episódios continua preso
-     ao fundo pelo margin-top:auto dele. */
-  container-type: inline-size;
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 62vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: transparent;
-  width: 100%;
-  margin: 0;
-  border-radius: 0;
-}
-.modal.modal-detail .dm-poster-dual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 1.2cqw, 16px);
-  width: 100%;
-  max-width: 100%;
-  height: min(40vh, 27cqw, 400px);
-  flex-shrink: 0;
-  background: transparent;
-}
-.modal.modal-detail .dm-poster-dual img,
-.modal.modal-detail .dm-poster-dual .dm-poster-card-img {
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  min-height: 0;
-  object-fit: contain;
-  object-position: center;
-  background: transparent;
-  border-radius: 0;
-  flex: 0 1 auto;
-  /* a regra global força 2/3 no card; com `contain` isso barra o backdrop
-     16/9 que o main.js às vezes atribui ao slot do card */
-  aspect-ratio: auto;
-}
-.modal.modal-detail .poster-steppers-row { flex: 0 0 auto; min-height: 0; max-height: 28vh; overflow: hidden; display: flex; align-items: stretch; }
-.modal.modal-detail .episode-progress-panel { height: auto; min-height: 0; padding: 4px; gap: 4px; }
-.modal.modal-detail .epp-season, .modal.modal-detail .epp-episode, .modal.modal-detail .epp-episode-meta, .modal.modal-detail .epp-status, .modal.modal-detail .epp-actions { padding: 4px 6px; gap: 4px; }
-.modal.modal-detail .epp-season-label, .modal.modal-detail .epp-episode-label { font-size: 0.58rem; }
-.modal.modal-detail .epp-season-val, .modal.modal-detail .epp-ep-badge { font-size: 2.8rem; }
-.modal.modal-detail .dm-status-btn, .modal.modal-detail .dm-action-btn { padding: 3px 7px; font-size: 0.6rem; }
-
-/* Híbrido: fullscreen em telas baixas ou estreitas */
-@media (max-height: 700px), (max-width: 768px) {
-  #detailModal, #modalOverlay {
-    padding: 0;
-    background: var(--bg-primary);
-    align-items: stretch;
-    justify-content: stretch;
-  }
-  #detailModal .modal.modal-detail,
-  #modalOverlay .modal.modal-detail {
-    width: 100%;
-    height: 100dvh;
-    max-height: 100dvh;
-    max-width: 100%;
-    margin: 0;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
-  #detailModal .modal.modal-detail .dm-poster-wrap,
-  #modalOverlay .modal.modal-detail .dm-poster-wrap {
-    max-height: 38vh;
-  }
-  /* mesmo compartilhamento de altura, com tetos menores para caber na faixa
-     compacta e não empurrar o painel de episódios para fora */
-  #detailModal .modal.modal-detail .dm-poster-dual,
-  #modalOverlay .modal.modal-detail .dm-poster-dual {
-    height: min(34vh, 27cqw, 380px);
-  }
-}
-
-/* ── Header (Detail) ─────────────────────────────────────── */
-.detail-header {
-  flex-shrink: 0;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  min-height: 72px;
-  margin: 0 auto 12px;
-  display: flex;
-  padding: 20px 0 8px;
-  width: 94%;
-}
-.detail-header-left {
-  flex-shrink: 0;
-  align-items: center;
-  position: relative;
-  display: flex;
-}
-.detail-header-center {
-  text-align: center;
-  flex: 2;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-.detail-header-center h2 {
-  color: var(--text-primary);
-  white-space: normal;
-  text-overflow: ellipsis;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  margin: 0;
-  font-size: 2.8rem;
-  font-weight: 600;
-  line-height: 1.3;
-  display: -webkit-box;
-  overflow: hidden;
-}
-.detail-header-right {
-  flex-shrink: 0;
-  align-items: center;
-  min-width: 0;
-  display: flex;
-}
-.detail-header-right .detail-meta-top {
-  color: var(--text-muted);
-  border-bottom: none;
-  gap: 16px;
-  margin-bottom: 0;
-  padding: 0;
-  font-size: 0.8rem;
-  display: flex;
-}
-.detail-header-right .detail-meta-top i {
-  color: var(--text-muted);
-  margin-right: 4px;
-}
-.detail-header-right .detail-meta-top .detail-status {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-.dm-country-flag {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 8px;
-  gap: 8px;
-}
-.dm-country-flag img {
-  width: 24px;
-  height: 16px;
-  object-fit: contain;
-  border-radius: 2px;
-}
-.dm-country-flag span {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-.detail-header .modal-close {
-  position: static;
-}
-#detailClose:hover {
-  color: #e5484d;
-}
-#detailLogoContainer, #addLogoContainer {
-  max-width: 90% !important;
-}
-#detailLogoContainer {
-  padding: 0 12px;
-  max-width: 78% !important;
-  box-sizing: border-box;
-}
-#detailLogoImg, #addLogoImg {
-  max-height: 72px !important;
-  width: auto !important;
-}
-.dm-original-title {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-style: italic;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-/* ── Poster (horizontal) ─────────────────────────────────── */
-.dm-poster-wrap {
-  width: 75%;
-  margin: 0 auto;
-  flex: 0 0 auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-primary);
-  display: block;
-}
-.dm-poster-wrap img {
-  max-width: 100%;
-  width: 100%;
-  height: auto;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  border-radius: 8px;
-}
-.dm-poster-dual {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  align-items: stretch;
-  background: var(--bg-primary);
-}
-.dm-poster-dual img {
-  height: auto;
-  object-fit: cover;
-  border-radius: 8px;
-  background: var(--bg-primary);
-}
-.dm-poster-dual img:first-child {
-  flex: 0 0 30%;
-  width: 30%;
-}
-.dm-poster-dual img:last-child {
-  flex: 0 0 70%;
-  width: 70%;
-}
-.dm-poster-card-img {
-  aspect-ratio: 2/3;
-  object-fit: contain;
-  background: var(--bg-primary);
-}
-
 /* ── Poster Steppers ─────────────────────────────────────── */
 .poster-stepper-btn {
   display: inline-flex !important;
@@ -1139,626 +928,10 @@ img { max-width: 100%; height: auto; display: block; }
   flex-shrink: 0 !important;
   transition: opacity 0.15s !important;
 }
-.poster-stepper-btn.stepper-plus,
-.poster-stepper-btn.stepper-minus {
-  border-radius: 6px !important;
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-secondary) !important;
-}
-.poster-stepper-btn.stepper-down {
-  color: var(--text-secondary) !important;
-}
-.poster-stepper-btn.stepper-up {
-  color: var(--text-secondary) !important;
-}
 .poster-stepper-btn:hover:not(.stepper-plus):not(.stepper-minus) {
   opacity: 0.7 !important;
   transform: none !important;
   background: none !important;
-}
-.poster-stepper-btn.stepper-plus:hover {
-  background: rgba(34, 197, 94, 0.25) !important;
-  border-color: rgba(34, 197, 94, 0.5) !important;
-  color: #22c55e !important;
-}
-.poster-stepper-btn.stepper-minus:hover {
-  background: rgba(239, 68, 68, 0.25) !important;
-  border-color: rgba(239, 68, 68, 0.5) !important;
-  color: #ef4444 !important;
-}
-.poster-steppers-row {
-  display: flex;
-  justify-content: stretch;
-  align-items: stretch;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-#detailPosterWrap,
-#addPosterWrap {
-  width: 94%;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
-/* Alinhar o painel de progresso com a largura do pôster */
-#posterSteppersRow,
-#addPosterSteppersRow {
-  width: 94%;
-  margin: 0 auto 18px;
-  box-sizing: border-box;
-}
-
-/* ── Episode Progress Panel (detail modal) ───────────────── */
-.episode-progress-panel {
-  display: flex;
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.dm-poster-wrap:has(+ .poster-steppers-row:not([style*="display: none"])) img {
-  border-radius: 8px 8px 0 0;
-}
-.dm-poster-wrap:has(+ .poster-steppers-row:not([style*="display: none"])) {
-  border-radius: 8px 8px 0 0;
-}
-/* NO DETAIL: pôster e painel de episódios como blocos separados */
-#detailPosterWrap,
-#detailPosterWrap img,
-#detailPosterWrap:has(+ #posterSteppersRow:not([style*="display: none"])),
-#detailPosterWrap:has(+ #posterSteppersRow:not([style*="display: none"])) img {
-  border-radius: 8px;
-}
-/* NO ADD: mesmo tratamento do detail — blocos separados */
-#addPosterWrap,
-#addPosterWrap img,
-#addPosterWrap:has(+ #addPosterSteppersRow:not([style*="display: none"])),
-#addPosterWrap:has(+ #addPosterSteppersRow:not([style*="display: none"])) img {
-  border-radius: 8px;
-}
-#posterSteppersRow .episode-progress-panel,
-#addPosterSteppersRow .episode-progress-panel {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  margin-top: 12px;
-}
-.epp-combined {
-  flex: 1 1 75%;
-  max-width: 75%;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  background: var(--bg-surface);
-}
-.epp-combined .epp-season {
-  flex: 0 0 13.33%;
-  max-width: 13.33%;
-  border-right: none;
-}
-.epp-combined .epp-episode {
-  position: relative;
-  flex: 0 0 13.33%;
-  max-width: 13.33%;
-  border-right: none;
-}
-.epp-episode-meta {
-  flex: 0 0 73.34%;
-  max-width: 73.34%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 10px;
-  min-width: 0;
-}
-.epp-episode-meta .epp-episode-details {
-  min-width: 0;
-}
-/* Padronização títulos / cores / botões do bloco */
-.epp-season-label,
-.epp-episode-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.epp-season,
-.epp-episode,
-.epp-episode-meta,
-.epp-status,
-.epp-actions {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-}
-.episode-progress-panel .dm-status-btn,
-.episode-progress-panel .dm-action-btn,
-.episode-progress-panel .dm-icon-btn,
-.epp-season-actions .dm-icon-btn,
-.epp-actions-bottom .dm-icon-btn {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
-  font-size: 0.65rem !important;
-  font-weight: 500 !important;
-  border-radius: 20px !important;
-  padding: 5px 10px !important;
-  transition: background 0.2s, border-color 0.2s, color 0.2s !important;
-}
-.episode-progress-panel .dm-status-btn:hover,
-.episode-progress-panel .dm-action-btn:hover,
-.episode-progress-panel .dm-icon-btn:hover {
-  background: var(--bg-hover) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-primary) !important;
-}
-.episode-progress-panel .dm-status-btn.active,
-.episode-progress-panel .dm-action-btn.active {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: var(--accent-ink) !important;
-}
-.episode-progress-panel .poster-stepper-btn,
-.episode-progress-panel .epp-season-btn,
-.episode-progress-panel .epp-episode-controls .poster-stepper-btn {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
-  border-radius: 20px !important;
-  width: 32px !important;
-  height: 28px !important;
-  padding: 0 !important;
-  font-size: 0.65rem !important;
-}
-.episode-progress-panel .poster-stepper-btn:hover {
-  background: var(--bg-hover) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-primary) !important;
-}
-.episode-progress-panel .stepper-plus:hover {
-  background: rgba(34,197,94,0.15) !important;
-  border-color: rgba(34,197,94,0.4) !important;
-  color: #4ade80 !important;
-}
-.episode-progress-panel .stepper-minus:hover {
-  background: rgba(239,68,68,0.15) !important;
-  border-color: rgba(239,68,68,0.4) !important;
-  color: #f87171 !important;
-}
-.epp-episode-meta .epp-episode-overview {
-  margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: var(--text-secondary);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-}
-.epp-divider-h {
-  width: 1px;
-  background: var(--border);
-  flex-shrink: 0;
-}
-.epp-actions {
-  flex: 0 0 15%;
-  max-width: 15%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 12px 10px;
-  border-left: 1px solid var(--border);
-  background: var(--bg-surface);
-  text-align: center;
-}
-.epp-actions .dm-icon-btn,
-.epp-actions .dm-action-btn {
-  width: 100%;
-  justify-content: center;
-}
-.epp-actions-bottom {
-  margin-top: auto;
-  display: flex;
-  gap: 6px;
-  width: 100%;
-  padding-top: 6px;
-}
-.epp-actions-bottom .dm-icon-btn {
-  width: auto !important;
-  height: auto !important;
-  padding: 5px 10px !important;
-  border-radius: 20px !important;
-  font-size: 0.65rem !important;
-  flex: 1;
-  gap: 5px;
-  background: var(--bg-elevated) !important;
-  border-color: var(--border-strong) !important;
-}
-.epp-actions-bottom .dm-icon-btn-danger {
-  background: rgba(239,68,68,0.18) !important;
-  border-color: rgba(239,68,68,0.35) !important;
-}
-.epp-season {
-  flex: 0 0 20%;
-  max-width: 20%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 10px;
-  background: var(--bg-surface);
-  text-align: center;
-}
-.epp-season-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.epp-season .epp-season-info {
-  gap: 6px;
-  justify-content: center;
-}
-.epp-season .epp-season-val {
-  font-size: 2.8rem;
-  color: var(--accent);
-}
-.epp-season .epp-season-max {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  opacity: 0.65;
-}
-.epp-season .epp-season-text {
-  font-size: 0.85rem;
-  opacity: 0.4;
-}
-.epp-season .epp-season-controls {
-  justify-content: center;
-}
-.epp-season-actions {
-  margin-top: auto;
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  width: 100%;
-  padding-top: 6px;
-}
-.epp-season-actions .dm-icon-btn {
-  width: auto !important;
-  height: auto !important;
-  padding: 5px 10px !important;
-  border-radius: 20px !important;
-  font-size: 0.65rem !important;
-  gap: 5px;
-}
-.epp-season-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.epp-season-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.epp-season-btn {
-  width: 28px !important;
-  height: 28px !important;
-}
-.epp-separator {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.epp-season-info {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-.epp-season-val {
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-.epp-season-text {
-  font-size: 1.05rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  letter-spacing: 0;
-  opacity: 0.6;
-}
-.epp-season-max {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  line-height: 1;
-}
-.epp-season-name {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  line-height: 1.2;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.epp-season-name:empty {
-  display: none;
-}
-.epp-episode {
-  position: relative;
-  flex: 1 1 40%;
-  max-width: 40%;
-  padding: 12px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-  text-align: center;
-}
-.epp-episode-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.epp-episode .epp-episode-info {
-  gap: 6px;
-  justify-content: center;
-}
-.epp-episode .epp-ep-badge {
-  font-size: 2.8rem;
-  color: var(--accent);
-}
-.epp-episode .epp-max {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  opacity: 0.65;
-}
-.epp-episode .epp-season-text {
-  font-size: 0.85rem;
-  opacity: 0.4;
-}
-.epp-episode .epp-episode-controls {
-  justify-content: center;
-}
-.epp-episode-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.epp-episode-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.epp-episode-controls .poster-stepper-btn {
-  width: 28px !important;
-  height: 28px !important;
-}
-.epp-episode-info {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-}
-.epp-ep-badge {
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.02em;
-}
-.epp-max {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-.epp-episode-details {
-  min-width: 0;
-}
-.epp-episode-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-.epp-episode-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-  line-height: 1.3;
-}
-.epp-episode-date {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  padding-top: 2px;
-}
-.epp-episode-date:empty {
-  display: none;
-}
-.epp-episode-overview {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  line-height: 1.45;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.epp-episode-overview:empty {
-  display: none;
-}
-.epp-loading {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 12px;
-  height: 12px;
-  font-size: 0.5rem;
-  color: var(--text-muted);
-  opacity: 0.45;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  z-index: 2;
-}
-.poster-bottom-bar {
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  padding: 8px 12px !important;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent) !important;
-  z-index: 2 !important;
-  flex-wrap: nowrap !important;
-}
-.poster-bottom-group {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-}
-.epp-status {
-  flex: 0 0 10%;
-  max-width: 10%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 8px;
-  padding: 12px 10px;
-  border-right: 1px solid var(--border);
-  background: var(--bg-surface);
-  text-align: center;
-}
-.epp-status .dm-status-btn {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  padding: 5px 10px !important;
-  font-size: 0.65rem !important;
-  border-radius: 20px !important;
-  width: 100%;
-  justify-content: center;
-}
-.epp-status .dm-status-btn:hover {
-  color: var(--text-primary) !important;
-  background: var(--bg-hover) !important;
-  border-color: var(--border-strong) !important;
-}
-.epp-status .dm-status-btn.active {
-  color: var(--accent-ink) !important;
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  font-weight: 600 !important;
-}
-.poster-bottom-divider {
-  width: 1px !important;
-  height: 18px !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  flex-shrink: 0 !important;
-}
-.poster-bottom-left {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-}
-.dm-icon-btn {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 50% !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-secondary) !important;
-  font-size: 0.7rem !important;
-  cursor: pointer !important;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast) !important;
-  padding: 0 !important;
-}
-.dm-icon-btn:hover {
-  background: var(--bg-hover) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-primary) !important;
-}
-.dm-icon-btn.dm-icon-btn-danger:hover {
-  background: rgba(239,68,68,0.15) !important;
-  border-color: rgba(239,68,68,0.4) !important;
-  color: #f87171 !important;
-}
-.poster-bottom-bar .dm-action-btn,
-.poster-bottom-bar .dm-status-btn {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border) !important;
-  padding: 5px 10px !important;
-  font-size: 0.65rem !important;
-  border-radius: 20px !important;
-}
-.poster-bottom-bar .dm-action-btn:hover,
-.poster-bottom-bar .dm-status-btn:hover {
-  color: var(--text-primary) !important;
-  background: var(--bg-hover) !important;
-  border-color: var(--border-strong) !important;
-}
-.poster-bottom-bar .dm-status-btn.active {
-  color: var(--accent-ink) !important;
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  font-weight: 600 !important;
-}
-.poster-bottom-bar .dm-action-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.list-checkbox-pill.list-existing {
-  background: rgba(var(--accent-rgb), 0.15);
-  border: 1px solid var(--accent);
-  color: var(--accent);
-}
-
-/* ── Poster Top Links (YouTube/Wiki/IMDb) ────────────────── */
-.poster-top-links {
-  position: absolute !important;
-  top: 8px !important;
-  right: 8px !important;
-  display: flex !important;
-  gap: 4px !important;
-  z-index: 2 !important;
 }
 .poster-icon-btn {
   display: inline-flex !important;
@@ -1887,11 +1060,6 @@ img { max-width: 100%; height: auto; display: block; }
   background: var(--accent);
   filter: brightness(1.15);
 }
-.dm-action-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
 .dm-action-btn {
   display: inline-flex;
   align-items: center;
@@ -1924,69 +1092,6 @@ img { max-width: 100%; height: auto; display: block; }
 .dm-action-btn i {
   font-size: 0.65rem;
 }
-
-/* ── Synopsis (overlay on poster) ────────────────────────── */
-.dm-poster-wrap {
-  position: relative;
-  cursor: pointer;
-}
-.dm-poster-sinopse {
-  position: absolute;
-  inset: 0;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  z-index: 2;
-  overflow-y: auto;
-}
-.dm-poster-blur {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  filter: blur(14px);
-  opacity: 0.95;
-  z-index: 1;
-  display: none;
-}
-.dm-poster-wrap.sinopse-open .dm-poster-blur {
-  display: block;
-}
-.dm-poster-wrap.sinopse-open .dm-poster-sinopse {
-  display: flex;
-}
-.dm-poster-wrap.sinopse-open img {
-  filter: blur(14px);
-  transform: scale(1.05);
-}
-.dm-sinopse-text {
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--text-primary);
-  margin: 0;
-  text-align: justify;
-  position: relative;
-  z-index: 2;
-  max-width: 100%;
-}
-.dm-poster-wrap .form-loading {
-  position: relative;
-  z-index: 2;
-}
-
-/* ── Footer ──────────────────────────────────────────────── */
-.dm-footer {
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 28px;
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
 .dm-btn {
   display: inline-flex;
   align-items: center;
@@ -2011,18 +1116,12 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .dm-btn-danger {
   background: rgba(239, 68, 68, 0.1);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1.5px solid rgba(239, 68, 68, 0.25);
 }
 .dm-btn-danger:hover {
   background: rgba(239, 68, 68, 0.2);
   transform: scale(1.02);
-}
-.dm-added-date {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 .tool-btn {
@@ -2043,11 +1142,9 @@ img { max-width: 100%; height: auto; display: block; }
    GRID
    ================================================================ */
 .grid { display: grid; gap: 18px; }
-.grid-cols-6 { grid-template-columns: repeat(6, 1fr); }
 .grid-cols-8 { grid-template-columns: repeat(8, 1fr); }
 .grid-cols-10 { grid-template-columns: repeat(10, 1fr); }
 .grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
-.grid-cols-14 { grid-template-columns: repeat(14, 1fr); }
 
 /* ================================================================
    GROUP HEADERS
@@ -2146,7 +1243,55 @@ img { max-width: 100%; height: auto; display: block; }
    `font-size:1.8rem; opacity:0.3` por atributo `style` — o mesmo vão vazio
    com dois tamanhos, e um deles fora da folha. */
 .card-img i { font-size: 1.8rem; opacity: 0.3; }
-.card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+/* Overlay e título: o nome mora dentro do pôster, não no corpo. No hover a
+   imagem escurece e o nome sobe; no toque (sem hover) a mesma revelação é
+   feita pela classe `is-revealed`, que o primeiro clique aplica. O overlay é
+   um gradiente com o pé mais escuro — o nome fica na borda de baixo, e o
+   fundo escuro puro apagaria o pôster inteiro. */
+.card-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.4) 45%, rgba(0, 0, 0, 0.18) 100%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.card-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 8px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--text-on-photo);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.card:hover .card-img::after,
+.card.is-revealed .card-img::after { opacity: 1; }
+.card:hover .card-title,
+.card.is-revealed .card-title { opacity: 1; transform: none; }
+/* O rodapé do card é só a barra, e ele competia com o pôster: padding de
+   12px erguia uma tarja alta, trilha de 4px com borda clara puxava o olho
+   e a porcentagem em secondary brigava com o título. Tudo recuo um passo —
+   trilha sem borda (o `--bg-secondary` já declara a pista), porcentagem
+   menor e em muted: o dado está lá, mas só quem procura enxerga. */
+.card-body { padding: 8px 12px; display: flex; flex-direction: column; gap: 3px; }
+/* Card sem corpo (a busca não tem ano nem progresso): sem essa regra a faixa
+   de padding ficaria vazia embaixo da imagem. O `:has` não conta texto, então
+   só marca o corpo que não tem NENHUM elemento filho. */
+.card-body:not(:has(*)) { display: none; }
 .card-body .badge {
   font-family: var(--font-mono);
   display: inline-block;
@@ -2159,25 +1304,15 @@ img { max-width: 100%; height: auto; display: block; }
   align-self: flex-start;
   margin-bottom: 2px;
 }
-.card-body h3 { font-size: 0.85rem; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
-/* A linha de metadado é a mesma em toda tela e herda a base do `body`, como
-   todo o resto do texto corrido. Houve um tempo em que ela usava um token
-   `--font-mono` próprio, com a justificativa de alinhar as duas colunas de
-   temporada e episódio; o token foi removido porque a Home herdava a base
-   aqui e o mesmo dado saía com duas fontes conforme a aba. */
-.card-body .info { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; }
-.card-body .info i { color: var(--text-muted); }
 .progress-wrap {
-  margin: 4px 0 6px 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .progress-track {
   flex: 1;
-  height: 4px;
+  height: 3px;
   background: var(--bg-secondary);
-  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-pill);
   overflow: hidden;
 }
@@ -2189,8 +1324,8 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .progress-pct {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--text-secondary);
+  font-size: 0.56rem;
+  color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -2202,6 +1337,11 @@ img { max-width: 100%; height: auto; display: block; }
    A classe vive no `<body>` justamente para valer para os cards já na tela:
    alternar não re-renderiza nada. */
 body.is-progress-bar-hidden .progress-wrap { display: none; }
+/* Com a barra escondida o corpo ficaria uma tarja vazia de 12px: ele some
+   quando a barra é a única coisa dentro. O card do Calendário carrega o
+   episódio no corpo e não tem barra — esse conteúdo não é da preferência,
+   então esse corpo fica. */
+body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { display: none; }
 
 /* ---- Variantes: só a largura, nunca o modelo ----
    Um cartão, três contêineres. O Catálogo e as listas deixam a coluna do
@@ -2264,65 +1404,10 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
 .modal-overlay.active .modal { transform: translateY(0); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-shrink: 0; }
 .modal-header h2 { font-size: 1.4rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-#addListModalTitle, #detailListModalTitle { font-size: 1rem; font-weight: 600; }
+#detailListModalTitle { font-size: 1rem; font-weight: 600; }
 .modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .modal-close:hover { color: var(--text-primary); transform: rotate(90deg); }
 .modal-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
-
-/* Círculo de tier: monocromático por padrão, cor real no hover/focus */
-.tier-badge-large.tier-Splus:hover, .tier-badge-large.tier-Splus:focus-visible { background: var(--tier-splus); color: var(--tier-splus-ink); }
-.tier-badge-large.tier-S:hover, .tier-badge-large.tier-S:focus-visible { background: var(--tier-s); color: var(--tier-s-ink); }
-.tier-badge-large.tier-A:hover, .tier-badge-large.tier-A:focus-visible { background: var(--tier-a); color: var(--tier-a-ink); }
-.tier-badge-large.tier-B:hover, .tier-badge-large.tier-B:focus-visible { background: var(--tier-b); color: var(--tier-b-ink); }
-.tier-badge-large.tier-C:hover, .tier-badge-large.tier-C:focus-visible { background: var(--tier-c); color: var(--tier-c-ink); }
-.tier-badge-large.tier-D:hover, .tier-badge-large.tier-D:focus-visible { background: var(--tier-d); color: var(--tier-d-ink); }
-
-/* Selo de tier: círculo simples */
-.tier-badge-rotate {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.tier-badge-large {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  -webkit-mask-image: none; mask-image: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.3rem;
-  letter-spacing: 0;
-  line-height: 1;
-  cursor: pointer;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
-  transition: box-shadow 0.2s, transform 0.2s, background 0.2s, color 0.2s;
-}
-.tier-badge-large:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
-}
-
-.tier-dropdown {
-  position: absolute;
-  top: 60px;
-  left: 0;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px;
-  z-index: 100;
-  min-width: 130px;
-}
 
 .tier-option {
   position: relative;
@@ -2362,43 +1447,6 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
   background: var(--bg-elevated-hover);
 }
 
-/* Dropdown de tiers mais fino (menos largo) no modal de detalhes,
-   centralizado horizontalmente com o botão */
-#detailTierDropdown {
-  gap: 4px;
-  padding: 8px;
-  min-width: 86px;
-  width: auto;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-#detailTierDropdown .tier-option {
-  padding: 8px 10px 8px 26px;
-  font-size: 1rem;
-  white-space: nowrap;
-}
-#detailTierDropdown .tier-option::before {
-  left: 10px;
-}
-#addTierDropdown {
-  gap: 4px;
-  padding: 8px;
-  min-width: 86px;
-  width: auto;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-#addTierDropdown .tier-option {
-  padding: 8px 10px 8px 26px;
-  font-size: 1rem;
-  white-space: nowrap;
-}
-#addTierDropdown .tier-option::before {
-  left: 10px;
-}
-
 .tool-btn.active {
   color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0,0,0,0.12) inset;
@@ -2409,7 +1457,6 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
   float: right;
   font-weight: 700;
 }
-#detailLoading { color: var(--text-muted); }
 
 /* ================================================================
    MODAL DE EPISÓDIOS (sem alterações)
@@ -2535,26 +1582,28 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
 .ti-header .modal-close:hover { transform: translateY(-50%) rotate(90deg); }
 .ti-header-logo { display: flex; align-items: center; justify-content: center; margin: 0 auto; min-height: 40px; max-width: calc(100% - 56px); }
 .ti-header-logo img { max-height: 40px; max-width: 100%; width: auto; object-fit: contain; }
+/* Logos de título vêm do TMDB como PNG branco com transparência: no claro
+   eles se dissolvem no fundo. O contorno tem que colar na FORMA do logo,
+   então é cadeia de drop-shadow em quatro direções — um `outline` seria um
+   retângulo em volta do retângulo. Cinza, não preto: preto marcava demais
+   a borda; o cinza declara o logo sem virar adesivo. Só no claro: no escuro
+   o PNG branco já declara sozinho contra o fundo preto, e o traço ali seria
+   um halo cinza em volta de um logo que não precisa de ajuda — a regra mora
+   no bloco `[data-theme="light"]` por isso.
+   0.1px de espessura: no retina o traço cai abaixo do pixel físico e fica
+   aveludado, sem contorno duro, e no 1x dilui quase até sumir — 1px cheio
+   pesava nos logos de 40px.
+   Os dois ids são os dois lugares onde o logo é renderizado: info do
+   título e página de título. */
+[data-theme="light"] #titleLogoImg,
+[data-theme="light"] #titleInfoLogoImg {
+  filter:
+    drop-shadow(0 0.1px 0 #808080) drop-shadow(0 -0.1px 0 #808080)
+    drop-shadow(0.1px 0 0 #808080) drop-shadow(-0.1px 0 0 #808080);
+}
 .ti-sep { height: 1px; background: var(--border); margin: 14px 0 16px; }
 .ti-name { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .ti-original { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: 2px; }
-.ti-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.ti-badge {
-  font-size: 0.62rem; font-weight: 600; color: var(--text-secondary);
-  background: var(--bg-elevated); border: 1px solid var(--border);
-  border-radius: 999px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px;
-}
-.ti-badge--accent { color: var(--accent); }
-.ti-badge--flag { font-size: 0.68rem; letter-spacing: 0; }
-/* Status no badge: o ícone é o que separa "Em exibição" de "Finalizada" sem ler. */
-/* No badge o status já vem colorido no texto e na borda, então o ícone fica como
-   glifo (sem disco) para não repetir o destaque duas vezes no mesmo elemento. */
-.ti-badge--status { gap: 6px; }
-.ti-badge--status > i { font-size: 0.6rem; }
-.ti-badge--status.is-done { color: var(--success); border-color: var(--success); }
-.ti-badge--status.is-canceled { color: var(--danger); border-color: var(--danger); }
-.ti-badge--status.is-live { color: var(--accent); border-color: var(--accent); }
-.ti-badge--status.is-planned { color: var(--text-secondary); }
 
 .ti-section { padding: 12px 0; border-top: 1px solid var(--border); }
 .ti-section:first-of-type { border-top: none; }
@@ -2576,18 +1625,6 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
 /* Indicador de linha: sempre **depois** do valor, nunca antes do rótulo. */
 .ti-flag { width: 20px; height: 14px; margin-left: 7px; vertical-align: -2px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,0.14); object-fit: cover; }
 .ti-flag--emoji { width: auto; height: auto; font-size: 0.9rem; box-shadow: none; background: none; }
-/* O marcador de status precisa de peso para cumprir o papel: é ele que separa
-   "Em exibição" de "Finalizada" sem a pessoa ler o texto. Disco colorido com o
-   ícone dentro, em vez de um glifo esmaecido. */
-.ti-mark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 17px; height: 17px; margin-left: 8px; border-radius: 50%;
-  font-size: 0.58rem; vertical-align: middle; flex-shrink: 0;
-}
-.ti-mark.is-done { color: #06281C; background: var(--success); }
-.ti-mark.is-canceled { color: #FFFFFF; background: var(--danger); }
-.ti-mark.is-live { color: #181818; background: var(--accent); }
-.ti-mark.is-planned { color: var(--text-secondary); background: var(--bg-secondary); border: 1px solid var(--border-strong); }
 
 /* Elenco: trilho horizontal, não grade.
    A grade entregava colunas de `1fr` — 91.4px numa tela larga, 88px numa
@@ -2826,48 +1863,11 @@ body.is-progress-bar-hidden .progress-wrap { display: none; }
 .stepper-btn {
   width: 44px; height: 44px; border-radius: 50%; border: none; display: flex; align-items: center;
   justify-content: center; cursor: pointer; transition: background var(--transition-fast), transform var(--transition-fast);
-  background: rgb(19, 18, 19); color: var(--text-muted); font-size: 0.9rem; border: none;
+  background: var(--bg-well); color: var(--text-muted); font-size: 0.9rem; border: none;
 }
 .stepper-btn:hover {
   transform: scale(1.1);
   background: var(--bg-elevated-hover);
-}
-.stepper-btn.stepper-up {
-  background: rgb(19, 18, 19);
-  color: #22c55e;
-  border: none;
-}
-.stepper-btn.stepper-up:hover {
-  background: var(--bg-elevated-hover);
-  color: #16a34a;
-}
-.stepper-btn.stepper-down {
-  background: rgb(19, 18, 19);
-  color: #ef4444;
-  border: none;
-}
-.stepper-btn.stepper-down:hover {
-  background: var(--bg-elevated-hover);
-  color: #dc2626;
-}
-
-/* ================================================================
-   MODAL DE ADIÇÃO (mesmo design do modal de detalhes)
-   ================================================================ */
-.add-placeholder {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.add-placeholder i {
-  font-size: 2rem;
-  opacity: 0.3;
-}
-.add-poster-bar {
-  position: absolute !important;
 }
 
 button {
@@ -2881,7 +1881,6 @@ button.secondary { background: var(--bg-surface); color: var(--text-secondary); 
 button.secondary:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
 
 .form-loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 8px; color: var(--text-muted); }
-#formLoading { display: none; }
 
 /* ================================================================
    VALIDAÇÃO DE FORMULÁRIO (FEEDBACK VISUAL)
@@ -2893,7 +1892,7 @@ button.secondary:hover { background: var(--bg-hover); color: var(--text-primary)
 .auth-group .field-error {
   display: block;
   font-size: 0.7rem;
-  color: var(--danger);
+  color: var(--danger-text);
   margin-top: 4px;
   min-height: 1em;
 }
@@ -3062,8 +2061,8 @@ a:focus-visible,
   min-width: 62px;
   text-align: right;
 }
-.auth-strength[data-level="1"] .auth-strength-label { color: var(--danger); }
-.auth-strength[data-level="2"] .auth-strength-label { color: var(--warning); }
+.auth-strength[data-level="1"] .auth-strength-label { color: var(--danger-text); }
+.auth-strength[data-level="2"] .auth-strength-label { color: var(--warning-text); }
 .auth-strength[data-level="3"] .auth-strength-label,
 .auth-strength[data-level="4"] .auth-strength-label { color: var(--text-secondary); }
 
@@ -3087,8 +2086,8 @@ a:focus-visible,
 .auth-switch button:hover { color: var(--text-primary); }
 .auth-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 
-#authMessage.is-error { color: var(--danger); }
-#authMessage.is-success { color: var(--success); }
+#authMessage.is-error { color: var(--danger-text); }
+#authMessage.is-success { color: var(--success-text); }
 
 /* ================================================================
    TOAST, THEME TOGGLE, EMPTY STATE
@@ -3118,21 +2117,21 @@ a:focus-visible,
    RESPONSIVIDADE
    ================================================================ */
 @media (max-width: 1400px) {
-  .grid-cols-14 { grid-template-columns: repeat(10, 1fr); }
   .grid-cols-12 { grid-template-columns: repeat(10, 1fr); }
   .grid-cols-10 { grid-template-columns: repeat(8, 1fr); }
   .grid-cols-8 { grid-template-columns: repeat(6, 1fr); }
-  .grid-cols-6 { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 1200px) {
-  .grid-cols-14 { grid-template-columns: repeat(8, 1fr); }
   .grid-cols-12 { grid-template-columns: repeat(6, 1fr); }
   .grid-cols-10 { grid-template-columns: repeat(4, 1fr); }
   .grid-cols-8 { grid-template-columns: repeat(4, 1fr); }
-  .grid-cols-6 { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 900px) {
-  .grid-cols-14, .grid-cols-12, .grid-cols-10, .grid-cols-8, .grid-cols-6 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-12,
+
+  .grid-cols-10,
+
+  .grid-cols-8 { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ================================================================
@@ -3141,14 +2140,12 @@ a:focus-visible,
 @media (max-width: 900px) {
   .top-navbar { padding: 0 12px; gap: 8px; }
   .navbar-brand { margin-right: 8px; }
-  #profileEmail { display: none; }
 }
 
 @media (max-width: 700px) {
   .top-navbar { flex-wrap: wrap; height: auto; padding: 8px 10px; gap: 8px; }
   .navbar-actions { order: 3; width: 100%; gap: 8px; flex-wrap: wrap; }
   .navbar-nav { order: 2; flex: 1; min-width: 0; }
-  .navbar-lists { order: 2; }
   .navbar-brand { order: 1; margin-right: 0; }
   .nav-dropdown {
     left: auto;
@@ -3211,10 +2208,15 @@ a:focus-visible,
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* Seis botões redondos soltos eram indistinguíveis: o olho não sabia onde
+   um filtro acabava e o próximo começava. Cada grupo temático vira uma
+   cápsula (filtrar, ordenar, visualizar); o que muda é só a moldura — os
+   botões dentro dela perdem a borda própria e ganham hover/atual no círculo
+   interno, com um filete de 1px separando vizinhos da mesma cápsula. */
 .toolbar-filters {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -3254,6 +2256,51 @@ a:focus-visible,
   color: var(--accent);
 }
 
+/* Botões DENTRO da cápsula: a moldura é da cápsula, não deles. Fundo e
+   borda transparentes; o hover pinta o círculo e o estado ativo fica no
+   accent-soft sem borda (a cor já declara sozinha). O filete do ::after
+   morre junto com o elemento — se o groupToggle some (aba planejado),
+   não sobra marca nenhuma no lugar dele. */
+.tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+.tool-group .tool-btn-sm {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border-color: transparent;
+}
+.tool-group .tool-btn-sm:hover {
+  background: var(--bg-hover);
+  border-color: transparent;
+}
+.tool-group .tool-btn-sm:focus {
+  border-color: var(--accent);
+}
+.tool-group .tool-btn-sm.active {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+.tool-group > *:not(:last-child)::after,
+.tool-group .filter-wrapper-pair > *:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  margin-left: 1.5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
 /* Dropdowns da toolbar herdam estilo sólido monocromático */
 .toolbar-filters .filter-menu {
   background: var(--bg-elevated);
@@ -3271,7 +2318,9 @@ a:focus-visible,
 @media (max-width: 700px) {
   .toolbar-left { gap: 8px; }
   .toolbar-search { max-width: none; min-width: 0; }
-  .toolbar-filters { gap: 4px; }
+  .toolbar-filters { gap: 6px; }
+  .tool-group { padding: 1px; gap: 3px; }
+  .tool-group .tool-btn-sm { width: 28px; height: 28px; }
   .tool-btn-sm { width: 32px; height: 32px; font-size: 0.75rem; }
   .toolbar-search input { height: 32px; font-size: 0.75rem; padding: 0 32px 0 30px; }
   .main-header { gap: 8px; padding-bottom: 12px; }
@@ -3279,52 +2328,16 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .toolbar-filters .density-wrapper { display: none; }
-  #groupToggle { display: none; }
+  /* Agrupar e densidade somem juntos: esconder os dois botões deixaria a
+     cápsula "Visualizar" vazia, então quem some é a cápsula inteira. */
+  .toolbar-filters .tool-group:last-child { display: none; }
 }
 
 @media (max-width: 768px) {
-  .modal.modal-detail {
-    max-height: 88vh;
-    width: 96vw;
-    transform-origin: top center;
-  }
-  .detail-header {
-    flex-wrap: nowrap;
-    gap: 6px;
-    min-height: 48px;
-    width: 100%;
-    padding: 8px 12px;
-  }
-  .detail-header-center {
-    text-align: center;
-    flex-basis: auto;
-    order: 0;
-  }
-  .detail-header-center h2 { font-size: 0.95rem; }
-  .detail-header-right .detail-meta-top {
-    flex-wrap: nowrap;
-    gap: 6px;
-    font-size: 0.7rem;
-  }
   .dm-status-btn {
     padding: 4px 8px;
     font-size: 0.6rem;
   }
-  .dm-poster-wrap {
-    width: 100%;
-    max-height: 36vh;
-  }
-  #posterSteppersRow {
-    width: 100%;
-  }
-  .poster-bottom-bar {
-    padding: 6px 8px !important;
-    gap: 6px !important;
-    flex-wrap: nowrap !important;
-  }
-  .poster-bottom-group { gap: 4px !important; }
-  .dm-icon-btn { width: 26px !important; height: 26px !important; font-size: 0.65rem !important; }
 }
 
 /* Listas nos modais (add/detail) */
@@ -3449,11 +2462,11 @@ a:focus-visible,
 }
 
 .nav-action-confirm:hover {
-  color: #4ade80;
+  color: var(--success-text);
 }
 
 .nav-action-delete:hover {
-  color: #f87171;
+  color: var(--danger-text);
 }
 
 .nav-inline-input {
@@ -3485,92 +2498,24 @@ a:focus-visible,
   .modal-episodes .modal {
     padding: 16px;
   }
-  .modal-detail .modal { max-width: 100%; }
   .modal-episodes .modal { max-width: 100%; }
-}
-@media (max-width: 700px) {
-  .poster-bottom-bar {
-    flex-wrap: nowrap;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 8px !important;
-  }
-  .poster-bottom-divider { display: none !important; }
 }
 
 @media (max-width: 480px) {
-  .grid-cols-14, .grid-cols-12, .grid-cols-10, .grid-cols-8, .grid-cols-6 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .grid-cols-12,
+
+  .grid-cols-10,
+
+  .grid-cols-8 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .card-body { padding: 10px; }
-  .card-body h3 { font-size: 0.75rem; }
+  .card-title { font-size: 0.68rem; }
   .main-content { max-width: 100%; }
   .modal { padding: 20px; max-width: 100%; }
   .profile-dropdown { right: 0; left: auto; top: calc(100% + 8px); min-width: 200px; max-width: calc(100vw - 24px); }
-  .dm-poster-wrap {
-    width: 100%;
-  }
-  .poster-bottom-bar {
-    padding: 6px 0;
-  }
   .dm-action-btn {
     padding: 5px 10px;
     font-size: 0.68rem;
     gap: 3px;
-  }
-  .dm-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 10px 16px;
-  }
-  .dm-footer .dm-btn {
-    justify-content: center;
-  }
-  .dm-sinopse-text {
-    font-size: 0.78rem;
-    padding: 12px;
-  }
-  /* Sinopse no mobile: evitar que o texto fique escondido sob a barra inferior
-     e melhorar a rolagem em pôsteres curtos */
-  #detailPosterWrap.sinopse-open .dm-poster-sinopse {
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding: 40px 14px 52px;
-  }
-  #detailPosterWrap.sinopse-open .dm-sinopse-text {
-    text-align: left;
-    padding: 0;
-  }
-  .poster-steppers-row {
-    padding: 0 16px 8px !important;
-  }
-  .epp-season {
-    padding: 8px 4px;
-  }
-  .epp-season-val {
-    font-size: 1.5rem;
-  }
-  .epp-season-btn {
-    width: 36px !important;
-    height: 32px !important;
-  }
-  .epp-episode {
-  position: relative;
-    padding: 8px 10px;
-    gap: 6px;
-  }
-  .epp-ep-badge {
-    font-size: 1rem;
-  }
-  .epp-episode-controls .poster-stepper-btn {
-    width: 36px !important;
-    height: 36px !important;
-  }
-  .epp-episode-title {
-    font-size: 0.78rem;
-  }
-  .epp-episode-overview {
-    font-size: 0.7rem;
-    -webkit-line-clamp: 2;
   }
   .season-header h3 {
     font-size: 0.9rem;
@@ -3611,93 +2556,6 @@ a:focus-visible,
 .pesquisa-loading p {
   font-size: 0.9rem;
   margin: 0;
-}
-
-/* ---- Cartão de pesquisa: exceção declarada ao modelo ----
-   Não é um `.card` porque o resultado do TMDb não tem temporada, episódio nem
-   progresso — a anatomia do modelo não teria o que mostrar. O que ele não pode
-   é inventar aparência: raio, borda, elevação, vão do pôster e escala de
-   texto saem dos mesmos tokens de `.card`. Antes eram literais próprios
-   (`20px`, `0 12px 40px rgba(0,0,0,0.5)`) e o título ficava em 0.82rem/700
-   contra 0.85rem/600 do resto do app.
-
-   A única diferença de layout que sobra é o título em duas linhas: aqui o
-   nome pode ser longo e não há ano nem subtítulo para compensar, então o
-   truncamento em uma linha esconderia o título de um resultado de busca. */
-.pesquisa-card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  animation: cardIn 0.4s ease both;
-}
-
-.pesquisa-card:hover {
-  transform: translateY(-8px) scale(1.01);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-lg);
-  z-index: 2;
-}
-.pesquisa-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.pesquisa-card-img {
-  aspect-ratio: 2 / 3;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-secondary);
-  position: relative;
-}
-
-.pesquisa-card-img img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 100%;
-  object-fit: contain;
-}
-.pesquisa-card-tag {
-  position: absolute;
-  bottom: 8px; left: 8px;
-  font-size: 0.58rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-  background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.14);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  color: rgba(255,255,255,0.94); border-radius: 999px; padding: 3px 8px;
-}
-.pesquisa-card-img i {
-  font-size: 1.8rem;
-  opacity: 0.2;
-}
-
-.pesquisa-card-body {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pesquisa-card-body h3 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.25;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pesquisa-card-body .pesquisa-card-year {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: var(--text-muted);
 }
 
 /* ================================================================
@@ -3936,6 +2794,27 @@ a:focus-visible,
 }
 .home-greeting-subtitle { font-size: 0.9rem; color: var(--text-muted); }
 
+/* ── Em Breve ───────────────────────────────────────────────────
+   A estreia é o motivo da seção existir: sem a data, o cartão "Em
+   Breve" é idêntico ao de qualquer outro trilho. A data fica no
+   corpo, no mesmo lugar que a barra de progresso ocupa nos outros
+   cartões — e como é conteúdo próprio (como o episódio do
+   Calendário), sobrevive à preferência de esconder a barra. Muted
+   e `--fs-meta`: vem depois do título, não antes dele. */
+.home-upcoming-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-meta);
+  color: var(--text-muted);
+  min-width: 0;
+}
+.home-upcoming-date i {
+  font-size: 0.7rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 /* ── Categorias ───────────────────────────────────────────────
    Wrapper das seções de gênero. Sem `gap` próprio: o espaçamento
    entre elas é o mesmo da página, porque elas são seções como as
@@ -3984,15 +2863,11 @@ a:focus-visible,
 }
 .home-calendar-day.is-today .home-calendar-dnum { color: var(--accent); }
 .home-calendar-eps { display: flex; flex-direction: column; gap: 10px; }
-.home-hint {
-  font-size: var(--fs-btn);
-  color: var(--text-muted);
-  margin: 0;
-  text-align: center;
-}
-/* O card do calendário é `.card` + `.card--calendar` (a variante de largura
-   mora no bloco CARD). O nome do episódio não cabe no cabeçalho de um cartão
-   comum, então é a única peça de texto que a home acrescenta ao modelo. */
+/* O corpo do card do Calendário diz qual episódio sai naquela data: número em
+   mono (dado técnico) e nome em duas linhas sempre, para as colunas do dia
+   saírem com a mesma altura mesmo quando o episódio tem nome curto. */
+.home-calendar-epinfo { display: flex; flex-direction: column; gap: 2px; }
+.home-calendar-epnum { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-secondary); }
 .home-calendar-epname {
   font-size: var(--fs-meta);
   color: var(--text-muted);
@@ -4001,10 +2876,17 @@ a:focus-visible,
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Duas linhas sempre, para as colunas do dia saírem com a mesma
-     altura mesmo quando o episódio tem nome curto. */
   min-height: 2.5em;
 }
+.home-hint {
+  font-size: var(--fs-btn);
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+}
+/* A frase do carrossel "Episódios da Semana" acompanha o título da seção à
+   esquerda; os outros `.home-hint` (roleta, afinidade) continuam centralizados. */
+#homeCalendarHint { text-align: left; }
 
 /* ── Roleta ───────────────────────────────────────────────────
    Seção de escolha, não faixa: o resultado é um cartão grande e
@@ -4214,7 +3096,7 @@ a:focus-visible,
   align-items: center;
   padding: 0 2px;
 }
-.home-affinity-chip button:hover { color: var(--danger); }
+.home-affinity-chip button:hover { color: var(--danger-text); }
 
 /* ================================================================
    ADAPTAÇÃO
@@ -4265,7 +3147,6 @@ a:focus-visible,
 .tp-hud-top { display:flex; align-items:center; justify-content:stretch; gap:0; padding:8px 12px; border-radius:999px; overflow:visible; border:1px solid var(--border); background:var(--bg-elevated); box-shadow:var(--shadow); position:relative; }
 .tp-back-btn--unified { background:transparent; border:none; color:var(--text-secondary); font-size:0.78rem; font-weight:600; cursor:pointer; padding:8px 16px; border-radius:999px; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:6px; transition:background .2s, color .2s; }
 .tp-back-btn--unified:hover { background:var(--bg-hover); color:var(--text-primary); }
-.tp-divider-v { width:1px; align-self:stretch; min-height:32px; background:var(--border); flex-shrink:0; margin:0 12px; }
 .tp-logo-block { flex:1; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:12px; min-width:0; padding:4px 8px; text-align:left; }
 .tp-logo-main { display:flex; align-items:center; justify-content:center; min-width:0; }
 
@@ -4273,7 +3154,7 @@ a:focus-visible,
 .tp-parent-hint {
   display:flex; align-items:center; gap:12px; margin-bottom:12px;
   padding:8px 12px; border:1px solid var(--border); border-radius:14px;
-  background:rgba(255,255,255,0.012); box-shadow:var(--shadow);
+  background:var(--ghost-bg); box-shadow:var(--shadow);
 }
 .tp-parent-hint > i { color:var(--text-muted); font-size:0.75rem; flex-shrink:0; }
 .tp-parent-hint-text { flex:1; min-width:0; font-size:0.75rem; color:var(--text-secondary); }
@@ -4289,9 +3170,7 @@ a:focus-visible,
   background:transparent; color:var(--text-muted); cursor:pointer; font-size:0.7rem;
 }
 .tp-parent-hint-close:hover { color:var(--text-primary); }
-.tp-meta-group { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding-left:12px; border-left:1px solid rgba(255,255,255,0.06); min-width:0; }
-.tp-genres-block { flex:0 0 auto; max-width:260px; display:flex; align-items:center; justify-content:flex-end; text-align:right; font-size:0.72rem; padding:4px 8px; min-width:0; }
-.tp-genres-block #titleGenres { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tp-meta-group { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding-left:12px; border-left:1px solid var(--ghost-strong); min-width:0; }
 
 /* — B) Layout + Sidebar Vertical — */
 .tp-layout { display:flex; gap:12px; align-items:stretch; }
@@ -4307,7 +3186,6 @@ a:focus-visible,
 .tp-side-card-head i { font-size:0.7rem; }
 .tp-side-hud .tp-status-col .dm-status-btn { width:100%; justify-content:center; }
 .tp-side-hud .dm-action-btn, .tp-side-hud .dm-btn { width:100%; justify-content:center; }
-.tp-h-sep { height:1px; background:var(--border); flex-shrink:0; }
 
 /* — C) Main — */
 .tp-main { display:flex; gap:12px; border:1px solid var(--border); border-radius:18px; padding:12px; background:transparent; align-items:stretch; }
@@ -4319,26 +3197,24 @@ a:focus-visible,
 .tp-poster-col { flex:0 0 357px; max-width:377px; display:flex; flex-direction:column; }
 .tp-content-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; }
 .tp-frame { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--bg-secondary); box-shadow:var(--shadow); }
-
-/* — D) Episódio Unificado — */
-.tp-episode-unified { display:flex; align-items:stretch; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); padding:0; }
 .tp-season-block, .tp-episode-block { flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; }
 .tp-synopsis-block { flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:12px; text-align:left; position:relative; overflow:hidden; }
 
 /* — E) Tokens — */
 .tp-pill { border:1px solid var(--border); background:var(--bg-elevated); border-radius:999px; padding:10px 18px; display:flex; align-items:center; justify-content:center; min-height:44px; box-shadow:var(--shadow); }
-.tp-box { border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 .tp-label { font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
-/* ── Padronização: blocos, botões e títulos ── */
-.tp-hud-top, .tp-hud-controls, .tp-episode-unified, .tp-main, .tp-frame {
+.tp-hud-top,
+
+.tp-main,
+
+.tp-frame {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   box-shadow: var(--shadow);
 }
-.tp-hud-top, .tp-hud-controls { background: var(--bg-elevated); border-radius: 999px; }
+.tp-hud-top { background: var(--bg-elevated); border-radius: 999px; }
 .tp-main { background: transparent; border-radius: 18px; }
-.tp-frame, .tp-episode-unified { border-radius: 14px; }
-.tp-episode-unified { padding: 0; overflow: hidden; }
+.tp-frame { border-radius: 14px; }
 /* Botões padronizados — todos iguais na página de título */
 .title-page .dm-status-btn,
 .title-page .dm-action-btn,
@@ -4374,7 +3250,7 @@ a:focus-visible,
 .title-page .dm-status-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .title-page .dm-btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .title-page .dm-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-.title-page .dm-btn-danger { background: rgba(239,68,68,0.12); color: var(--danger); border-color: rgba(239,68,68,0.25); }
+.title-page .dm-btn-danger { background: rgba(239,68,68,0.12); color: var(--danger-text); border-color: rgba(239,68,68,0.25); }
 .title-page .dm-btn-danger:hover { background: rgba(239,68,68,0.22); transform: translateY(-1px); }
 .tp-side-hud .dm-status-btn,
 .tp-side-hud .dm-action-btn,
@@ -4397,10 +3273,8 @@ a:focus-visible,
 .title-page .tp-season-block,
 .title-page .tp-episode-block,
 .title-page .tp-synopsis-block { padding: 8px; gap: 8px; }
-/* Títulos padronizados */
 .tp-hud-top #titleName,
-.tp-genres-block #titleGenres,
-.tp-episode-unified .tp-label,
+
 #titleBack {
   font-weight: 600;
   font-size: 0.78rem;
@@ -4408,95 +3282,109 @@ a:focus-visible,
   color: var(--text-primary);
   text-transform: none;
 }
-.tp-episode-unified .tp-label { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; }
 #titleOriginalName { font-size: 0.7rem; font-weight: 400; }
-.tp-episode-unified #titleTemporadaDisplay,
-.tp-episode-unified #titleEpisodioDisplay { font-weight: 700; }
-.tp-episode-unified #titleEpTitle { font-weight: 600; font-size: 0.78rem; }
-/* Cabeçalhos de categoria — orientam o usuário */
-.tp-section-head { display:flex; align-items:center; gap:8px; font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 2px 6px; }
-.tp-section-head i { color:var(--text-muted); font-size:0.7rem; }
-.tp-section-head span { font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0; font-size:0.65rem; opacity:0.7; }
-/* ── Todos os elementos quase imperceptíveis ── */
 .title-page .tp-hud-top,
+
 .title-page .tp-frame,
-.title-page .tp-episode-unified,
+
 .title-page .tp-side-card,
+
 .title-page .tp-main,
-.title-page .tp-pill,
-.title-page .tp-box {
-  background: rgba(255,255,255,0.012);
-  border-color: rgba(255,255,255,0.022);
+
+.title-page .tp-pill {
+  background: var(--ghost-bg);
+  border-color: var(--ghost-border);
   box-shadow: none;
   backdrop-filter: blur(2px);
 }
-.title-page .tp-main { background: transparent; border-color: rgba(255,255,255,0.018); }
-.title-page .tp-divider-v,
-.title-page .tp-h-sep,
-.title-page .tp-episode-unified .tp-divider-v { background: rgba(255,255,255,0.015) !important; }
+.title-page .tp-main { background: transparent; border-color: var(--ghost-border); }
 .title-page .tp-label,
+
 .title-page .tp-side-card-head,
+
 .title-page #titleOriginalName,
+
 .title-page #titleGenres,
+
 .title-page #titlePosterPlaceholder,
+
 .title-page #titleBackdropPlaceholder,
+
 .title-page #titleEpDate,
-.title-page #titleSynopsisEp,
-.title-page .tp-section-head,
-.title-page .tp-section-head i,
-.title-page .tp-section-head span {
-  color: rgba(255,255,255,0.22);
+
+.title-page #titleSynopsisEp {
+  color: var(--text-faintest);
 }
 .title-page #titleName,
 .title-page #titleTemporadaDisplay,
 .title-page #titleEpisodioDisplay,
-.title-page #titleEpTitle { color: rgba(255,255,255,0.58); font-weight: 600; }
+.title-page #titleEpTitle { color: var(--text-soft); font-weight: 600; }
 .title-page .dm-status-btn,
 .title-page .dm-action-btn,
 .title-page .dm-btn,
 .title-page .poster-stepper-btn,
 .title-page .poster-icon-btn,
 .title-page .tier-option {
-  background: rgba(255,255,255,0.012) !important;
-  border-color: rgba(255,255,255,0.022) !important;
-  color: rgba(255,255,255,0.28) !important;
+  background: var(--ghost-bg) !important;
+  border-color: var(--ghost-border) !important;
+  color: var(--text-faint) !important;
   box-shadow: none !important;
 }
 .title-page .tp-back-btn--unified {
   background: transparent !important;
   border-color: transparent !important;
-  color: rgba(255,255,255,0.45) !important;
+  color: var(--text-dim) !important;
   box-shadow: none !important;
 }
 .title-page .dm-status-btn:hover,
 .title-page .dm-action-btn:hover,
 .title-page .poster-stepper-btn:hover,
 .title-page .poster-icon-btn:hover,
-.title-page .tier-option:hover { background: rgba(255,255,255,0.035); color: rgba(255,255,255,0.60); border-color: rgba(255,255,255,0.05); }
-.title-page .dm-status-btn.active { background: rgba(255,255,255,0.035) !important; color: rgba(255,255,255,0.82) !important; border-color: rgba(255,255,255,0.06) !important; backdrop-filter: blur(6px); }
-.title-page .dm-btn-primary { background: rgba(255,255,255,0.035) !important; color: rgba(255,255,255,0.82) !important; border-color: rgba(255,255,255,0.06) !important; backdrop-filter: blur(6px); }
-.title-page .dm-btn-primary:hover { background: rgba(255,255,255,0.06) !important; }
-.title-page .dm-btn-danger { background: rgba(239,68,68,0.035) !important; color: rgba(255,150,150,0.80) !important; border-color: rgba(239,68,68,0.08) !important; backdrop-filter: blur(6px); }
-.title-page .poster-icon-btn { opacity: 0.85 !important; }
-.title-page .tp-episode-unified,
-.title-page .tp-episode-unified .tp-season-block,
-.title-page .tp-episode-unified .tp-episode-block,
-.title-page .tp-episode-unified .tp-synopsis-block,
-.title-page .tp-episode-row .tp-season-block,
-.title-page .tp-episode-row .tp-episode-block,
-.title-page .tp-episode-row .tp-synopsis-block,
-.title-page .tp-season-block,
-.title-page .tp-episode-block,
-.title-page .tp-synopsis-block {
-  background: rgba(255,255,255,0.012) !important;
-  border-color: rgba(255,255,255,0.022) !important;
+.title-page .tier-option:hover { background: var(--ghost-bg-hover); color: var(--text-soft); border-color: var(--ghost-strong); }
+/* Steppers de temporada/episódio do Title Page: somar fica levemente
+   verde, subtrair levemente vermelho. Os botões só têm `data-step`, então
+   o hover deles cai em `.poster-stepper-btn:hover:not(...)`, que apaga o
+   fundo e escurece o botão com `!important`. O `:not(.stepper-plus)` extra
+   existe só para ganhar especificidade sobre esse apagador (e o `!important`
+   disputa o estilo inline do markup): sem ele, o tinte só venceria se
+   estas regras ficassem DEPOIS daquela no arquivo, e uma reordenação
+   silenciosa apagaria o hover de novo. */
+.title-page .poster-stepper-btn[data-step] {
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s !important;
 }
-.title-page .tp-episode-unified,
+.title-page .poster-stepper-btn[data-step="1"]:not(.stepper-plus):hover {
+  background: var(--success-soft) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: var(--success-text) !important;
+  opacity: 1 !important;
+}
+.title-page .poster-stepper-btn[data-step="-1"]:not(.stepper-plus):hover {
+  background: var(--danger-soft) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: var(--danger-text) !important;
+  opacity: 1 !important;
+}
+.title-page .dm-status-btn.active { background: var(--ghost-bg-hover) !important; color: var(--text-strong) !important; border-color: var(--ghost-strong) !important; backdrop-filter: blur(6px); }
+.title-page .dm-btn-primary { background: var(--ghost-bg-hover) !important; color: var(--text-strong) !important; border-color: var(--ghost-strong) !important; backdrop-filter: blur(6px); }
+.title-page .dm-btn-primary:hover { background: var(--ghost-strong) !important; }
+.title-page .dm-btn-danger { background: var(--danger-ghost-bg) !important; color: var(--danger-ghost-text) !important; border-color: var(--danger-ghost-border) !important; backdrop-filter: blur(6px); }
+.title-page .poster-icon-btn { opacity: 0.85 !important; }
+.title-page .tp-episode-row .tp-season-block,
+
+.title-page .tp-episode-row .tp-episode-block,
+
+.title-page .tp-episode-row .tp-synopsis-block,
+
+.title-page .tp-season-block,
+
+.title-page .tp-episode-block,
+
+.title-page .tp-synopsis-block {
+  background: var(--ghost-bg) !important;
+  border-color: var(--ghost-border) !important;
+}
 .title-page .tp-episode-row { background: transparent !important; border: none !important; box-shadow: none !important; }
-.title-page .tp-episode-unified { background: rgba(255,255,255,0.012) !important; border-color: rgba(255,255,255,0.022) !important; }
-/* Exceções semânticas — mantém cor correta */
-.tp-tier-block .poster-icon-btn,
-.poster-top-links .poster-icon-btn {
+.tp-tier-block .poster-icon-btn {
   background: rgba(0,0,0,0.38) !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
   color: rgba(255,255,255,0.92) !important;
@@ -4505,45 +3393,32 @@ a:focus-visible,
   opacity: 1 !important;
   box-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08) !important;
 }
-.poster-top-links .poster-icon-btn { background: rgba(0,0,0,0.38) !important; }
-.poster-top-links .poster-icon-btn:hover {
-  background: rgba(0,0,0,0.55) !important;
-  border-color: rgba(255,255,255,0.16) !important;
-}
-.poster-top-links .poster-icon-btn svg { display:block; opacity:0.95; }
-.poster-top-links .poster-icon-btn:hover svg { opacity:1; }
-.poster-top-links .poster-icon-btn i { opacity:0.95; line-height:1; }
-.poster-top-links .poster-icon-btn:hover i { opacity:1; }
 .title-page .tier-stamp.tier-Splus { background: var(--tier-splus) !important; color: var(--tier-splus-ink) !important; border-color: transparent !important; opacity: 1; }
 .title-page .tier-stamp.tier-S { background: var(--tier-s) !important; color: var(--tier-s-ink) !important; border-color: transparent !important; opacity: 1; }
 .title-page .tier-stamp.tier-A { background: var(--tier-a) !important; color: var(--tier-a-ink) !important; border-color: transparent !important; opacity: 1; }
 .title-page .tier-stamp.tier-B { background: var(--tier-b) !important; color: var(--tier-b-ink) !important; border-color: transparent !important; opacity: 1; }
 .title-page .tier-stamp.tier-C { background: var(--tier-c) !important; color: var(--tier-c-ink) !important; border-color: transparent !important; opacity: 1; }
 .title-page .tier-stamp.tier-D { background: var(--tier-d) !important; color: var(--tier-d-ink) !important; border-color: transparent !important; opacity: 1; }
-.title-page .tp-episode-unified .tp-label,
 .title-page .tp-episode-row .tp-label,
+
 .title-page .tp-season-block .tp-label,
-.title-page .tp-episode-block .tp-label { color: rgba(255,255,255,0.45) !important; }
-.title-page .tp-episode-unified #titleTemporadaDisplay,
-.title-page .tp-episode-unified #titleEpisodioDisplay,
+
+.title-page .tp-episode-block .tp-label { color: var(--text-dim) !important; }
 .title-page .tp-episode-row #titleTemporadaDisplay,
-.title-page .tp-episode-row #titleEpisodioDisplay { color: rgba(255,255,255,0.85) !important; }
-.title-page .tp-episode-unified #titleSeasonMax,
-.title-page .tp-episode-unified #titleEpMax,
+
+.title-page .tp-episode-row #titleEpisodioDisplay { color: var(--text-strong) !important; }
 .title-page .tp-episode-row #titleSeasonMax,
-.title-page .tp-episode-row #titleEpMax { color: rgba(255,255,255,0.45) !important; }
-.title-page .tp-episode-unified #titleEpTitle,
-.title-page .tp-episode-row #titleEpTitle { color: rgba(255,255,255,0.75) !important; }
-.title-page .tp-episode-unified #titleSynopsisEp,
-.title-page .tp-episode-unified #titleEpDate,
+
+.title-page .tp-episode-row #titleEpMax { color: var(--text-dim) !important; }
+.title-page .tp-episode-row #titleEpTitle { color: var(--text-strong) !important; }
 .title-page .tp-episode-row #titleSynopsisEp,
-.title-page .tp-episode-row #titleEpDate { color: rgba(255,255,255,0.45) !important; }
+
+.title-page .tp-episode-row #titleEpDate { color: var(--text-dim) !important; }
 .title-page .tier-stamp { pointer-events: auto !important; cursor: pointer; }
-.title-page .tp-episode-unified .poster-stepper-btn,
 .title-page .poster-stepper-btn {
-  background: rgba(255,255,255,0.012) !important;
-  border-color: rgba(255,255,255,0.022) !important;
-  color: rgba(255,255,255,0.55) !important;
+  background: var(--ghost-bg) !important;
+  border-color: var(--ghost-border) !important;
+  color: var(--text-soft) !important;
   width: 36px !important;
   height: 36px !important;
   min-height: 36px !important;
@@ -4555,103 +3430,13 @@ a:focus-visible,
 @media (max-width: 900px) {
   .tp-layout { flex-direction:column; }
   .tp-side-hud { flex:1 1 auto; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; }
-  .tp-side-hud .tp-h-sep { display:none; }
   .tp-side-hud .tp-status-col { flex-direction:row; flex-wrap:wrap; }
   .tp-main { flex-direction:column; }
   .tp-poster-col { flex:1 1 auto; max-width:100%; }
   .tp-episode-row { flex-wrap:wrap; }
-  .tp-episode-row .tp-season-box, .tp-episode-row .tp-episode-box { flex:1 1 120px; }
-  .tp-episode-row .tp-synopsis-box { flex:1 1 100%; }
 }
 @media (max-width: 700px) {
-  .tp-hud-controls { flex-direction:column; border-radius:18px; }
-  .tp-hud-controls .tp-divider-v { display:none; }
   .tp-hud-top { flex-direction:column; border-radius:18px; gap:6px; padding:10px; }
-  .tp-hud-top .tp-divider-v { width:100%; height:1px; min-height:1px; margin:4px 0; }
-}
-@media (max-width: 600px) {
-  .tp-top { flex-direction:column; align-items:stretch; }
-  .tp-top-unified { flex-direction:column; border-radius:18px; gap:6px; padding:10px; }
-  .tp-top-unified .tp-divider-v { width:100%; height:1px; min-height:1px; margin:4px 0; }
-  .tp-genres-block { max-width:100%; justify-content:center; text-align:center; }
-}
-.title-page-header { display: flex; gap: 24px; flex-wrap: wrap; }
-.title-page-poster { position: relative; flex-shrink: 0; }
-.title-page-info { flex: 1; min-width: 280px; }
-@media (max-width: 768px) { .title-page-header { flex-direction: column; } }
-
-/* ================================================================
-   TITLE PAGE - OVERLAY ELEMENTS
-   ================================================================ */
-/* Overlay container dentro da imagem vertical */
-.title-image-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* Container unificado no topo - agrupa Tier e Links */
-.title-top-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 8px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
-  pointer-events: auto;
-}
-
-/* Selo da Tier - integrado na barra superior */
-.title-tier-badge {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
-}
-
-.title-tier-badge:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-/* Links externos - agrupados horizontalmente */
-.title-external-links {
-  display: flex;
-  gap: 6px;
-}
-
-.title-external-links a {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.title-external-links a:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
 }
 
 /* Status buttons - barra inferior unificada */

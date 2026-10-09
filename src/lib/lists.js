@@ -169,25 +169,6 @@ export async function removeItemFromList(itemId, listId) {
 }
 
 /**
- * Busca todas as listas de um item específico
- * @param {string} itemId - ID do item
- * @returns {Promise<Array>} Lista de listas do item
- */
-export async function fetchListsForItem(itemId) {
-  const { data, error } = await supabase
-    .from('item_lists')
-    .select('list_id, user_lists(*)')
-    .eq('item_id', itemId);
-  
-  if (error) {
-    console.error('Erro ao buscar listas do item:', error);
-    throw new Error(`Erro ao buscar listas do item: ${error.message}`);
-  }
-  
-  return data?.map(il => il.user_lists) || [];
-}
-
-/**
  * Atualiza a ordem das listas
  * @param {Array<{id: string, ordem: number}>} lists - Array com id e nova ordem
  * @returns {Promise<void>}
@@ -204,33 +185,4 @@ export async function updateListsOrder(lists) {
     console.error('Falhas ao atualizar ordem:', failures);
     throw new Error(`${failures.length} de ${lists.length} atualizações falharam`);
   }
-}
-
-/**
- * Busca ou cria a lista Próximos do sistema para o usuário
- * @returns {Promise<Object>} Lista Próximos
- */
-export async function getOrCreateWishlist() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não logado.');
-  
-  // Tenta buscar a lista do sistema existente (compatível com nome antigo)
-  const { data: existingWishlist } = await supabase
-    .from('user_lists')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_system', true)
-    .single();
-  
-  if (existingWishlist) {
-    // Migra nome antigo se necessário
-    if (existingWishlist.nome === 'Lista de Desejos') {
-      await supabase.from('user_lists').update({ nome: 'Próximos' }).eq('id', existingWishlist.id);
-      existingWishlist.nome = 'Próximos';
-    }
-    return existingWishlist;
-  }
-  
-  // Se não existe, cria
-  return await createList('Próximos', true);
 }

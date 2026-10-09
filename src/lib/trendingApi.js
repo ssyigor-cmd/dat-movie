@@ -1,6 +1,11 @@
 /**
  * trendingApi - Funções para buscar tendências e novidades na TMDb via Edge Function
- * Usa callTMDB e implementa cache em memória de 5 minutos.
+ * Usa callTMDB com o cache único (`cache.js`), TTL padrão de 1h.
+ *
+ * Quem precisa de dado novo de verdade pede `opts.fresh`: aí a leitura do cache
+ * é pulada e a resposta regrava a chave, para a próxima visita normal já usar o
+ * dado fresco. Só o botão de atualizar da home usa isso — o carregamento
+ * comum continua aproveitando o cache.
  */
 import { callTMDB } from './api.js';
 import { filterNotInCatalog as catalogFilterNotInCatalog, calcularProgresso } from './catalog.js';
@@ -22,50 +27,26 @@ export function clearTrendingCache() {
   return cacheClearPrefix(CACHE_PREFIX);
 }
 
-export function _getCacheEntry(key) {
-  return cacheGet(key) ? { data: cacheGet(key), expiresAt: Date.now() + 300000 } : null;
-}
-
-export function _setCacheEntry(key, data) {
-  cacheSet(key, data);
-}
-
-async function cachedCallTMDB(endpoint, params = {}, lang = 'pt-BR') {
+/**
+ * Chamada TMDB com cache.
+ *
+ * @param {string} endpoint - Endpoint relativo (`discover/tv`, `tv/123`, ...).
+ * @param {Object} [params] - Query string.
+ * @param {string} [lang] - Idioma.
+ * @param {Object} [opts] - { fresh }: ignora a leitura do cache e vai à rede.
+ *   A resposta é gravada mesmo quando `fresh`, então o clique de atualizar
+ *   renova o cache em vez de deixá-lo velho até o TTL vencer.
+ * @returns {Promise<any>} Dados da TMDb (ou do cache).
+ */
+async function cachedCallTMDB(endpoint, params = {}, lang = 'pt-BR', opts = {}) {
   const key = cacheKey(endpoint, params, lang);
-  const cached = cacheGet(key);
-  if (cached !== undefined) return cached;
+  if (!opts.fresh) {
+    const cached = cacheGet(key);
+    if (cached !== undefined) return cached;
+  }
   const data = await callTMDB(endpoint, params, lang);
   cacheSet(key, data);
   return data;
-}
-
-/**
- * Verifica se uma data ISO (YYYY-MM-DD) está dentro dos últimos N dias (padrão 7)
- * @param {string} dateStr - data ISO
- * @param {number} days - janela em dias
- * @param {Date} nowRef - referência de "hoje" (injetável para testes)
- * @returns {boolean}
- */
-export function isRecentDate(dateStr, days = 7, nowRef = new Date()) {
-  if (!dateStr || typeof dateStr !== 'string') return false;
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return false;
-  const now = nowRef instanceof Date ? nowRef : new Date(nowRef);
-  const diffMs = now.getTime() - d.getTime();
-  if (diffMs < 0) return false; // data futura
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  return diffDays <= days;
-}
-
-/**
- * Verifica se um episódio (objeto com air_date) é recente (últimos 7 dias)
- * @param {Object} episode - { air_date: string }
- * @param {number} days
- * @param {Date} nowRef
- */
-export function isRecentEpisode(episode, days = 7, nowRef = new Date()) {
-  if (!episode || !episode.air_date) return false;
-  return isRecentDate(episode.air_date, days, nowRef);
 }
 
 /**
@@ -125,14 +106,20 @@ const MAX_PAGES = 15;
 
 /**
  * Pagina o endpoint até acumular `needed` itens já filtrados (ou esgotar as páginas)
+ *
+ * O 6º parâmetro era `seedResults` (lista semente de itens já coletados) e era
+ * membro morto: nenhum chamador passava. Virou `opts`, que hoje carrega só o
+ * `fresh` repassado a cada página.
+ *
+ * @param {Object} [opts] - { fresh }: cada página vai à rede em vez do cache.
  */
-async function collectFiltered(endpoint, params, lang, catalogItems, needed, seedResults = []) {
-  const collected = seedResults.slice();
-  const seen = new Set(collected.map(r => String(r.id)));
+async function collectFiltered(endpoint, params, lang, catalogItems, needed, opts = {}) {
+  const collected = [];
+  const seen = new Set();
   for (let page = 1; page <= MAX_PAGES && collected.length < needed; page++) {
     let data;
     try {
-      data = await cachedCallTMDB(endpoint, { ...params, page }, lang);
+      data = await cachedCallTMDB(endpoint, { ...params, page }, lang, opts);
     } catch (e) {
       if (page === 1) throw e;
       break;
@@ -263,7 +250,7 @@ export async function getTrendingToSuggest(catalogItems, limit = null, opts = {}
   // Alterna semana/dia para trazer listas realmente diferentes a cada clique
   const window = opts.window === 'day' || opts.window === 'week' ? opts.window : 'week';
   try {
-    const filtered = await collectFiltered(`trending/tv/${window}`, {}, 'pt-BR', catalogItems || [], poolSizeFor(lim));
+    const filtered = await collectFiltered(`trending/tv/${window}`, {}, 'pt-BR', catalogItems || [], poolSizeFor(lim), { fresh: opts.fresh });
     filtered.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     return filtered.map(normalizeTrendingItem);
   } catch (e) {
@@ -373,12 +360,12 @@ export async function getTitlesByGenre(genreId, catalogItems = [], limit = null,
   // ver" que o usuário reclamou. A variedade é responsabilidade da seleção.
   const sort = opts.sortBy || 'popularity.desc';
   try {
-    let filtered = await collectFiltered('discover/tv', { with_genres: String(genreId), sort_by: sort }, 'pt-BR', catalogItems || [], poolSizeFor(lim));
+    let filtered = await collectFiltered('discover/tv', { with_genres: String(genreId), sort_by: sort }, 'pt-BR', catalogItems || [], poolSizeFor(lim), { fresh: opts.fresh });
 
     // Gênero sem dados no endpoint: refaz a busca só por keyword.
     const keyword = GENRE_KEYWORD_FALLBACK[genreId];
     if (filtered.length === 0 && keyword) {
-      filtered = await collectFiltered('discover/tv', { with_keywords: keyword, sort_by: sort }, 'pt-BR', catalogItems || [], poolSizeFor(lim));
+      filtered = await collectFiltered('discover/tv', { with_keywords: keyword, sort_by: sort }, 'pt-BR', catalogItems || [], poolSizeFor(lim), { fresh: opts.fresh });
     }
 
     return filtered.map(normalizeTrendingItem);
@@ -418,6 +405,47 @@ export async function getTitlesByYear(year, catalogItems = [], limit = null, opt
     return found.slice(0, lim).map(normalizeTrendingItem);
   } catch (e) {
     console.warn('Erro ao buscar títulos do ano', ano, e);
+    throw e;
+  }
+}
+
+/**
+ * Títulos que ainda vão estrear, via `discover/tv?first_air_date.gte` hoje.
+ *
+ * É a única busca do app que olha para o futuro: as outras usam popularidade
+ * porque querem o que já provou público, mas aqui o recorte é a data — o que
+ * interessa é "quando sai", e a ordenação por data é o que responde isso. O
+ * refresh alterna para popularidade ("os mais esperados"), que é a mesma
+ * pergunta vista pelo público em vez da calendário.
+ *
+ * O pool vem com folga (2× o que cabe) porque pôster ausente é comum em
+ * anunciado que ainda não estreou: filtrando `poster_path` depois, ainda sobra
+ * para encher o trilho.
+ *
+ * @param {Array} catalogItems - Catálogo do usuário, para não repetir título.
+ * @param {number} [limit] - Quantos devolver. Default: largura da tela.
+ * @param {Object} [opts] - { sortBy } para trocar a ordenação; { fresh } para
+ *   ir à rede no clique de atualizar.
+ * @returns {Promise<Array>} Títulos normalizados.
+ */
+export async function getUpcomingTitles(catalogItems = [], limit = null, opts = {}) {
+  const lim = limit ?? getFullWidthCount();
+  // Fatiar a string evita `new Date()` no formato local: aqui só o dia importa.
+  const hoje = new Date();
+  const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+  const sort = opts.sortBy || 'first_air_date.asc';
+  try {
+    const found = await collectFiltered(
+      'discover/tv',
+      { 'first_air_date.gte': iso, sort_by: sort },
+      'pt-BR',
+      catalogItems || [],
+      lim * 2,
+      { fresh: opts.fresh }
+    );
+    return found.filter((r) => r.poster_path).slice(0, lim).map(normalizeTrendingItem);
+  } catch (e) {
+    console.warn('Erro ao buscar próximos lançamentos', e);
     throw e;
   }
 }
@@ -500,16 +528,17 @@ export function rankRecommendationBases(catalogItems) {
  *
  * @param {Object} base - Catalog item serving as base.
  * @param {Array} catalogItems - The user's catalog.
+ * @param {Object} [opts] - { fresh }: recomendações vêm da rede.
  * @returns {Promise<Array|null>} Normalized pool, or null on failure/empty.
  */
-async function fetchBasePool(base, catalogItems) {
+async function fetchBasePool(base, catalogItems, opts = {}) {
   if (!base || !base.tmdb_id) return null;
   try {
     let data;
     try {
-      data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR');
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/recommendations`, { page: 1 }, 'pt-BR', opts);
     } catch {
-      data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR');
+      data = await cachedCallTMDB(`tv/${base.tmdb_id}/similar`, { page: 1 }, 'pt-BR', opts);
     }
     const results = data.results || [];
     const pool = filterNotInCatalog(results, catalogItems).map(normalizeTrendingItem);
@@ -556,7 +585,8 @@ export const AFFINITY_RAIL_COUNT = 4;
  * — o catálogo é pequeno demais para ancorar mais faixas.
  *
  * @param {Array} catalogItems - Catálogo do usuário.
- * @param {Object} [opts] - { offset, excludeTitles, excludeBaseIds }.
+ * @param {Object} [opts] - { offset, excludeTitles, excludeBaseIds, fresh }.
+ *   `fresh` chega ao `fetchBasePool` e faz as recomendações virem da rede.
  * @returns {Promise<{base: Object, pool: Array}|null>} A faixa, ou null.
  */
 export async function getAffinityRail(catalogItems, opts = {}) {
@@ -574,7 +604,7 @@ export async function getAffinityRail(catalogItems, opts = {}) {
     const base = ranked[(start + i) % ranked.length];
     if (!base || !base.tmdb_id) continue;
     if (takenBases.has(String(base.tmdb_id))) continue;
-    const pool = await fetchBasePool(base, catalogItems);
+    const pool = await fetchBasePool(base, catalogItems, { fresh: opts.fresh });
     if (!pool) continue;
     const fresh = pool.filter((t) => !seen.has(String(t.id)));
     if (fresh.length === 0) continue;
@@ -594,7 +624,7 @@ export async function getAffinityRail(catalogItems, opts = {}) {
  * mesmo offset e receberia a mesma faixa quatro vezes.
  *
  * @param {Array} catalogItems - Catálogo do usuário.
- * @param {Object} [opts] - { count, offset }.
+ * @param {Object} [opts] - { count, offset, fresh }.
  * @returns {Promise<Array<{base: Object, pool: Array}>>} Até `count` faixas.
  */
 export async function getAffinityRails(catalogItems, opts = {}) {
@@ -606,7 +636,7 @@ export async function getAffinityRails(catalogItems, opts = {}) {
   for (let i = 0; i < count; i++) {
     // O offset avança com o índice porque cada faixa precisa de uma âncora
     // diferente: sem isso, todas as quatro pediriam a mesma base.
-    const rail = await getAffinityRail(catalogItems, { offset: offset + i, excludeTitles: seen, excludeBaseIds: takenBases });
+    const rail = await getAffinityRail(catalogItems, { offset: offset + i, excludeTitles: seen, excludeBaseIds: takenBases, fresh: opts.fresh });
     if (!rail) continue;
     rail.pool.forEach((t) => seen.add(String(t.id)));
     takenBases.add(String(rail.base.tmdb_id));
@@ -642,6 +672,7 @@ export function normalizeTrendingItem(raw) {
  * @param {number} days - janela de dias
  * @param {Date} nowRef - referência de data
  * @param {number} limit
+ * @param {Object} [opts] - { fresh }: detalhes vêm da rede em vez do cache.
  * @returns {Promise<Array>} itens com novidade { item, episode, season, airDate }
  */
 /**
@@ -662,7 +693,7 @@ export function isWithin7DaysWindow(dateStr, days = 7, nowRef = new Date()) {
   return diffDays >= -days && diffDays <= days;
 }
 
-export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = null) {
+export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = null, opts = {}) {
   const lim = limit ?? getFullWidthCount();
   const candidates = (catalogItems || []).filter((i) => i.tmdb_id && i.status === 'assistindo' && (i.tipo === 'serie' || i.tipo === 'anime' || i.tipo === 'animacao' || !i.tipo));
   if (candidates.length === 0) return [];
@@ -675,7 +706,7 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
     const batchResults = await Promise.allSettled(
       batch.map(async (item) => {
         try {
-          const details = await cachedCallTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR');
+          const details = await cachedCallTMDB(`tv/${item.tmdb_id}`, {}, 'pt-BR', opts);
           const episodesToCheck = [];
           if (details.last_episode_to_air) episodesToCheck.push(details.last_episode_to_air);
           if (details.next_episode_to_air) episodesToCheck.push(details.next_episode_to_air);
@@ -697,7 +728,7 @@ export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date()
               episodeNumber: ep.episode_number,
               name: ep.name || `T${ep.season_number} E${ep.episode_number}`
             }));
-        } catch (e) {
+        } catch {
           return [];
         }
       })
@@ -771,10 +802,11 @@ export function getCatalogStats(catalogItems) {
  * vez de esconder a seção. O terceiro elemento do par diz se a data é futura, para
  * a interface poder rotular.
  * @param {Array} catalogItems
+ * @param {Object} [opts] - { fresh }: detalhes dos títulos vêm da rede.
  * @returns {Promise<Array<[string, Array, boolean]>>} [data, episódios, éFuturo]
  */
-export async function getCalendarWeek(catalogItems) {
-  const all = await getNewEpisodes(catalogItems, 7, new Date(), 20);
+export async function getCalendarWeek(catalogItems, opts = {}) {
+  const all = await getNewEpisodes(catalogItems, 7, new Date(), 20, opts);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
   const isFuture = x => new Date(x.airDate + 'T12:00:00') >= today;
@@ -802,30 +834,4 @@ export function getAbandoned(catalogItems, limit = null) {
   const pausados = catalogItems.filter(i => i.status === 'pausado');
   pausados.sort((a,b) => new Date(a.dataAtualizacao || a.dataCriacao || 0) - new Date(b.dataAtualizacao || b.dataCriacao || 0));
   return pausados.slice(0, lim);
-}
-
-export function getTimeline(catalogItems, limit = 10) {
-  if (!Array.isArray(catalogItems)) return [];
-  return [...catalogItems].sort((a,b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0)).slice(0, limit);
-}
-
-export function getChallenge(catalogItems, goal = 5) {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const concluidosMes = catalogItems.filter(i => i.status === 'concluido' && new Date(i.dataAtualizacao || i.dataCriacao || 0) >= start).length;
-  const pct = goal ? Math.min(100, Math.round((concluidosMes / goal)*100)) : 0;
-  return { concluidosMes, goal, pct };
-}
-
-export function pickRandomByTime(catalogItems, minutes = 60) {
-  const pool = catalogItems.filter(i => i.status === 'planejado' || i.status === 'pausado');
-  if (pool.length === 0) return null;
-  const filtered = pool.filter(i => {
-    const total = Number(i.totalEpisodios || 1);
-    const remaining = Math.max(0, total - (Number(i.episodio)||0));
-    const est = remaining * 24;
-    return est <= minutes || est <= 60;
-  });
-  const list = filtered.length > 0 ? filtered : pool;
-  return list[Math.floor(Math.random()*list.length)];
 }

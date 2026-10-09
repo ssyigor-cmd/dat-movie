@@ -207,7 +207,6 @@ describe('pickWithMix', () => {
   const obscure = Array.from({ length: 8 }, (_, i) => build(300 + i, 1 + i * 0.4, 12));
   const bigPool = [...known, ...niche, ...obscure];
   const knownIds = new Set(known.map(t => t.id));
-  const nicheIds = new Set(niche.map(t => t.id));
   const obscureIds = new Set(obscure.map(t => t.id));
 
   // Região da âncora: o topo do ranking de score. O contrato novo não divide o
