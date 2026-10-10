@@ -61,7 +61,7 @@
   - [Vite](https://vite.dev/) como empacotador de assets e servidor de desenvolvimento.
   - [anime.js](https://animejs.com/) para animações e transições fluidas de UI.
   - [Sortable.js](https://sortablejs.github.io/Sortable/) para drag-and-drop de listas na sidebar.
-  - **Inter** (corpo, botões, episódios) + **Space Grotesk** (títulos e destaques) + **JetBrains Mono** (dados técnicos e códigos) via Google Fonts. Ver `assets/BRAND_GUIDELINES.md`.
+  - **Inter** (corpo, botões, episódios) + **Sora** (títulos e destaques) + **IBM Plex Mono** (dados técnicos e códigos) via Google Fonts. Ver `assets/BRAND_GUIDELINES.md`.
   - Font Awesome 6.5.0 para biblioteca de ícones.
 - **Backend & Cloud (BaaS):**
   - [Supabase](https://supabase.com/) como banco de dados (PostgreSQL), autenticação e segurança de acesso.

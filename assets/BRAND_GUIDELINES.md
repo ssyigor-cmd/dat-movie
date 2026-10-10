@@ -24,17 +24,17 @@ assets/
 
 ## Typography
 
-Três famílias, três papéis. Inter é a base e descreve, Space Grotesk nomeia,
-e JetBrains Mono fica reservada ao dado técnico que precisa alinhar em coluna.
+Três famílias, três papéis. Inter é a base e descreve, Sora nomeia,
+e IBM Plex Mono fica reservada ao dado técnico que precisa alinhar em coluna.
 
 | Papel | Família | Onde |
 |---|---|---|
 | Texto | **Inter** | corpo, sinopse, botões, inputs, episódios, interface geral |
-| Display | **Space Grotesk** | título de cartão, cabeçalhos, títulos de seção, destaques |
-| Mono | **JetBrains Mono** | número de episódio, data, ano, contagem, porcentagem, código |
+| Display | **Sora** | título de cartão, cabeçalhos, títulos de seção, destaques |
+| Mono | **IBM Plex Mono** | número de episódio, data, ano, contagem, porcentagem, código |
 
 ```html
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 ```
 
 Os ícones são da **Font Awesome 6.5.0**, em CDN e fora do Google Fonts:
@@ -43,11 +43,12 @@ Os ícones são da **Font Awesome 6.5.0**, em CDN e fora do Google Fonts:
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 ```
 
-- **Pesos**: as três famílias carregam 400, 500, 600 e 700 (a JetBrains Mono
-  parte de 500; 400 nela não é usado)
+- **Pesos**: Inter carrega 400–700; Sora carrega 400, 600 e 700 (os pesos que
+  o display usa); IBM Plex Mono carrega 500, 600 e 700 (os pesos que o dado
+  usa)
 - **Fallbacks**: a base cai nos sans de sistema (`-apple-system`,
-  `BlinkMacSystemFont`, `sans-serif`); o display e o mono caem em `sans-serif`
-  e `monospace`. Tudo que é dimensionado em `ch` ou `em` de fonte muda de
+  `BlinkMacSystemFont`, `sans-serif`); o display cai em `sans-serif` e o mono
+  em `monospace`. Tudo que é dimensionado em `ch` ou `em` de fonte muda de
   métrica se a substituta for de outra largura, então o fallback não é
   decoração.
 
@@ -69,6 +70,13 @@ nove regras pediam fora disso: `.header-subtitle` e `.epp-season-text` em 400,
 busca da home em 600/700. Nove elementos renderizavam em negrito sintético.
 Resolvido em 28/09/2026, com os pesos somados ao link — o conserto é de uma
 linha, mas o link passa a ser consequência da folha e não herança do design.
+
+Em 10/10/2026 a Space Grotesk saiu do sistema em duas etapas: primeiro o
+display caiu para JetBrains Mono, depois a revisão completa trocou o display
+para **Sora** (400/600/700), com o mono de volta a 500/600/700. Na sequência,
+a JetBrains Mono foi substituída por **IBM Plex Mono** nos mesmos pesos. O
+link carrega Inter + Sora + IBM Plex Mono, cada peso como consequência da
+folha.
 
 ### Nota sobre os SVG do logo
 

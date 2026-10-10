@@ -60,8 +60,8 @@
   /* Fontes
      Três papéis, três fontes:
      `--font-body` é Inter e carrega corpo de texto, botões, episódios e a
-     interface geral. `--font-display` é Space Grotesk e nomeia títulos,
-     cabeçalho e destaques. `--font-mono` é JetBrains Mono e fica reservado a
+     interface geral. `--font-display` é Sora e nomeia títulos,
+     cabeçalho e destaques. `--font-mono` é IBM Plex Mono e fica reservado a
      dado técnico, código e texto que precisa de alinhamento em coluna:
      número de episódio, data, ano, contagem, porcentagem, código.
 
@@ -69,8 +69,8 @@
      dimensionado em `ch` ou `em` de fonte troca de métrica se a substituta
      for de outra largura. */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'Sora', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 
   /* Transições */
   --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1359,13 +1359,13 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
   width: var(--home-card-w);
   scroll-snap-align: start;
 }
-/* O card do calendário usa a largura comum. O `flex` base do trilho é
-   `0 0 var(--home-card-w)`, zerado aqui porque dentro de uma coluna de dia
-   ele viraria altura. */
+/* O card do calendário usa a largura comum. Dentro da fileira de episódios
+   do dia ele tem largura fixa (`0 0 var`), para não espremer quando há
+   vários títulos na mesma data. */
 .card--calendar {
-  flex: 0 0 auto;
+  flex: 0 0 var(--home-card-w);
   width: var(--home-card-w);
-  margin: 0 auto;
+  margin: 0;
 }
 
 /* ================================================================
@@ -3039,10 +3039,14 @@ a:focus-visible,
 
 /* ── Calendário da semana ─────────────────────────────────────
    A grade é o mesmo trilho das faixas de cartões. Cada coluna é uma
-   "caixa de dia", com a mesma superfície e o mesmo raio de um cartão,
-   e os cartões dentro dela mantêm a largura comum. */
+   "caixa de dia", com a mesma superfície e o mesmo raio de um cartão.
+   A largura é automática a partir de um mínimo: dias com vários títulos
+   na mesma data alargam a caixa e os cartões ficam um ao lado do outro
+   na fileira de episódios. */
 .home-calendar-day {
-  flex: 0 0 154px;
+  flex: 0 0 auto;
+  min-width: 154px;
+  max-width: 100%;
   background: var(--home-surface-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -3078,7 +3082,9 @@ a:focus-visible,
   color: var(--text-primary);
 }
 .home-calendar-day.is-today .home-calendar-dnum { color: var(--accent); }
-.home-calendar-eps { display: flex; flex-direction: column; gap: 10px; }
+/* Fileira de episódios do dia: lado a lado, para títulos da mesma data
+   não empilharem um embaixo do outro. */
+.home-calendar-eps { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; }
 /* O corpo do card do Calendário diz qual episódio sai naquela data: número em
    mono (dado técnico) e nome em duas linhas sempre, para as colunas do dia
    saírem com a mesma altura mesmo quando o episódio tem nome curto. */
@@ -3326,7 +3332,7 @@ a:focus-visible,
     --home-card-w: var(--home-card-w-sm);
     --home-space-section: 24px;
   }
-  .home-calendar-day { flex-basis: 142px; }
+  .home-calendar-day { min-width: 142px; }
 }
 
 @media (max-width: 480px) {
@@ -3334,7 +3340,7 @@ a:focus-visible,
     --home-space-section: 20px;
     --home-panel-pad: var(--home-panel-pad-sm);
   }
-  .home-calendar-day { flex-basis: 132px; }
+  .home-calendar-day { min-width: 132px; }
   .home-roulette-card { flex-direction: column; text-align: center; gap: 12px; }
   .home-roulette-info { align-items: center; }
   .home-affinity-dropdown { max-width: none; }

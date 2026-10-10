@@ -67,11 +67,11 @@ const familiasDoLink = () =>
  * Três famílias, três papéis, e a hierarquia feita da diferença.
  *
  * Inter é a base: corpo de texto, botões, episódios e a interface geral.
- * Space Grotesk nomeia — título, cabeçalho, destaque. JetBrains Mono fica
+ * Sora nomeia — título, cabeçalho, destaque. IBM Plex Mono fica
  * reservada a dado técnico, código e texto que precisa alinhar em coluna:
  * número de episódio, data, ano, contagem, porcentagem, campo de busca.
  *
- * A tentativa de fazer isso com uma fonte só (JetBrains Mono) e a seguinte com
+ * A tentativa de fazer isso com uma fonte só (IBM Plex Mono) e a seguinte com
  * uma fonte só de display (Bebas Neue) tocaram as duas metades do problema: a
  * Bebas Neue tem um peso só, então os `font-weight` viraram negrito sintético em
  * cima de um desenho estreito, e a sinopse em 0.85rem condensado ficou ilegível.
@@ -82,14 +82,14 @@ const familiasDoLink = () =>
  */
 describe('tipografia: três famílias, três papéis', () => {
   it('carrega as três famílias, e elas são as dos tokens', () => {
-    // No link do Google Fonts o espaço vai como `+` (`Space+Grotesk`), e
+    // No link do Google Fonts o espaço vai como `+` (`IBM+Plex+Mono`), e
     // `decodeURIComponent` não sabe disso — ele só entende `%20`.
     const familias = familiasDoLink().map((f) => f.familia).sort();
-    expect(familias, 'famílias no link de fontes').toEqual(['Inter', 'JetBrains Mono', 'Space Grotesk']);
+    expect(familias, 'famílias no link de fontes').toEqual(['IBM Plex Mono', 'Inter', 'Sora']);
 
     expect(css.match(/--font-body:\s*'([^']+)'/)?.[1], 'a família da base, que é o texto').toBe('Inter');
-    expect(css.match(/--font-display:\s*'([^']+)'/)?.[1], 'a família de display').toBe('Space Grotesk');
-    expect(css.match(/--font-mono:\s*'([^']+)'/)?.[1], 'a família de dado técnico').toBe('JetBrains Mono');
+    expect(css.match(/--font-display:\s*'([^']+)'/)?.[1], 'a família de display').toBe('Sora');
+    expect(css.match(/--font-mono:\s*'([^']+)'/)?.[1], 'a família de dado técnico').toBe('IBM Plex Mono');
   });
 
   it('as três famílias continuam onde estavam, para o layout não dançar', () => {
@@ -281,7 +281,7 @@ describe('tipografia: três famílias, três papéis', () => {
     // como texto ilegível. Foi o que reprovou a Bebas Neue, que tem um peso só.
     //
     // A verificação é por papel, não pela folha inteira: `font-weight: 700` em
-    // `.nav-section-label` é problema da JetBrains Mono, e exigir que o Inter
+    // `.nav-section-label` é problema da IBM Plex Mono, e exigir que o Inter
     // carregue 700 por causa disso não diria nada sobre o mono. Cada família
     // responde pelos pesos que a folhamaplica nos seus seletores.
     const usados = [...new Set([...css.matchAll(/font-weight:\s*(\d+)/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
@@ -291,8 +291,8 @@ describe('tipografia: três famílias, três papéis', () => {
 
     for (const [familia, token] of [
       ['Inter', 'var(--font-body)'],
-      ['Space Grotesk', 'var(--font-display)'],
-      ['JetBrains Mono', 'var(--font-mono)']
+      ['Sora', 'var(--font-display)'],
+      ['IBM Plex Mono', 'var(--font-mono)']
     ]) {
       const carregados = link.get(familia);
       expect(carregados, `${familia} no link`).toBeTruthy();
@@ -321,8 +321,8 @@ describe('tipografia: três famílias, três papéis', () => {
     // link é download que ninguém pediu.
     const tokenDe = {
       Inter: 'var(--font-body)',
-      'Space Grotesk': 'var(--font-display)',
-      'JetBrains Mono': 'var(--font-mono)'
+      Sora: 'var(--font-display)',
+      'IBM Plex Mono': 'var(--font-mono)'
     };
     for (const [familia, carregados] of link) {
       const token = tokenDe[familia];
