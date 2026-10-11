@@ -95,14 +95,33 @@ export const COUNTRY_OPTIONS = [
  * silêncio), mas é a única via barata — o TMDB só expõe `content_ratings` fora
  * da allow-list. O país é fixado em `US` porque é onde o TMDB tem a cobertura
  * mais completa de classificação para TV.
+ *
+ * O `value` é o código US (é o que a API entende); o nome é brasileiro.
+ * `US_RATING_BR` é a equivalência código US → código BR, usada pelo selo dos
+ * Detalhes para exibir tudo no padrão brasileiro.
  */
+export const US_RATING_BR = {
+  'TV-Y': 'L',
+  'TV-Y7': '10',
+  'TV-G': 'L',
+  'TV-PG': '12',
+  'TV-14': '14',
+  'TV-MA': '16'
+};
+
 export const AGE_RATING_OPTIONS = [
-  { value: 'TV-Y', name: 'TV-Y — livre para todos' },
-  { value: 'TV-Y7', name: 'TV-Y7 — acima de 7 anos' },
-  { value: 'TV-G', name: 'TV-G — livre' },
-  { value: 'TV-PG', name: 'TV-PG — supervisão dos pais' },
-  { value: 'TV-14', name: 'TV-14 — acima de 14 anos' },
-  { value: 'TV-MA', name: 'TV-MA — adultos' }
+  // "Livre" une os dois códigos US (infantil + geral) num valor só de OU.
+  // O `|` não é documentado para TV: se o TMDB não aceitar, a opção volta
+  // vazia — testar ao vivo; em último caso, volta a separar.
+  { value: 'TV-Y|TV-G', name: 'Livre' },
+  { value: 'TV-Y7', name: '10 anos' },
+  { value: 'TV-PG', name: '12 anos' },
+  { value: 'TV-14', name: '14 anos' },
+  { value: 'TV-MA', name: '16 anos' },
+  // Experimental: o 18 só existe no sistema BR, então o valor carrega o país
+  // (`BR:18`) e o `buildDiscoverParams` separa. Sem documentação oficial para
+  // TV, pode ser ignorado em silêncio pelo TMDB — ver o comentário lá.
+  { value: 'BR:18', name: '18 anos' }
 ];
 
 /** País usado no filtro de classificação de idade. */
@@ -255,8 +274,18 @@ export function buildDiscoverParams(filters = {}) {
     params.with_origin_country = filters.countries.map(String).join('|');
   }
   if (filters.certification) {
-    params.certification = String(filters.certification);
-    params.certification_country = AGE_RATING_COUNTRY;
+    // Valor com país embutido (`BR:18`) separa os dois; valor puro (código US)
+    // usa o país padrão. O `certification` não está na doc oficial do
+    // `discover/tv` e pode ser ignorado em silêncio — vale para o US e para o
+    // BR experimental.
+    const [pais, nota] = String(filters.certification).split(':');
+    if (nota) {
+      params.certification = nota;
+      params.certification_country = pais;
+    } else {
+      params.certification = String(filters.certification);
+      params.certification_country = AGE_RATING_COUNTRY;
+    }
   }
 
   const runtime = runtimePreset(filters.runtime);

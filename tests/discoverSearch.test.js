@@ -77,6 +77,18 @@ describe('buildDiscoverParams', () => {
     expect(p.certification_country).toBe(AGE_RATING_COUNTRY);
   });
 
+  it('opção 18 anos carrega o país BR no valor', () => {
+    const p = buildDiscoverParams({ ...emptySearchFilters(), certification: 'BR:18' });
+    expect(p.certification).toBe('18');
+    expect(p.certification_country).toBe('BR');
+  });
+
+  it('Livre unido passa os dois códigos US em OU', () => {
+    const p = buildDiscoverParams({ ...emptySearchFilters(), certification: 'TV-Y|TV-G' });
+    expect(p.certification).toBe('TV-Y|TV-G');
+    expect(p.certification_country).toBe(AGE_RATING_COUNTRY);
+  });
+
   it('duração de episódio vira with_runtime.gte/lte', () => {
     expect(buildDiscoverParams({ ...emptySearchFilters(), runtime: 'short' })).toMatchObject({ 'with_runtime.lte': 30 });
     expect(buildDiscoverParams({ ...emptySearchFilters(), runtime: 'short' })['with_runtime.gte']).toBeUndefined();
