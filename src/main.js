@@ -1779,6 +1779,23 @@ document.addEventListener('click', (e) => {
   closeProfileDropdown();
 });
 
+// Trilhos horizontais rolam com a roda do mouse no desktop: sem isto, só
+// arrastando a barra fina — e no desktop ela mal aparece. Só consome o gesto
+// quando o trilho ainda tem para onde ir; no fim dele, a página rola normal.
+// Zoom (Ctrl) e trackpad diagonal passam direto.
+document.addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) return;
+  if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+  const rail = e.target?.closest?.('.home-h-scroll, .ti-cast');
+  if (!rail) return;
+  const podeIr = e.deltaY > 0
+    ? rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 1
+    : rail.scrollLeft > 0;
+  if (!podeIr) return;
+  e.preventDefault();
+  rail.scrollLeft += e.deltaY;
+}, { passive: false });
+
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (profileDropdown.style.display !== 'block') return;

@@ -2159,6 +2159,9 @@ a:focus-visible,
   border: 1px solid var(--border-strong); color: var(--text-primary);
   padding: 10px 24px; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 500;
   box-shadow: var(--shadow-lg); opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none;
+  /* Acima dos modais (200) e do modal de listas (300): aviso disparado de
+     dentro de um modal — ex. erro nos Detalhes — ficava escondido atrás. */
+  z-index: 400;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -2556,10 +2559,10 @@ a:focus-visible,
 }
 
 @media (max-width: 768px) {
-  .modal-episodes .modal {
+  .modal.modal-episodes {
     padding: 16px;
   }
-  .modal-episodes .modal { max-width: 100%; }
+  .modal.modal-episodes { max-width: 100%; }
 }
 
 @media (max-width: 480px) {
@@ -2632,9 +2635,11 @@ a:focus-visible,
    para a borda inferior do header virar o topo desta coluna (o "L"). */
 .adv-filters {
   position: sticky;
-  top: 16px;
+  /* Abaixo da navbar fixa (64px + respiro): com 16px o painel grudava e
+     deslizava para trás dela ao rolar a página. */
+  top: 80px;
   align-self: start;
-  max-height: calc(100vh - 48px);
+  max-height: calc(100vh - 96px);
   overflow-y: auto;
   padding: 18px;
   border: 1px solid var(--border);
