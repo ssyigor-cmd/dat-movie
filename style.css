@@ -903,7 +903,12 @@ img { max-width: 100%; height: auto; display: block; }
 /* Painel único de filtros: um botão, seis seções. Opções em pílulas para
    caberem lado a lado; a ativa é sólida para se destacar do hover. */
 .filters-panel { min-width: 300px; max-width: calc(100vw - 32px); max-height: min(560px, 72vh); overflow-y: auto; padding: 12px; }
-.filters-section + .filters-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+/* Seção desligada (Status/Tier fora de Próximos, Início e Pesquisar). */
+.filters-section--off { display: none; }
+/* Divisor entre seções. O seletor de irmão adjacente casa pela posição no DOM,
+   não pela visibilidade: com Status e Tier desligados, Época continuava
+   herdando a borda de uma seção invisível. Por isso o `--off` dos dois lados. */
+.filters-section:not(.filters-section--off) + .filters-section:not(.filters-section--off) { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .filters-label { display: block; font-size: 0.62rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .filters-options { display: flex; flex-wrap: wrap; gap: 6px; }
 .filters-panel .filter-option { display: inline-flex; width: auto; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); background: var(--bg-surface); }

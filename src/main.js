@@ -988,8 +988,11 @@ function applyStatusTierVisibility() {
   const d = visible ? '' : 'none';
   const statusSection = document.getElementById('filtersStatus');
   const tierSection = document.getElementById('filtersTier');
-  if (statusSection) statusSection.style.display = d;
-  if (tierSection) tierSection.style.display = d;
+  // Classe, e não `style.display`: o divisor entre seções é um seletor de irmão
+  // adjacente, que casa pela posição no DOM. Com `display:none` inline a seção
+  // invisível continuaria contando como anterior e a de baixo herdaria a borda.
+  if (statusSection) statusSection.classList.toggle('filters-section--off', !visible);
+  if (tierSection) tierSection.classList.toggle('filters-section--off', !visible);
   if (filterStatus) filterStatus.style.display = d;
   if (filterTier) filterTier.style.display = d;
 }
@@ -2088,7 +2091,7 @@ sortOrder.addEventListener('change', render);
     const ativos = filterSections.reduce((acc, [id, select]) => {
       if (!select || String(select.value) === 'todos') return acc;
       const section = document.getElementById(id);
-      if (section && section.style.display === 'none') return acc;
+      if (section && section.classList.contains('filters-section--off')) return acc;
       return acc + 1;
     }, 0);
     if (filtersCount) {
