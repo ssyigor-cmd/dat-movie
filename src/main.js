@@ -988,6 +988,7 @@ function updateActiveNav() {
   }
   
   // Gerenciar filtros baseado na aba atual
+  const isSystemList = state.userLists.some(l => l.is_system && (l.nome === 'Próximos' || l.nome === 'Lista de Desejos'));
   if (state.currentTab === 'home') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
@@ -1012,7 +1013,13 @@ function updateActiveNav() {
       sortOrder.value = `data-${sortDirection()}`;
       syncSortUi();
     }
-  } else if (state.currentTab === 'pesquisa') {
+} else if (state.currentTab === 'pesquisa') {
+    filterStatus.style.display = 'none';
+    filterTier.style.display = 'none';
+    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
+  } else if (isSystemList) {
+    // Na lista do sistema "Próximos" / "Lista de Desejos", filtro de status
+    // e tier não fazem sentido (os títulos já vão filtrados por data/lançamento).
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
