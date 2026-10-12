@@ -987,17 +987,30 @@ function updateActiveNav() {
     listsToggle.classList.toggle('active', state.currentTab === 'list' && Boolean(state.currentListId));
   }
   
-  // Gerenciar filtros baseado na aba atual
-  // Detecta se a lista selecionada é do sistema "Próximos" ou "Lista de Desejos"
-  const selectedList = state.userLists.find(l => l.is_system && (l.nome === 'Próximos' || l.nome === 'Lista de Desejos'));
-  const isSystemList = !!selectedList;
-  if (state.currentTab === 'home') {
-    filterStatus.style.display = 'none';
-    filterTier.style.display = 'none';
+// Gerenciar filtros baseado na aba atual.
+  //
+  // O menu de filtros é markup próprio (`#filtersStatus`, `#filtersTier`); os
+  // <select> homônimos são os alvos dos cliques do menu e ficam escondidos de
+  // propósito. Esconder só o select não tira a seção da lista — era esse o
+  // descasamento que mantinha Status e Tier visíveis em Próximos. Os dois
+  // precisam cair juntos.
+  const statusSection = document.getElementById('filtersStatus');
+  const tierSection = document.getElementById('filtersTier');
+  const setStatusTier = (visible) => {
+    const d = visible ? '' : 'none';
+    if (statusSection) statusSection.style.display = d;
+    if (tierSection) tierSection.style.display = d;
+    filterStatus.style.display = d;
+    filterTier.style.display = d;
+  };
+
+  if (state.currentTab === 'home' || state.currentTab === 'pesquisa') {
+    setStatusTier(false);
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
   } else if (state.currentTab === 'planejado') {
-    filterStatus.style.display = 'none';
-    filterTier.style.display = 'none';
+    // Próximos já vem recortado por status (o que está planejado), então Status
+    // e Tier não têm o que dizer aqui.
+    setStatusTier(false);
     const listSection = document.getElementById('filtersList');
     if (listSection) listSection.style.display = 'none';
     // Esconder opções de ordenação sem sentido para Próximos
@@ -1015,19 +1028,8 @@ function updateActiveNav() {
       sortOrder.value = `data-${sortDirection()}`;
       syncSortUi();
     }
-} else if (state.currentTab === 'pesquisa') {
-    filterStatus.style.display = 'none';
-    filterTier.style.display = 'none';
-    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-} else if (state.currentTab === 'list' && state.currentListId && isSystemList) {
-    // Na lista do sistema "Próximos" / "Lista de Desejos", filtro de status
-    // e tier não fazem sentido (os títulos já vão filtrados por data/lançamento).
-    filterStatus.style.display = 'none';
-    filterTier.style.display = 'none';
-    document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-  } else if (isSystemList) {
-    filterStatus.style.display = '';
-    filterTier.style.display = '';
+  } else {
+    setStatusTier(true);
     const listSection = document.getElementById('filtersList');
     if (listSection) listSection.style.display = '';
     // Restaurar todas as opções de ordenação
@@ -2072,8 +2074,15 @@ sortOrder.addEventListener('change', render);
       if (!select) return;
       markMenuActive(document.getElementById(id), select);
     });
-    const ativos = [filterStatus, filterTier, filterYear, filterAge]
-      .filter(s => s && String(s.value) !== 'todos').length;
+    // Só conta o que está visível: numa aba como Próximos, Status e Tier ficam
+    // escondidos e um valor remanescente geraria um selo que ninguém consegue
+    // limpar, já que a seção não existe mais na tela.
+    const ativos = filterSections.reduce((acc, [id, select]) => {
+      if (!select || String(select.value) === 'todos') return acc;
+      const section = document.getElementById(id);
+      if (section && section.style.display === 'none') return acc;
+      return acc + 1;
+    }, 0);
     if (filtersCount) {
       filtersCount.hidden = ativos === 0;
       filtersCount.textContent = ativos > 0 ? String(ativos) : '';
