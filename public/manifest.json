@@ -1,0 +1,23 @@
+{
+  "name": "dat-movie",
+  "short_name": "dat-movie",
+  "description": "Acompanhe o que assiste, o que já viu e o que quer ver",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "/assets/icon/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon/icon-face.svg",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

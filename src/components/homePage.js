@@ -1046,16 +1046,14 @@ export async function loadAndRenderCalendar(container, items, onCardClick, opts 
         // Sem pôster do título, usa a still do episódio: melhor que cartão vazio.
         const posterUrl = item.imagem || (episode.still_path ? `https://image.tmdb.org/t/p/w300${episode.still_path}` : '');
         // O corpo deste card é o único da Home que não é barra de progresso:
-        // ele diz qual episódio sai naquela data — número e nome.
+        // ele diz qual episódio sai naquela data — só o número.
         const epNum = `T${episode.season_number} · E${episode.episode_number}`;
-        const epNome = episode.name || '';
         const c = createHomeCard({
           posterUrl,
           title: item.nome,
           extraHtml: `
             <div class="home-calendar-epinfo">
               <span class="home-calendar-epnum">${epNum}</span>
-              ${epNome ? `<span class="home-calendar-epname" title="${escapeHTML(epNome)}">${escapeHTML(epNome)}</span>` : ''}
             </div>`,
           onClick: () => onCardClick && onCardClick(items.indexOf(item)),
           item

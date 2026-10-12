@@ -4,8 +4,10 @@
  */
 
 import { supabase } from './lib/supabase.js';
-import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER } from './lib/catalog.js';
+import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, decadeOf } from './lib/catalog.js';
 import { callTMDB } from './lib/api.js';
+import { pickContentRating } from './components/titleInfoModal.js';
+import { US_RATING_BR } from './lib/discoverSearch.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, setFieldError, clearFieldError } from './components/uiHelpers.js';
@@ -19,7 +21,7 @@ import { setupTitlePage, showTitlePage, hideTitlePage } from './pages/titlePage.
 import { findParentCandidate, getContinuationTag, sortSearchResults } from './lib/titleRelations.js';
 import anime from 'animejs';
 import Sortable from 'sortablejs';
-import { cacheClear } from './lib/cache.js';
+import { cacheClear, cacheGet, cacheSet } from './lib/cache.js';
 import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
 import dom from './lib/dom.js';
 if (typeof window !== 'undefined') window.anime = anime;
@@ -63,16 +65,18 @@ const densityToggleBtn = dom.densityToggleBtn;
 const densityMenu = dom.densityMenu;
 const densityOptions = dom.densityOptions;
 
-// Filtros da barra de ferramentas (selects ocultos + menus + opções)
+// Filtros da barra de ferramentas (selects ocultos + painel único)
 const filterStatus = dom.filterStatus;
-const statusToggleBtn = dom.statusToggleBtn;
-const statusMenu = dom.statusMenu;
 const filterTier = dom.filterTier;
-const tierToggleBtn = dom.tierToggleBtn;
-const tierMenu = dom.tierMenu;
+const filterYear = dom.filterYear;
+const filterAge = dom.filterAge;
+const filtersToggleBtn = dom.filtersToggleBtn;
+const filtersMenu = dom.filtersMenu;
+const filtersCount = dom.filtersCount;
+const filtersListOptions = dom.filtersListOptions;
+const filtersClearBtn = dom.filtersClearBtn;
 const sortOrder = dom.sortOrder;
 const sortToggleBtn = dom.sortToggleBtn;
-const sortDirectionBtn = dom.sortDirectionBtn;
 const sortMenu = dom.sortMenu;
 const filterMenuOptions = dom.filterMenuOptions;
 
@@ -111,8 +115,6 @@ const showProgressBar = dom.showProgressBar;
 const profileSince = dom.profileSince;
 const gridSection = dom.gridSection;
 const searchView = dom.searchView;
-const statusWrapper = dom.statusWrapper;
-const tierWrapper = dom.tierWrapper;
 const groupToggle = dom.groupToggle;
 const grid = dom.grid;
 const homeSection = dom.homeSection;
@@ -989,14 +991,12 @@ function updateActiveNav() {
   if (state.currentTab === 'home') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
-    if (statusWrapper) statusWrapper.style.display = 'none';
-    if (tierWrapper) tierWrapper.style.display = 'none';
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
   } else if (state.currentTab === 'planejado') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
-    if (statusWrapper) statusWrapper.style.display = 'none';
-    if (tierWrapper) tierWrapper.style.display = 'none';
+    const listSection = document.getElementById('filtersList');
+    if (listSection) listSection.style.display = 'none';
     // Esconder opções de ordenação sem sentido para Próximos
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
     // Se o campo do sort não faz sentido para a wishlist, cair para "Data" —
@@ -1005,7 +1005,7 @@ function updateActiveNav() {
     // ("tier-asc", "ano-desc"…); com o sentido separado, o corte é pelo campo,
     // e os dois lados precisam entrar para o botão do menu não sumir junto.
     //
-    // O valor é escrito direto, sem `setSort`: o `render` desta função já vem
+    // O valor é escrito direto: o `render` desta função já vem
     // no fim, e despachar `change` aqui renderizaria a grade duas vezes.
     const hiddenFields = ['tier', 'progresso', 'ano'];
     if (hiddenFields.includes(sortField())) {
@@ -1015,14 +1015,12 @@ function updateActiveNav() {
   } else if (state.currentTab === 'pesquisa') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
-    if (statusWrapper) statusWrapper.style.display = 'none';
-    if (tierWrapper) tierWrapper.style.display = 'none';
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
   } else {
     filterStatus.style.display = '';
     filterTier.style.display = '';
-    if (statusWrapper) statusWrapper.style.display = '';
-    if (tierWrapper) tierWrapper.style.display = '';
+    const listSection = document.getElementById('filtersList');
+    if (listSection) listSection.style.display = '';
     // Restaurar todas as opções de ordenação
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = '');
   }
@@ -1444,7 +1442,74 @@ function initRelinkModal() {
 initRelinkModal();
 
 // ========== RENDER ==========
-function render() {
+/** TTL do cache de detalhes p/ filtros: data e nota mudam raríssimo. */
+const DETAILS_CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+
+/** Guarda anti-corrida do render assíncrono (filtros externos). */
+let renderSeq = 0;
+
+/**
+ * Detalhes completos para os filtros (base + content_ratings), com cache
+ * longo. Uma chamada por título serve idade e ano juntos.
+ */
+async function detailsForFilters(item) {
+  if (!item?.tmdb_id) return null;
+  const key = `tmdbfull_${item.tmdb_id}`;
+  const cached = cacheGet(key);
+  if (cached !== undefined) return cached;
+  try {
+    const details = await callTMDB(`tv/${item.tmdb_id}`, { append_to_response: 'content_ratings' }, 'pt-BR');
+    cacheSet(key, details || null, DETAILS_CACHE_TTL);
+    return details || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Código BR da faixa etária de um item do catálogo ('L', '10' … '18' ou '').
+ * O catálogo não guarda a nota; sem rede ou sem nota, volta vazio.
+ */
+async function ageCodeOf(item) {
+  if (!item?.tmdb_id) return '';
+  const key = `agerating_${item.tmdb_id}`;
+  const cached = cacheGet(key);
+  if (cached !== undefined) return cached;
+  const details = await detailsForFilters(item);
+  const picked = pickContentRating(details?.content_ratings);
+  const code = picked ? (US_RATING_BR[String(picked.rating).trim().toUpperCase()] || picked.rating) : '';
+  cacheSet(key, code, DETAILS_CACHE_TTL);
+  return code;
+}
+
+function yearFromDetails(details) {
+  const y = Number(String(details?.first_air_date || details?.release_date || '').slice(0, 4));
+  return Number.isFinite(y) && y > 0 ? y : null;
+}
+
+/** Aquece o lote com teto de concorrência, avisando o progresso (0..1). */
+async function warmDetailsBatch(items, onProgress) {
+  const map = new Map();
+  const pool = 5;
+  let i = 0, done = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      map.set(items[idx], await detailsForFilters(items[idx]));
+      done++;
+      if (onProgress) onProgress(done / items.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(pool, items.length) }, worker));
+  return map;
+}
+
+function ageMatch(code, ageFilter) {
+  if (ageFilter === 'sem') return !code;
+  return code === ageFilter;
+}
+
+async function render() {
   // Pesquisa tab — show search view, hide everything else
   // Na página Pesquisar: esconder busca local e mostrar busca TMDB na mesma linha dos filtros
   const toolbarSearchLocal = document.getElementById('toolbarSearchLocal');
@@ -1495,6 +1560,8 @@ function render() {
   const search = searchInput?.value || '';
   const statusFilter = filterStatus.value;
   let tierFilter = filterTier.value;
+  const yearFilter = filterYear?.value || 'todos';
+  const ageFilter = filterAge?.value || 'todos';
   const sortKey = sortOrder.value;
 
   // Ignorar filtro de Tier na aba "Próximos"
@@ -1502,7 +1569,34 @@ function render() {
     tierFilter = 'todos';
   }
 
-  const filtered = sortItems(filterItems(state.items, { currentTab: state.currentTab, search, statusFilter, tierFilter, currentListId: state.currentListId }), sortKey);
+  let filtered = sortItems(filterItems(state.items, { currentTab: state.currentTab, search, statusFilter, tierFilter, yearFilter: 'todos', currentListId: state.currentListId }), sortKey);
+
+  // Filtros externos (idade e ano sem coluna): aquecem o lote uma vez e
+  // filtram em memória. O ano sai do filtro síncrono de propósito — item
+  // antigo sem `ano` resolve pela data do TMDB em vez de sumir.
+  const needYear = yearFilter !== 'todos';
+  const needAge = ageFilter !== 'todos';
+  if (needYear || needAge) {
+    const marca = ++renderSeq;
+    const alvos = filtered.filter(i => i.tmdb_id);
+    grid.innerHTML = `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Buscando dados… <span id="enrichCount"></span></p></div>`;
+    grid.className = `grid grid-cols-${state.gridDensity}`;
+    const det = await warmDetailsBatch(alvos, (p) => {
+      if (marca !== renderSeq) return;
+      const el = document.getElementById('enrichCount');
+      if (el) el.textContent = `${Math.round(p * alvos.length)}/${alvos.length}`;
+    });
+    if (marca !== renderSeq) return;
+    if (needYear) {
+      filtered = filtered.filter(item => decadeOf(item.ano ?? yearFromDetails(det.get(item))) === yearFilter);
+    }
+    if (needAge) {
+      const faixas = [];
+      for (const item of filtered) faixas.push(await ageCodeOf(item));
+      if (marca !== renderSeq) return;
+      filtered = filtered.filter((item, i) => ageMatch(faixas[i], ageFilter));
+    }
+  }
 
   let label = '';
   
@@ -1544,6 +1638,8 @@ function render() {
     groupToggle.style.display = '';
     filterTier.style.display = '';
   }
+  // O botão único acende com filtro ativo ou coleção aberta; o selo conta.
+  syncFiltersUi();
 
   grid.innerHTML = '';
   if (filtered.length === 0) {
@@ -1835,6 +1931,8 @@ if (searchInput) {
 }
 filterStatus.addEventListener('change', render);
 filterTier.addEventListener('change', render);
+if (filterYear) filterYear.addEventListener('change', render);
+if (filterAge) filterAge.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
   // Initialize density dropdown control (icon + menu)
@@ -1880,7 +1978,7 @@ sortOrder.addEventListener('change', render);
   // Initialize filter icon dropdowns (status, tier, sort)
   function closeAllFilterMenus() {
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
-    [statusToggleBtn, tierToggleBtn, sortToggleBtn].forEach(b => { if (b) b.setAttribute('aria-expanded', 'false'); });
+    [sortToggleBtn, filtersToggleBtn].forEach(b => { if (b) b.setAttribute('aria-expanded', 'false'); });
   }
 
   // helper to mark active option inside a menu based on select value
@@ -1898,18 +1996,17 @@ sortOrder.addEventListener('change', render);
     toggleBtn.classList.toggle('active', active);
   }
 
-  // — Ordenar: um campo e um sentido
+  // — Ordenar: o campo e o sentido na própria opção
   //
-  // O sentido morava colado na opção ("nome-asc", "nome-desc"), e o menu
-  // carregava dez itens para cinco campos: metade das opções repetia o mesmo
-  // campo só para trocar a seta. Agora o menu escolhe o campo e a seta ao lado
-  // escolhe o sentido.
+  // Sem botão de seta: clicar num campo novo ordena por ele (decrescente);
+  // clicar no campo vigente inverte o sentido. O `data-value` de cada opção
+  // já carrega o que o clique deve aplicar — campo novo com o padrão,
+  // campo ativo com o sentido invertido — então o handler genérico de
+  // `.filter-option` continua sendo o único caminho para mexer no select. O
+  // rótulo do campo ativo ganha ↑/↓ para dizer o sentido vigente.
   //
-  // O sentido é único, não um por campo, e é compartilhado: trocar de campo
-  // preserva a seta que a pessoa escolheu, em vez de voltar ao padrão daquele
-  // campo. Por isso o `data-value` de cada opção é reescrito com o sentido
-  // vigente — o handler genérico de `.filter-option` continua sendo o único
-  // caminho para mexer no select.
+  // O sentido volta ao padrão a cada troca de campo (decrescente), em vez de
+  // herdar a seta do campo anterior.
 
   /** Campo da ordenação atual ('nome', 'data', 'tier', 'progresso', 'ano'). */
   function sortField() {
@@ -1921,71 +2018,123 @@ sortOrder.addEventListener('change', render);
     return String(sortOrder.value).split('-')[1] === 'asc' ? 'asc' : 'desc';
   }
 
-  /** Reescreve o `data-value` das opções para o sentido vigente. */
+  /** Reescreve valor e rótulo das opções: atalho para o próximo estado. */
   function syncSortMenuValues() {
     if (!sortMenu) return;
-    const dir = sortDirection();
+    const [cur, dir] = String(sortOrder.value).split('-');
     sortMenu.querySelectorAll('.filter-option[data-field]').forEach(opt => {
-      opt.dataset.value = `${opt.dataset.field}-${dir}`;
+      if (opt.dataset.name === undefined) opt.dataset.name = opt.textContent.trim();
+      const base = opt.dataset.name;
+      const ativo = opt.dataset.field === cur;
+      opt.dataset.value = ativo ? `${opt.dataset.field}-${dir === 'asc' ? 'desc' : 'asc'}` : `${opt.dataset.field}-desc`;
+      opt.textContent = ativo ? `${base} ${dir === 'asc' ? '↑' : '↓'}` : base;
     });
   }
 
   /**
-   * A seta é o que diz o sentido, então ela é a única coisa que precisa mudar:
-   * ícone para cima quando crescente, para baixo quando decrescente, e o
-   * rótulo do botão acompanhando — uma seta sozinha não diz o que o clique
-   * faz, só onde a lista está.
-   */
-  function syncSortDirectionBtn() {
-    if (!sortDirectionBtn) return;
-    const asc = sortDirection() === 'asc';
-    const label = asc ? 'Ordem crescente' : 'Ordem decrescente';
-    const icon = sortDirectionBtn.querySelector('i');
-    if (icon) icon.className = asc ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
-    sortDirectionBtn.setAttribute('aria-label', label);
-    sortDirectionBtn.title = label;
-  }
-
-  /** Aplica uma chave de ordenação pelo mesmo caminho de um clique no menu. */
-  function setSort(key) {
-    sortOrder.value = key;
-    sortOrder.dispatchEvent(new Event('change'));
-  }
-
-  /**
-   * Menu, seta e destaque do botão, todos derivados do valor do select.
+   * Menu e destaque do botão, todos derivados do valor do select.
    *
-   * A ordem importa: as opções carregam o sentido vigente no `data-value`, e
-   * comparar esse valor antes de reescrevê-lo deixaria o campo selecionado sem
-   * destaque logo depois de inverter a seta.
+   * A ordem importa: o destaque compara o `data-value` antes da reescrita —
+   * comparar depois deixaria o campo sem destaque, porque o valor já seria
+   * o do próximo clique.
    */
   function syncSortUi() {
-    syncSortMenuValues();
-    syncSortDirectionBtn();
     markMenuActive(sortMenu, sortOrder);
     updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
+    syncSortMenuValues();
   }
 
-  if (statusToggleBtn && statusMenu) {
-    statusToggleBtn.addEventListener('click', (e) => {
+  // Painel único de filtros: um botão, uma seção por filtro. O handler
+  // genérico de `.filter-option` resolve o select pelo `data-target`, então
+  // abrir só precisa remarcar as ativas e montar as coleções.
+  const filterSections = [
+    ['filtersStatus', filterStatus],
+    ['filtersTier', filterTier],
+    ['filtersYear', filterYear],
+    ['filtersAge', filterAge]
+  ];
+
+  /**
+   * Selo de contagem e brilho do botão: quantos filtros estão ativos. A
+   * coleção acende junto quando uma aba de lista está aberta.
+   */
+  function syncFiltersUi() {
+    filterSections.forEach(([id, select]) => {
+      if (!select) return;
+      markMenuActive(document.getElementById(id), select);
+    });
+    const ativos = [filterStatus, filterTier, filterYear, filterAge]
+      .filter(s => s && String(s.value) !== 'todos').length;
+    if (filtersCount) {
+      filtersCount.hidden = ativos === 0;
+      filtersCount.textContent = ativos > 0 ? String(ativos) : '';
+    }
+    if (filtersToggleBtn) filtersToggleBtn.classList.toggle('active', ativos > 0 || Boolean(state.currentListId));
+  }
+
+  /**
+   * Menu de coleções: atalho para as abas de lista. Opções montadas ao abrir,
+   * porque coleção nasce e morre sem recarregar a página.
+   */
+  function buildListMenu() {
+    if (!filtersListOptions) return;
+    filtersListOptions.innerHTML = '';
+    const todas = document.createElement('button');
+    todas.type = 'button';
+    todas.setAttribute('role', 'menuitem');
+    todas.className = 'filter-option' + (!state.currentListId ? ' active' : '');
+    todas.textContent = 'Todas as coleções';
+    todas.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = statusMenu.classList.contains('show');
       closeAllFilterMenus();
-      statusMenu.classList.toggle('show', !isOpen);
-      // mark active option when opening
-      if (!isOpen) markMenuActive(statusMenu, filterStatus);
-      statusToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      setActiveTab('all');
+    });
+    filtersListOptions.appendChild(todas);
+    // Listas do sistema (Próximos, Lista de Desejos) não são coleções do
+    // usuário e não fazem sentido aqui.
+    state.userLists.filter(l => !l.is_system).forEach((list) => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.setAttribute('role', 'menuitem');
+      opt.className = 'filter-option' + (state.currentListId === list.id ? ' active' : '');
+      opt.textContent = list.nome;
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllFilterMenus();
+        setActiveTab('list', list.id);
+      });
+      filtersListOptions.appendChild(opt);
     });
   }
 
-  if (tierToggleBtn && tierMenu) {
-    tierToggleBtn.addEventListener('click', (e) => {
+  if (filtersToggleBtn && filtersMenu) {
+    filtersToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = tierMenu.classList.contains('show');
+      const isOpen = filtersMenu.classList.contains('show');
       closeAllFilterMenus();
-      tierMenu.classList.toggle('show', !isOpen);
-      if (!isOpen) markMenuActive(tierMenu, filterTier);
-      tierToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      if (!isOpen) {
+        syncFiltersUi();
+        buildListMenu();
+      }
+      filtersMenu.classList.toggle('show', !isOpen);
+      filtersToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  }
+
+  // Zera os cinco selects; em aba de coleção, volta para o acervo cheio —
+  // senão "limpar" manteria a grade recortada e pareceria não funcionar.
+  if (filtersClearBtn) {
+    filtersClearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      [filterStatus, filterTier, filterYear, filterAge].forEach((s) => {
+        if (s) s.value = 'todos';
+      });
+      closeAllFilterMenus();
+      if (state.currentListId) setActiveTab('all');
+      else {
+        syncFiltersUi();
+        render();
+      }
     });
   }
 
@@ -2011,47 +2160,32 @@ sortOrder.addEventListener('change', render);
         target.value = value;
         target.dispatchEvent(new Event('change'));
       }
-      closeAllFilterMenus();
+      // O painel único fica aberto para combinar vários filtros (fecha no
+      // clique fora ou Esc); menu avulso fecha a cada escolha.
+      if (!opt.closest('#filtersMenu')) closeAllFilterMenus();
     });
   });
 
   // keep menus and toggles in sync when selects change
-  filterStatus.addEventListener('change', () => {
-    // update menu highlights and toolbar active
-    markMenuActive(statusMenu, filterStatus);
-    updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
-  });
-  filterTier.addEventListener('change', () => {
-    markMenuActive(tierMenu, filterTier);
-    updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  [filterStatus, filterTier, filterYear, filterAge].forEach((select) => {
+    if (!select) return;
+    select.addEventListener('change', syncFiltersUi);
   });
   sortOrder.addEventListener('change', () => {
-    // O `change` é o único caminho que muda a ordenação, então é aqui que as
-    // três peças se acertam — venha de um clique no menu, da seta ou do reset
+    // O `change` é o único caminho que muda a ordenação, então é aqui que
+    // menu e botão se acertam — venha de um clique no menu ou do reset
     // da aba "Próximos".
     syncSortUi();
   });
 
-  if (sortDirectionBtn) {
-    sortDirectionBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const proximo = sortDirection() === 'asc' ? 'desc' : 'asc';
-      setSort(`${sortField()}-${proximo}`);
-      // Fecha o menu junto: quem inverteu a seta quer ver a grade reordenada, e
-      // o dropdown aberto fica por cima de exatamente o que veio para ver.
-      closeAllFilterMenus();
-    });
-  }
-
-  // O `selected` do <select> manda: o sentido do menu e o ícone da seta saem
-  // dele, e não do que estiver escrito no HTML. Sem isso, trocar o `selected`
-  // exigiria acertar as duas metades na mão, e a seta passaria a mentir sobre
+  // O `selected` do <select> manda: o sentido do menu sai dele, e não do
+  // que estiver escrito no HTML. Sem isso, trocar o `selected` exigiria
+  // acertar as duas metades na mão, e o rótulo passaria a mentir sobre
   // a ordem em uso.
   syncSortUi();
 
 // ensure toolbar toggles reflect current select values on init
-  updateToggleActiveState(statusToggleBtn, filterStatus, 'todos');
-  updateToggleActiveState(tierToggleBtn, filterTier, 'todos');
+  syncFiltersUi();
   updateToggleActiveState(sortToggleBtn, sortOrder, 'data-desc');
 
   // Close filter menus on outside click or Esc

@@ -6,7 +6,8 @@ import {
   calcularProgresso,
   totalDeEpisodiosDaSerie,
   filterItems,
-  sortItems
+  sortItems,
+  decadeOf
 } from '../src/lib/catalog.js';
 
 describe('escapeHTML', () => {
@@ -211,6 +212,30 @@ describe('filterItems', () => {
   it('filtra por tier', () => {
     const res = filterItems(items, { tierFilter: 'S+' });
     expect(res).toHaveLength(2);
+  });
+
+  it('filtra por década do ano', () => {
+    const comAno = [
+      { nome: 'Novo', status: 'assistindo', ano: 2024 },
+      { nome: 'Antigo', status: 'assistindo', ano: 1999 },
+      { nome: 'SemAno', status: 'assistindo', ano: null }
+    ];
+    expect(filterItems(comAno, { yearFilter: '2020' }).map(i => i.nome)).toEqual(['Novo']);
+    expect(filterItems(comAno, { yearFilter: '1990' }).map(i => i.nome)).toEqual(['Antigo']);
+    // Sem ano cai fora de qualquer década específica, mas passa em Todos.
+    expect(filterItems(comAno, { yearFilter: 'todos' })).toHaveLength(3);
+    expect(decadeOf(2024)).toBe('2020');
+    expect(decadeOf(1975)).toBe('antes');
+    expect(decadeOf(null)).toBe('todos');
+  });
+
+  it('ano resolvido por fora salva item antigo sem coluna', () => {
+    const antigos = [
+      { nome: 'Velho', status: 'assistindo', ano: null },
+      { nome: 'Novo', status: 'assistindo', ano: 2024 }
+    ];
+    const resolver = (item) => item.ano ?? (item.nome === 'Velho' ? 1995 : null);
+    expect(filterItems(antigos, { yearFilter: '1990', yearResolver: resolver }).map(i => i.nome)).toEqual(['Velho']);
   });
 });
 

@@ -4,7 +4,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { escapeHTML, formatDateBR, calcularProgresso } from '../lib/catalog.js';
+import { escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { US_RATING_BR } from '../lib/discoverSearch.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
@@ -269,22 +269,6 @@ function cell(label, value, opts = {}) {
 }
 
 /**
- * Bloco do progresso no catálogo: temporada/episódio atual + porcentagem.
- * Fora do catálogo (pré-visualização da pesquisa) não há onde está — volta
- * vazio e a célula mostra "—" pela regra do `cell`.
- * @param {Object} item - Item do catálogo (ou prévia sem os campos).
- * @returns {string} HTML, ou vazio sem posição.
- */
-function progressBlock(item) {
-  if (item?.temporada == null && item?.episodio == null) return '';
-  const ep = Number(item.episodio) || 0;
-  if (ep <= 0) return '<span class="ti-progress-now">Não iniciado</span>';
-  const temp = String(Number(item.temporada) || 1).padStart(2, '0');
-  const cur = String(ep).padStart(2, '0');
-  return `<span class="ti-progress-now">T${temp} · E${cur}</span><span class="ti-progress-pct">${calcularProgresso(item)}%</span>`;
-}
-
-/**
  * Grade da ficha: monta o wrapper com as células (vazias viram "—" no `cell`).
  */
 function grid(cells) {
@@ -444,10 +428,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         cell(endDateLabel(details.status), encerramento),
         cell('Origem', flagImg, { html: true }),
         cell('Duração', runtime),
-        cell('Temporadas', details.number_of_seasons ? String(details.number_of_seasons) : ''),
-        cell('Episódios', details.number_of_episodes ? String(details.number_of_episodes) : ''),
-        cell('Tipo', typePt),
-        cell('Seu progresso', progressBlock(item), { html: true })
+        cell('Tipo', typePt)
       ]);
       html += section('Detalhes', 'fa-list', ficha);
 

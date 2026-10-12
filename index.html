@@ -8,6 +8,15 @@
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
+  <!-- Tela inicial do iOS: Safari ignora rel="icon" e captura screenshot da
+       página. O apple-touch-icon é o que vira o ícone do atalho; sem fundo
+       sólido o desenho (branco sobre transparente) desaparecia. -->
+  <link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.svg" />
+  <link rel="apple-touch-icon-precomposed" href="assets/icon/apple-touch-icon.svg" />
+  <meta name="apple-mobile-web-app-title" content="dat-movie" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -123,6 +132,25 @@
           <option value="D">D</option>
           <option value="null">Sem tier</option>
         </select>
+        <select id="filterYear" aria-label="Filtrar por década">
+          <option value="todos">Todas as épocas</option>
+          <option value="2020">Anos 2020+</option>
+          <option value="2010">Anos 2010</option>
+          <option value="2000">Anos 2000</option>
+          <option value="1990">Anos 1990</option>
+          <option value="1980">Anos 1980</option>
+          <option value="antes">Antes de 1980</option>
+        </select>
+        <select id="filterAge" aria-label="Filtrar por faixa etária">
+          <option value="todos">Todas as idades</option>
+          <option value="L">Livre</option>
+          <option value="10">10 anos</option>
+          <option value="12">12 anos</option>
+          <option value="14">14 anos</option>
+          <option value="16">16 anos</option>
+          <option value="18">18 anos</option>
+          <option value="sem">Sem classificação</option>
+        </select>
         <select id="sortOrder" aria-label="Ordenar">
           <option value="nome-asc">Nome (A–Z)</option>
           <option value="nome-desc">Nome (Z–A)</option>
@@ -214,47 +242,80 @@
         </div>
 
         <div class="toolbar-filters">
-          <!-- Três cápsulas temáticas no lugar de pílulas soltas: filtrar
-               (status/tier), ordenar (campo/sentido) e visualizar
-               (agrupar/densidade). Ids, wrappers e menus são os mesmos —
-               só o agrupamento é novo. -->
+          <!-- Filtros num botão só: o painel abre com uma seção por filtro
+               (status, tier, época, progresso, idade, coleção). Ordenar e
+               visualizar continuam em cápsula própria — não são filtros. -->
           <div class="tool-group" role="group" aria-label="Filtrar">
-            <div id="statusWrapper" class="filter-wrapper-item">
-              <button id="statusToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por status">
-                <i class="fas fa-filter"></i>
+            <div id="filtersWrapper" class="filter-wrapper-item">
+              <button id="filtersToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Filtros">
+                <i class="fas fa-sliders"></i>
+                <span class="filters-count" id="filtersCount" hidden></span>
               </button>
-              <div id="statusMenu" class="filter-menu" role="menu" aria-hidden="true">
-                <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="todos">Todos</button>
-                <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="assistindo">Assistindo</button>
-                <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="concluido">Concluído</button>
-                <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="pausado">Pausado</button>
-              </div>
-            </div>
-
-            <div id="tierWrapper" class="filter-wrapper-item">
-              <button id="tierToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Filtrar por tier">
-                <i class="fas fa-star"></i>
-              </button>
-              <div id="tierMenu" class="filter-menu" role="menu" aria-hidden="true">
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="todos">Todos os Tiers</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S+">S+</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S">S</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="A">A</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="B">B</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="C">C</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="D">D</button>
-                <button role="menuitem" class="filter-option" data-target="filterTier" data-value="null">Sem tier</button>
+              <div id="filtersMenu" class="filter-menu filters-panel" role="menu" aria-hidden="true">
+                <div class="filters-section" id="filtersStatus">
+                  <span class="filters-label">Status</span>
+                  <div class="filters-options">
+                    <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="todos">Todos</button>
+                    <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="assistindo">Assistindo</button>
+                    <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="concluido">Concluído</button>
+                    <button role="menuitem" class="filter-option" data-target="filterStatus" data-value="pausado">Pausado</button>
+                  </div>
+                </div>
+                <div class="filters-section" id="filtersTier">
+                  <span class="filters-label">Tier</span>
+                  <div class="filters-options">
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="todos">Todos</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S+">S+</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="S">S</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="A">A</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="B">B</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="C">C</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="D">D</button>
+                    <button role="menuitem" class="filter-option" data-target="filterTier" data-value="null">Sem tier</button>
+                  </div>
+                </div>
+                <div class="filters-section" id="filtersYear">
+                  <span class="filters-label">Época</span>
+                  <div class="filters-options">
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="todos">Todas</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="2020">2020+</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="2010">2010s</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="2000">2000s</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="1990">1990s</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="1980">1980s</button>
+                    <button role="menuitem" class="filter-option" data-target="filterYear" data-value="antes">Antes de 1980</button>
+                  </div>
+                </div>
+                <div class="filters-section" id="filtersAge">
+                  <span class="filters-label">Faixa etária</span>
+                  <div class="filters-options">
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="todos">Todas</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="L">Livre</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="10">10</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="12">12</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="14">14</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="16">16</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="18">18</button>
+                    <button role="menuitem" class="filter-option" data-target="filterAge" data-value="sem">Sem classificação</button>
+                  </div>
+                </div>
+                <div class="filters-section" id="filtersList">
+                  <span class="filters-label">Coleção</span>
+                  <div class="filters-options" id="filtersListOptions">
+                    <!-- Opções montadas pelo JS a partir das coleções do usuário. -->
+                  </div>
+                </div>
+                <button type="button" id="filtersClearBtn" class="filters-clear">
+                  <i class="fas fa-eraser"></i> Limpar filtros
+                </button>
               </div>
             </div>
           </div>
 
           <div class="tool-group" role="group" aria-label="Ordenar">
-            <div class="filter-wrapper-item filter-wrapper-pair">
+            <div class="filter-wrapper-item">
               <button id="sortToggleBtn" class="tool-btn tool-btn-sm" aria-haspopup="true" aria-expanded="false" aria-label="Ordenar por">
-                <i class="fas fa-sort"></i>
-              </button>
-              <button id="sortDirectionBtn" class="tool-btn tool-btn-sm" aria-label="Ordem decrescente" title="Ordem decrescente">
-                <i class="fas fa-arrow-down"></i>
+                <i class="fas fa-arrow-down-wide-short"></i>
               </button>
               <div id="sortMenu" class="filter-menu filter-menu-wide" role="menu" aria-hidden="true">
                 <button role="menuitem" class="filter-option" data-target="sortOrder" data-field="nome" data-value="nome-desc">Nome</button>

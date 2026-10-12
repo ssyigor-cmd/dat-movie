@@ -110,12 +110,28 @@ export function calcularProgresso(item) {
 }
 
 /**
+ * Década do ano, para o filtro por época. Sem ano não há década.
+ * @param {number|null} ano
+ * @returns {string} 'todos' sem ano; senão '2020', '2010', '2000', '1990', '1980' ou 'antes'.
+ */
+export function decadeOf(ano) {
+  const y = Number(ano);
+  if (!Number.isFinite(y) || y <= 0) return 'todos';
+  if (y >= 2020) return '2020';
+  if (y >= 2010) return '2010';
+  if (y >= 2000) return '2000';
+  if (y >= 1990) return '1990';
+  if (y >= 1980) return '1980';
+  return 'antes';
+}
+
+/**
  * Filtra a lista de itens com base na aba atual, termo de busca, status, tier e lista específica.
  * @param {Array} items - Lista completa de itens.
  * @param {Object} filters - Objeto com os critérios de filtro.
  * @returns {Array} Lista filtrada.
  */
-export function filterItems(items, { currentTab = 'all', search = '', statusFilter = 'todos', tierFilter = 'todos', currentListId = null } = {}) {
+export function filterItems(items, { currentTab = 'all', search = '', statusFilter = 'todos', tierFilter = 'todos', currentListId = null, yearFilter = 'todos', yearResolver = (item) => item?.ano } = {}) {
   if (!Array.isArray(items)) return [];
 
   let baseItems = items.slice();
@@ -160,6 +176,12 @@ export function filterItems(items, { currentTab = 'all', search = '', statusFilt
     } else {
       baseItems = baseItems.filter(item => item.tier === tierFilter);
     }
+  }
+
+  // Filtro por década (ano resolvido por fora quando o item não tem: item
+  // antigo sem coluna. Sem ano resolvido cai fora de década específica.)
+  if (yearFilter !== 'todos') {
+    baseItems = baseItems.filter(item => decadeOf(yearResolver(item)) === yearFilter);
   }
 
   return baseItems;

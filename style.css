@@ -881,13 +881,8 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Reuse filter-menu styles for other filter dropdowns */
 .filter-wrapper-item { position: relative; display: inline-block; margin-left: 8px; overflow: visible; }
-/* Ordenar tem dois botões: o que abre o menu de campos e a seta que inverte
-   o sentido. `.filter-wrapper-item` é `inline-block` porque até agora cada
-   wrapper carregava um botão só; com dois, os dois precisam se sentar na
-   mesma linha. O menu continua `position: absolute` relativo ao wrapper, e
-   `align-items: center` deixa os dois com a mesma altura mesmo se um deles
-   ganhar foco e crescer um pixel de borda. */
-.filter-wrapper-pair { display: inline-flex; align-items: center; gap: 4px; }
+/* O menu é `position: absolute` relativo ao wrapper. */
+.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu::before {
   content: '';
@@ -904,6 +899,22 @@ img { max-width: 100%; height: auto; display: block; }
 
 .filter-menu.show { display: block; }
 .filter-menu-wide { min-width: 220px; }
+
+/* Painel único de filtros: um botão, seis seções. Opções em pílulas para
+   caberem lado a lado; a ativa é sólida para se destacar do hover. */
+.filters-panel { min-width: 300px; max-width: calc(100vw - 32px); max-height: min(560px, 72vh); overflow-y: auto; padding: 12px; }
+.filters-section + .filters-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.filters-label { display: block; font-size: 0.62rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.filters-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters-panel .filter-option { display: inline-flex; width: auto; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); background: var(--bg-surface); }
+.filters-panel .filter-option:hover { border-color: var(--accent); }
+.filters-panel .filter-option.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* Selo de contagem no botão: quantos filtros estão ativos. */
+#filtersToggleBtn { position: relative; }
+.filters-count { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 0.62rem; font-weight: 700; line-height: 18px; text-align: center; }
+/* Limpar filtros: ação fantasma em linha inteira no fim do painel. */
+.filters-clear { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 600; font-family: var(--font-body); cursor: pointer; transition: color var(--transition), border-color var(--transition), background var(--transition); }
+.filters-clear:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-hover); }
 .filter-option { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; color: var(--text-primary); font-weight: 600; cursor: pointer; border-radius: 6px; }
 .filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
 
@@ -1300,7 +1311,7 @@ img { max-width: 100%; height: auto; display: block; }
    e a porcentagem em secondary brigava com o título. Tudo recuo um passo —
    trilha sem borda (o `--bg-secondary` já declara a pista), porcentagem
    menor e em muted: o dado está lá, mas só quem procura enxerga. */
-.card-body { padding: 8px 12px; display: flex; flex-direction: column; gap: 3px; }
+.card-body { padding: 8px 12px; display: flex; flex-direction: column; gap: 3px; align-items: center; text-align: center; }
 /* Card sem corpo (a busca não tem ano nem progresso): sem essa regra a faixa
    de padding ficaria vazia embaixo da imagem. O `:has` não conta texto, então
    só marca o corpo que não tem NENHUM elemento filho. */
@@ -1314,13 +1325,16 @@ img { max-width: 100%; height: auto; display: block; }
   font-weight: 500;
   padding: 1px 8px;
   border-radius: var(--radius-pill);
-  align-self: flex-start;
+  align-self: center;
   margin-bottom: 2px;
 }
 .progress-wrap {
   display: flex;
   align-items: center;
   gap: 6px;
+  /* A barra ocupa a largura toda mesmo com o corpo centralizado: sem isto o
+     trilho encolhia para o tamanho do conteúdo. */
+  align-self: stretch;
 }
 .progress-track {
   flex: 1;
@@ -1628,20 +1642,17 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 .ti-text { margin: 0; font-size: 0.82rem; line-height: 1.6; color: var(--text-primary); }
 .ti-text--muted { color: var(--text-muted); font-style: italic; }
 
-/* Ficha em grade: tudo em bloco — fato curto em cartão compacto, fato longo
-   em cartão de linha inteira. Rótulo em cima, valor embaixo, sempre. Sem
-   font-family próprio: herda a base, para não quebrar o contrato de papéis
-   da tipografia. */
-.ti-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+/* Ficha em grade: fato curto em cartão compacto, fato longo em cartão de linha
+   inteira. Rótulo em cima, valor embaixo, sempre. Sem font-family próprio:
+   herda a base, para não quebrar o contrato de papéis da tipografia. */
+.ti-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .ti-cell { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-width: 0; text-align: center; }
-.ti-cell--wide { grid-column: 1 / -1; }
+/* O bloco largo (Gênero) ocupa a linha inteira menos 2%. */
+.ti-cell--wide { flex: 1 1 100%; max-width: 98%; }
 .ti-cell-label { display: block; font-size: 0.6rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; text-align: center; }
 .ti-cell-value { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; min-width: 0; font-size: 0.8rem; color: var(--text-primary); word-break: break-word; text-align: center; }
 /* Traço de dado ausente: o bloco existe mesmo sem dado do TMDB. */
 .ti-dash { color: var(--text-muted); }
-/* Posição no catálogo: número em destaque, porcentagem apagada ao lado. */
-.ti-progress-now { font-weight: 700; }
-.ti-progress-pct { margin-left: 6px; font-size: 0.68rem; color: var(--text-muted); }
 /* Indicador de origem: só as bandeiras, uma por país, centralizadas no bloco. */
 .ti-flag { width: 24px; height: 17px; margin: 2px 3px; vertical-align: middle; border-radius: 3px; box-shadow: 0 0 0 1px rgba(255,255,255,0.14); object-fit: cover; }
 .ti-flag--emoji { width: auto; height: auto; font-size: 1rem; box-shadow: none; background: none; margin: 2px 3px; }
@@ -2352,8 +2363,7 @@ a:focus-visible,
   background: var(--accent-soft);
   border-color: transparent;
 }
-.tool-group > *:not(:last-child)::after,
-.tool-group .filter-wrapper-pair > *:not(:last-child)::after {
+.tool-group > *:not(:last-child)::after {
   content: '';
   position: absolute;
   left: 100%;
@@ -3082,6 +3092,7 @@ a:focus-visible,
 .home-upcoming-date {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   font-size: var(--fs-meta);
   color: var(--text-muted);
@@ -3147,21 +3158,10 @@ a:focus-visible,
 /* Fileira de episódios do dia: lado a lado, para títulos da mesma data
    não empilharem um embaixo do outro. */
 .home-calendar-eps { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; }
-/* O corpo do card do Calendário diz qual episódio sai naquela data: número em
-   mono (dado técnico) e nome em duas linhas sempre, para as colunas do dia
-   saírem com a mesma altura mesmo quando o episódio tem nome curto. */
-.home-calendar-epinfo { display: flex; flex-direction: column; gap: 2px; }
+/* O corpo do card do Calendário diz qual episódio sai naquela data: só o
+   número, em mono (dado técnico). */
+.home-calendar-epinfo { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
 .home-calendar-epnum { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-secondary); }
-.home-calendar-epname {
-  font-size: var(--fs-meta);
-  color: var(--text-muted);
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 2.5em;
-}
 .home-hint {
   font-size: var(--fs-btn);
   color: var(--text-muted);

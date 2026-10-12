@@ -34,6 +34,8 @@ export const dom = {
   searchInput: $('searchInput'),
   filterStatus: $('filterStatus'),
   filterTier: $('filterTier'),
+  filterYear: $('filterYear'),
+  filterAge: $('filterAge'),
   sortOrder: $('sortOrder'),
 
   // Modals
@@ -47,14 +49,13 @@ export const dom = {
   // Lists
 
   // Filter wrappers
-  statusWrapper: $('statusWrapper'),
-  statusToggleBtn: $('statusToggleBtn'),
-  statusMenu: $('statusMenu'),
-  tierWrapper: $('tierWrapper'),
-  tierToggleBtn: $('tierToggleBtn'),
-  tierMenu: $('tierMenu'),
+  filtersWrapper: $('filtersWrapper'),
+  filtersToggleBtn: $('filtersToggleBtn'),
+  filtersMenu: $('filtersMenu'),
+  filtersCount: $('filtersCount'),
+  filtersListOptions: $('filtersListOptions'),
+  filtersClearBtn: $('filtersClearBtn'),
   sortToggleBtn: $('sortToggleBtn'),
-  sortDirectionBtn: $('sortDirectionBtn'),
   sortMenu: $('sortMenu'),
   filterMenuOptions: document.querySelectorAll('.filter-option'),
   groupToggle: $('groupToggle'),
