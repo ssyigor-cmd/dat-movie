@@ -970,6 +970,30 @@ document.addEventListener('click', (e) => {
   }
 });
 
+/**
+ * Status e Tier saem do menu onde não têm o que dizer: em Início e Pesquisar o
+ * conteúdo nem é do catálogo, e em Próximos a lista já vem recortada por status
+ * (o que está planejado) — filtrar por status ali sóorzula o resultado.
+ *
+ * O menu de filtros é markup próprio (`#filtersStatus`, `#filtersTier`); os
+ * `<select>` homônimos são os alvos dos cliques e ficam escondidos de propósito.
+ * Esconder só o select não tira a seção da lista, e era esse o descasamento que
+ * mantinha Status e Tier visíveis. Os dois precisam cair juntos.
+ *
+ * Vive fora do `updateActiveNav` de propósito: quem abre o menu precisa do
+ * estado certo no momento da abertura, e nem toda troca de tela passa por lá.
+ */
+function applyStatusTierVisibility() {
+  const visible = state.currentTab !== 'home' && state.currentTab !== 'pesquisa' && state.currentTab !== 'planejado';
+  const d = visible ? '' : 'none';
+  const statusSection = document.getElementById('filtersStatus');
+  const tierSection = document.getElementById('filtersTier');
+  if (statusSection) statusSection.style.display = d;
+  if (tierSection) tierSection.style.display = d;
+  if (filterStatus) filterStatus.style.display = d;
+  if (filterTier) filterTier.style.display = d;
+}
+
 function updateActiveNav() {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.classList.remove('active');
@@ -988,29 +1012,11 @@ function updateActiveNav() {
   }
   
 // Gerenciar filtros baseado na aba atual.
-  //
-  // O menu de filtros é markup próprio (`#filtersStatus`, `#filtersTier`); os
-  // <select> homônimos são os alvos dos cliques do menu e ficam escondidos de
-  // propósito. Esconder só o select não tira a seção da lista — era esse o
-  // descasamento que mantinha Status e Tier visíveis em Próximos. Os dois
-  // precisam cair juntos.
-  const statusSection = document.getElementById('filtersStatus');
-  const tierSection = document.getElementById('filtersTier');
-  const setStatusTier = (visible) => {
-    const d = visible ? '' : 'none';
-    if (statusSection) statusSection.style.display = d;
-    if (tierSection) tierSection.style.display = d;
-    filterStatus.style.display = d;
-    filterTier.style.display = d;
-  };
+  applyStatusTierVisibility();
 
   if (state.currentTab === 'home' || state.currentTab === 'pesquisa') {
-    setStatusTier(false);
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
   } else if (state.currentTab === 'planejado') {
-    // Próximos já vem recortado por status (o que está planejado), então Status
-    // e Tier não têm o que dizer aqui.
-    setStatusTier(false);
     const listSection = document.getElementById('filtersList');
     if (listSection) listSection.style.display = 'none';
     // Esconder opções de ordenação sem sentido para Próximos
@@ -1029,7 +1035,6 @@ function updateActiveNav() {
       syncSortUi();
     }
   } else {
-    setStatusTier(true);
     const listSection = document.getElementById('filtersList');
     if (listSection) listSection.style.display = '';
     // Restaurar todas as opções de ordenação
@@ -2070,6 +2075,9 @@ sortOrder.addEventListener('change', render);
    * coleção acende junto quando uma aba de lista está aberta.
    */
   function syncFiltersUi() {
+    // Reaplica antes de contar: o menu pode ser aberto sem ter passado por uma
+    // troca de aba, e é nesta hora que o usuário vê as seções.
+    applyStatusTierVisibility();
     filterSections.forEach(([id, select]) => {
       if (!select) return;
       markMenuActive(document.getElementById(id), select);
