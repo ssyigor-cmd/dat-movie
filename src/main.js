@@ -988,7 +988,9 @@ function updateActiveNav() {
   }
   
   // Gerenciar filtros baseado na aba atual
-  const isSystemList = state.userLists.some(l => l.is_system && (l.nome === 'Próximos' || l.nome === 'Lista de Desejos'));
+  // Detecta se a lista selecionada é do sistema "Próximos" ou "Lista de Desejos"
+  const selectedList = state.userLists.find(l => l.is_system && (l.nome === 'Próximos' || l.nome === 'Lista de Desejos'));
+  const isSystemList = !!selectedList;
   if (state.currentTab === 'home') {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
@@ -1017,13 +1019,13 @@ function updateActiveNav() {
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-  } else if (isSystemList) {
+} else if (state.currentTab === 'list' && state.currentListId && isSystemList) {
     // Na lista do sistema "Próximos" / "Lista de Desejos", filtro de status
     // e tier não fazem sentido (os títulos já vão filtrados por data/lançamento).
     filterStatus.style.display = 'none';
     filterTier.style.display = 'none';
     document.querySelectorAll('[data-wishlist-hidden]').forEach(el => el.style.display = 'none');
-  } else {
+  } else if (isSystemList) {
     filterStatus.style.display = '';
     filterTier.style.display = '';
     const listSection = document.getElementById('filtersList');
