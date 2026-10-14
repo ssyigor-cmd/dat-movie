@@ -115,11 +115,15 @@ exportação. É o item em aberto desta seção.
 
 ## Icon Design
 
-The galaxy/atom icon features:
-- **Three concentric rings** with varying opacity
-- **Central blue dot** (`#4A9EFF`)
-- **Scattered white/blue dots** simulating stars/atomic particles
-- **Minimalist geometric style**
+The TV mark features:
+- **Beige frame** (`#E9DCC0`) with rounded corners
+- **Black body** (`#232326`)
+- **Light screen** (`#F2F2F2`), plain rounded rect (no barrel curve, para
+  manter nitidez em 32px)
+- **Gray X** (`#8C8C8C`) with round caps, centered on the screen —
+  traço cheio para leitura em tamanho pequeno
+- **Theme-independent**: the same mark works on dark and light themes;
+  only the logotype/stacked text color changes (`#FFFFFF` / `#08080F`)
 
 ## Theme Implementation
 
