@@ -158,6 +158,12 @@ The TV mark features:
 - Use for legacy systems
 - Required sizes: 32, 48, 64, 96, 128, 192, 512px
 - Export from SVG using appropriate tools
+- **iPhone**: `assets/icon/apple-touch-icon.png` em **180x180** exatos
+  (é o que o Safari usa no "Adicionar à Tela de Início"), fundo sólido
+  `#090909` sem alfa, marca centralizada com margem — o iOS aplica a
+  máscara arredondada sozinho
+- **PWA**: `assets/icon/icon-192.png` e `assets/icon/icon-512.png`
+  declarados no `public/manifest.json`
 
 ## Web Implementation
 
