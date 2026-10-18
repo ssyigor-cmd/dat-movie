@@ -1852,7 +1852,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
    inteira. Rótulo em cima, valor embaixo, sempre. Sem font-family próprio:
    herda a base, para não quebrar o contrato de papéis da tipografia. */
 .ti-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.ti-cell { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; min-width: 0; text-align: center; }
+.ti-cell { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; min-width: 0; text-align: center; }
 /* O bloco largo (Gênero) ocupa a linha inteira menos 2%. */
 .ti-cell--wide { flex: 1 1 100%; max-width: 98%; }
 .ti-cell-label { display: block; font-size: 0.6rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; text-align: center; }

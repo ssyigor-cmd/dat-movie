@@ -430,10 +430,17 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         cell('Duração', runtime),
         cell('Tipo', typePt)
       ]);
-      html += section('Detalhes', 'fa-list', ficha);
+const links = [];
+if (details.homepage) links.push(`<a class="ti-link" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-globe"></i> Site oficial</a>`);
+if (details.imdb_id) links.push(`<a class="ti-link" href="https://www.imdb.com/title/${escapeHTML(details.imdb_id)}/" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
+else links.push(`<a class="ti-link" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || item.nome)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
+links.push(`<a class="ti-link" href="https://pt.wikipedia.org/wiki/${encodeURIComponent(details.name || item.nome).replace(/%20/g, '_')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`);
+links.push(`<a class="ti-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || item.nome) + ' trailer')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i> YouTube</a>`);
+html += section('Sites', 'fa-link', `<div class="ti-links">${links.join('')}</div>`);
 
-      if (cast.length) {
-        const cards = cast.map(p => {
+html += section('Detalhes', 'fa-list', ficha);
+
+if (cast.length) {
           const photo = p.profile_path
             ? `<img src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />`
             : `<span class="ti-cast-ph ti-cast-ph--empty"><i class="fas fa-user"></i></span>`;
