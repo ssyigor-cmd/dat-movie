@@ -417,6 +417,14 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         ? `<p class="ti-text">${escapeHTML(details.overview)}</p>`
         : '');
 
+      const links = [];
+      if (details.homepage) links.push(`<a class="ti-link" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-globe"></i> Site oficial</a>`);
+      if (details.imdb_id) links.push(`<a class="ti-link" href="https://www.imdb.com/title/${escapeHTML(details.imdb_id)}/" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
+      else links.push(`<a class="ti-link" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || item.nome)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
+      links.push(`<a class="ti-link" href="https://pt.wikipedia.org/wiki/${encodeURIComponent(details.name || item.nome).replace(/%20/g, '_')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`);
+      links.push(`<a class="ti-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || item.nome) + ' trailer')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i> YouTube</a>`);
+      html += section('Sites', 'fa-link', `<div class="ti-links">${links.join('')}</div>`);
+
       // Padrão da seção: tudo em bloco — fato curto em cartão compacto, fato
       // longo em cartão de linha inteira (`wide`).
       const statusTone = STATUS_TONE[details.status] || '';
@@ -430,21 +438,18 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
         cell('Duração', runtime),
         cell('Tipo', typePt)
       ]);
-html += section('Sites', 'fa-link', `<div class="ti-links">${links.join('')}</div>`);
+      html += section('Detalhes', 'fa-list', ficha);
 
-const castHtml = cast.length ? cast.map(p => {
+      if (cast.length) {
+        const cards = cast.map(p => {
           const photo = p.profile_path
             ? `<img src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />`
             : `<span class="ti-cast-ph ti-cast-ph--empty"><i class="fas fa-user"></i></span>`;
           const role = (p.roles || []).map(r => r.character).filter(Boolean).slice(0, 2).join(' / ');
           return `<div class="ti-cast-card">${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div>${role ? `<div class="ti-cast-role">${escapeHTML(role)}</div>` : ''}</div>`;
-        }).join('') : '';
-
-if (castHtml) html += section('Elenco', 'fa-users', `<div class="ti-cast">${castHtml}</div>`);
-
-if (castHtml) html += section('Elenco', 'fa-users', `<div class="ti-cast">${castHtml}</div>`);
-
-html += section('Detalhes', 'fa-list', ficha);
+        }).join('');
+        html += section('Elenco', 'fa-users', `<div class="ti-cast">${cards}</div>`);
+      }
 
       // Equipe numa linha só: criação, direção, emissora e produtora no mesmo
       // trilho do Elenco; a função embaixo de cada foto e a divisória entre
@@ -474,14 +479,6 @@ html += section('Detalhes', 'fa-list', ficha);
       html += section('Curiosidades', 'fa-lightbulb', curiosities && curiosities.length
         ? `<ul class="ti-list">${curiosities.map(c => `<li>${escapeHTML(c)}</li>`).join('')}</ul>`
         : '<p class="ti-text ti-text--muted">Curiosidades indisponíveis.</p>');
-
-      const links = [];
-      if (details.homepage) links.push(`<a class="ti-link" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-globe"></i> Site oficial</a>`);
-      if (details.imdb_id) links.push(`<a class="ti-link" href="https://www.imdb.com/title/${escapeHTML(details.imdb_id)}/" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
-      else links.push(`<a class="ti-link" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || item.nome)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-star"></i> IMDb</a>`);
-      links.push(`<a class="ti-link" href="https://pt.wikipedia.org/wiki/${encodeURIComponent(details.name || item.nome).replace(/%20/g, '_')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`);
-      links.push(`<a class="ti-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || item.nome) + ' trailer')}" target="_blank" rel="noopener noreferrer"><i class="fab fa-youtube"></i> YouTube</a>`);
-      html += section('Sites', 'fa-link', `<div class="ti-links">${links.join('')}</div>`);
 
       titleInfoContent.innerHTML = html;
       applyFlagFallbacks(titleInfoContent);
