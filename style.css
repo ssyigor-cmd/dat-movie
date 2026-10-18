@@ -4082,13 +4082,10 @@ a:focus-visible,
 .tp-meta-group { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding-left:12px; border-left:1px solid var(--ghost-strong); min-width:0; }
 
 /* — B) Layout + Sidebar Vertical — */
-.tp-layout { display:flex; gap:8px; align-items:stretch; }
+.tp-layout { display:flex; gap:8px; align-items:flex-start; }
 /* -10% na sidebar para acompanhar o card encolhido: as duas colunas
    diminuem juntas e o vao entre elas nao abre. */
-.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
-/* Espaçador topo: alinha o 1º card da sidebar com a linha de episódios
-   (backdrop 200px + gap 12px). */
-.tp-side-hud::before { content: ''; min-height: 212px; flex-shrink: 0; }
+.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; margin-top: 212px; }
 .tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 /* Antes este bloco tinha `margin-top:auto`, que empurrava "Ações" para o
    fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
