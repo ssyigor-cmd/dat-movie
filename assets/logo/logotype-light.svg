@@ -1,11 +1,9 @@
 <svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- datmovie logotype TV (light): TV igual, só o texto escurece -->
-  <g transform="translate(24, 24)">
-    <rect x="-19" y="-15" width="38" height="30" rx="8" fill="#232326"/>
-    <rect x="-19" y="-15" width="38" height="30" rx="8" fill="none" stroke="#E9DCC0" stroke-width="3"/>
-    <rect x="-12" y="-7" width="24" height="14" rx="4" fill="#F2F2F2"/>
-    <path d="M-6 -4 L6 4" stroke="#8C8C8C" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M6 -4 L-6 4" stroke="#8C8C8C" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- datmovie logotype (light): faixas bronze + texto escuro -->
+  <g fill="#7A663B">
+    <rect x="8" y="11" width="23" height="6" rx="2"/>
+    <rect x="8" y="21" width="30" height="6" rx="2"/>
+    <rect x="8" y="31" width="23" height="6" rx="2"/>
   </g>
-  <text x="52" y="30" font-family="Inter, sans-serif" font-size="20" font-weight="600" fill="#08080F">datmovie</text>
+  <text x="52" y="32" font-family="Sora, Inter, sans-serif" font-size="20" font-weight="700" fill="#1B1915">datmovie</text>
 </svg>

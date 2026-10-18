@@ -8,39 +8,39 @@
      tom — sem ele, o app fica claro com barra de rolagem escura. */
   color-scheme: dark;
 
-  /* Paleta base - 5 cores monocromáticas
-     Fundo 10% mais escuro que o original (#0A0A0A -> #090909) e rampa
-     colada nele: as superfícies sobem no máximo +9 em vez de +15, e as
-     bordas caem junto, para o bloco declarar pela borda de 1px e não por
-     um cinza chapado. */
-  --bg-primary: #090909;       /* Background principal */
-  --bg-primary-rgb: 9, 9, 9;
-  --bg-surface: #0E0E0E;       /* Cards, inputs, botões base */
-  --bg-elevated: #121212;      /* Dropdowns, modais, superfícies elevadas */
-  --bg-elevated-hover: #1A1A1A;
-  --bg-secondary: #101010;
-  --bg-hover: #1A1A1A;         /* Estados hover */
+  /* Paleta base — identidade quente da repaginação.
+     Fundo em preto quente (#101112) com superfícies subindo em dois degraus:
+     cartão em #191A1C e controle aninhado em #222325. O acento areia
+     (#E5D8BF) é a única cor de marca do app. As bordas seguem desligadas —
+     o bloco se declara pelo tom, não por um fio de 1px. */
+  --bg-primary: #101112;       /* Background principal */
+  --bg-primary-rgb: 16, 17, 18;
+  --bg-surface: #191A1C;       /* Cards, painéis, inputs, botões base */
+  --bg-elevated: #222325;      /* Dropdowns, modais, controles aninhados */
+  --bg-elevated-hover: #2A2C30;
+  --bg-secondary: #151618;     /* Degrau intermediário: poços, badges */
+  --bg-hover: #26282C;         /* Estados hover */
   --border: transparent;           /* Bordas padrão (desligadas: blocos sem fio) */
   --border-strong: transparent;    /* Bordas de destaque/foco (desligadas) */
 
   /* Textos */
-  --text-primary: #E5E5E5;     /* Texto principal */
-  --text-secondary: #A3A3A3;   /* Texto secundário */
-  --text-muted: #6B6B6B;       /* Texto muted/placeholder */
+  --text-primary: #F2EDE3;     /* Texto principal, branco quente */
+  --text-secondary: #AEAFB2;   /* Texto secundário */
+  --text-muted: #838589;       /* Texto muted/placeholder */
 
-  /* Acento único */
-  --accent: #D4D4D4;
-  --accent-rgb: 212, 212, 212;
-  --accent-hover: #E5E5E5;
-  --accent-ink: #090909;
-  --accent-soft: rgba(212, 212, 212, 0.1);
+  /* Acento único — areia */
+  --accent: #E5D8BF;
+  --accent-rgb: 229, 216, 191;
+  --accent-hover: #F0E6D2;
+  --accent-ink: #101112;
+  --accent-soft: rgba(229, 216, 191, 0.1);
 
   /* Utilitários */
   --danger: #ef4444;
   --warning: #fbbf24;
   --success: #34d399;
-  --radius: 20px;
-  --radius-sm: 14px;
+  --radius: 10px;
+  --radius-sm: 6px;
   --radius-pill: 999px;
 
   /* Sombras sólidas */
@@ -80,10 +80,10 @@
   --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: 0.2s ease;
-  --text: #E5E5E5;
+  --text: #F2EDE3;
   /* Só a barra de rolagem horizontal da Home. Chamava de `glow` sem nunca ter
      produzido brilho nenhum; o nome prometia um efeito que não existia. */
-  --scrollbar-thumb: rgba(212, 212, 212, 0.15);
+  --scrollbar-thumb: rgba(242, 237, 227, 0.15);
 
   /* ==============================================================
      PADRÃO DA HOME
@@ -97,19 +97,18 @@
      Tudo que a home usa de medida está aqui. Se um número novo for
      necessário, ele entra aqui — não numa regra.
 
-     ESCALA DE ESPAÇO: 8 / 12 / 32
+     ESCALA DE ESPAÇO: 12 / 16 / 20 / 32
        - 32px separa SEÇÕES (ritmo vertical da página)
-       - 12px separa BLOCOS dentro de uma seção (título → faixa)
-       - 12px separa ITENS dentro de um carrossel
-       - 8px é o respiro interno de um cartão
-     A coincidência entre 12px nos dois papéis é intencional: um item de
-     carrossel e um bloco de seção ocupam o mesmo degrau da escala porque
-     são o mesmo gesto — "um passo para o próximo".
-     ============================================================== */
+       - 20px separa BLOCOS dentro de uma seção (título → faixa)
+       - 16px separa ITENS dentro de um carrossel
+       - 12px é o respiro interno de um cartão
+     A escala foi reaberta na repaginação: a faixa de carrossel respira mais
+     (16px) e o título se afasta do trilho (20px), o que empurra a home para
+     um ritmo mais lento e alinhado ao painel de acompanhamento. */
   --home-space-section: 32px;   /* entre seções */
-  --home-space-block: 12px;     /* entre blocos de uma seção */
-  --home-space-item: 12px;      /* entre itens de um carrossel */
-  --home-space-inner: 8px;      /* dentro de um cartão */
+  --home-space-block: 20px;     /* entre blocos de uma seção */
+  --home-space-item: 16px;      /* entre itens de um carrossel */
+  --home-space-inner: 12px;     /* dentro de um cartão */
 
   /* Superfícies: painel e cartão no mesmo degrau, por decisão de produto
      (padronização com os blocos Detalhes, que são cartão). O cartão dentro
@@ -121,8 +120,9 @@
 
   /* Raios. Antes existiam 5 valores na home (20, 14, 8, 4, 999) com dois
      literais "8px"/"4px" escritos à mão, um deles dentro de uma string de
-     JS. --radius-xs recolhe os dois. */
-  --radius-xs: 8px;
+     JS. --radius-xs recolhe os dois. Na repaginação o canto afia: 10px para
+     cartão/painel e 6px para o detalhe pequeno (pôster, botão, chip). */
+  --radius-xs: 6px;
 
   /* Cartões. A largura é a única medida que o JS precisa conhecer, porque
      "quantos cabem na tela" é uma conta de divisão. `getFullWidthCount` e
@@ -183,23 +183,25 @@
 
   /* Superfície "poço": fundo de select nativo e botões stepper. Era
      `rgb(19,18,19)` escrito à mão em cinco regras. */
-  --bg-well: rgb(13, 12, 13);
+  --bg-well: #0C0D0E;
 
   /* Superfícies fantasma do Title Page: painéis quase invisíveis que
      ganham profundidade por diferença de tom, não por sombra. */
-  --ghost-bg: rgba(255, 255, 255, 0.012);
+  --ghost-bg: rgba(242, 237, 227, 0.012);
   --ghost-border: transparent;
-  --ghost-bg-hover: rgba(255, 255, 255, 0.035);
-  --ghost-strong: rgba(255, 255, 255, 0.06);
+  --ghost-bg-hover: rgba(242, 237, 227, 0.035);
+  --ghost-strong: rgba(242, 237, 227, 0.06);
 
   /* Rampa de texto fraco. Antes eram oito alfas soltos (0.22 … 0.85);
      agora são cinco degraus com nome, e o claro só troca o alfa por
-     preto — a hierarquia do Title Page sobrevive à troca de tema. */
-  --text-faintest: rgba(255, 255, 255, 0.22);
-  --text-faint: rgba(255, 255, 255, 0.30);
-  --text-dim: rgba(255, 255, 255, 0.45);
-  --text-soft: rgba(255, 255, 255, 0.58);
-  --text-strong: rgba(255, 255, 255, 0.82);
+     preto — a hierarquia do Title Page sobrevive à troca de tema. O branco
+     da rampa é quente (o mesmo rgb de --text-primary), para a tinta não
+     destoar do resto da identidade. */
+  --text-faintest: rgba(242, 237, 227, 0.22);
+  --text-faint: rgba(242, 237, 227, 0.30);
+  --text-dim: rgba(242, 237, 227, 0.45);
+  --text-soft: rgba(242, 237, 227, 0.58);
+  --text-strong: rgba(242, 237, 227, 0.82);
 
   /* Texto sobre foto: o card escurece a imagem com gradiente PRETO em
      qualquer tema, então aqui a cor não acompanha a rampa — no claro,
@@ -235,52 +237,52 @@
    fantasma e a rampa de texto fraco do Title Page, que eram
    `rgba(255,255,255,α)` na mão.
 
-   Convenção do bloco: cinza claro de fundo sob texto quase preto,
-   acento escuro (o monocromático inverte, não desaparece), sombra
-   mais rasa e `color-scheme: light` para os controles nativos.
-   ================================================================ */
+   Convenção do bloco: papel quente de fundo sob tinta quase preta, acento
+   areia escurecido (contraste suficiente sobre o claro — o creme cheio não
+   se lê como texto), sombra mais rasa e `color-scheme: light` para os
+   controles nativos. */
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg-primary: #DEDEDE;
-  --bg-primary-rgb: 222, 222, 222;
-  --bg-surface: #E4E4E4;
-  --bg-elevated: #E2E2E2;
-  --bg-elevated-hover: #D8D8D8;
-  --bg-secondary: #E0E0E0;
-  --bg-hover: #D8D8D8;
-  --bg-well: #D5D5D5;
+  --bg-primary: #F4F1EA;
+  --bg-primary-rgb: 244, 241, 234;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-elevated-hover: #EFEBE1;
+  --bg-secondary: #ECE7DC;
+  --bg-hover: #E6E0D3;
+  --bg-well: #E4DED1;
   --border: transparent;
   --border-strong: transparent;
 
-  --text-primary: #171717;
-  --text-secondary: #555555;
-  --text-muted: #8C8C8C;
-  --text: #171717;
+  --text-primary: #1B1915;
+  --text-secondary: #55524A;
+  --text-muted: #8A8478;
+  --text: #1B1915;
 
-  --accent: #1F1F1F;
-  --accent-rgb: 31, 31, 31;
-  --accent-hover: #333333;
-  --accent-ink: #DEDEDE;
-  --accent-soft: rgba(0, 0, 0, 0.07);
+  --accent: #7A663B;
+  --accent-rgb: 122, 102, 59;
+  --accent-hover: #8A7444;
+  --accent-ink: #F4F1EA;
+  --accent-soft: rgba(122, 102, 59, 0.12);
 
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
   --scrollbar-thumb: rgba(0, 0, 0, 0.20);
 
-  /* Fantasma: tinta branca vira tinta preta, mesma função. */
-  --ghost-bg: rgba(0, 0, 0, 0.02);
+  /* Fantasma: tinta clara vira tinta escura quente, mesma função. */
+  --ghost-bg: rgba(27, 25, 21, 0.02);
   --ghost-border: transparent;
-  --ghost-bg-hover: rgba(0, 0, 0, 0.045);
-  --ghost-strong: rgba(0, 0, 0, 0.09);
+  --ghost-bg-hover: rgba(27, 25, 21, 0.045);
+  --ghost-strong: rgba(27, 25, 21, 0.09);
 
-  /* Texto fraco: mesmo degrau, alfa de preto. Um tique mais denso que
-     o branco correspondente, porque preto sobre claro respira menos. */
-  --text-faintest: rgba(0, 0, 0, 0.40);
-  --text-faint: rgba(0, 0, 0, 0.50);
-  --text-dim: rgba(0, 0, 0, 0.55);
-  --text-soft: rgba(0, 0, 0, 0.68);
-  --text-strong: rgba(0, 0, 0, 0.85);
+  /* Texto fraco: mesmo degrau, alfa da tinta escura quente. Um tique mais
+     denso que o branco correspondente, porque preto sobre claro respira menos. */
+  --text-faintest: rgba(27, 25, 21, 0.40);
+  --text-faint: rgba(27, 25, 21, 0.50);
+  --text-dim: rgba(27, 25, 21, 0.55);
+  --text-soft: rgba(27, 25, 21, 0.68);
+  --text-strong: rgba(27, 25, 21, 0.85);
 
   --danger-ghost-bg: rgba(239, 68, 68, 0.06);
   --danger-ghost-border: rgba(239, 68, 68, 0.20);
@@ -292,11 +294,12 @@
 }
 
 /* A marca tem variante para cada tema (assets/BRAND_GUIDELINES.md): os
-   arquivos `-dark` são brancos e somem sobre as superfícies claras da
+   arquivos `-dark` são areia e somem sobre as superfícies claras da
    navbar e do login. O `content` troca a imagem renderizada junto com o
    `data-theme` — o script anti-flash pinta o atributo antes do CSS, então
-   não existe frame com o ícone branco, e sem depender do JS carregar. */
-[data-theme="light"] .navbar-brand-icon { content: url('assets/icon/icon-face-light.svg'); }
+   não existe frame com a marca areia no tema claro, e sem depender do JS
+   carregar. */
+[data-theme="light"] .navbar-brand-logo { content: url('assets/logo/logotype-light.svg'); }
 [data-theme="light"] .auth-logo-img { content: url('assets/logo/stacked-light.svg'); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -326,7 +329,7 @@ h1, h2, h3, h4, h5, h6 {
 .modal-header h2,
 .auth-box h2,
 .ti-name,
-.home-greeting-title,
+.home-hero-title,
 .episode-title,
 .season-toggle,
 #detailListModalTitle,
@@ -339,7 +342,7 @@ h1, h2, h3, h4, h5, h6 {
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 12px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ================================================================
@@ -369,9 +372,12 @@ h1, h2, h3, h4, h5, h6 {
   margin-right: 8px;
 }
 
-.navbar-brand-icon {
-  height: 40px;
-  width: 40px;
+/* A marca da barra é o logotipo horizontal (faixas + "datmovie"), não só o
+   rosto: a barra tem largura de sobra e o nome é o que a identifica. A altura
+   manda e a largura acompanha a proporção do SVG. */
+.navbar-brand-logo {
+  height: 30px;
+  width: auto;
   flex-shrink: 0;
 }
 
@@ -440,14 +446,25 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--border);
 }
 .nav-item:hover i { color: var(--accent); }
-/* O estado ativo se distingue por fundo, cor e borda. Antes levava também um
-   haloaccent (`0 2px 10px rgba(var(--accent-rgb), .15)`), que era o único
-   glow de verdade do projeto — brilho em volta de nada, na cor do texto, que
-   só aparecia em item selecionado. */
+/* O estado ativo é uma aba: fundo transparente e uma barra de 3px na base,
+   na cor do destaque. A cápsula preenchida (`--accent-soft`) de antes virava
+   mais um botão na barra e competia com o hover; a barra diz "você está aqui"
+   sem virar forma. O item ativo também levava um halo
+   (`0 2px 10px rgba(var(--accent-rgb), .15)`), o único glow do projeto. */
 .nav-item.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid transparent;
+}
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 .nav-item.active i { color: var(--accent); }
 .nav-dropdown {
@@ -853,47 +870,17 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .header-subtitle:empty { display: none; }
 
-/* Density icon + dropdown */
-.density-wrapper { position: relative; display: inline-block; }
-.density-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  padding: 8px;
-  box-shadow: var(--shadow-lg);
-  display: none;
-  min-width: 140px;
-  z-index: 1200;
-}
-.density-menu.show { display: block; }
-.density-option {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-weight: 600;
-  cursor: pointer;
-  border-radius: 6px;
-}
-.density-option:hover, .density-option.active { background: var(--accent-soft); color: var(--accent); }
-
 /* Reuse filter-menu styles for other filter dropdowns */
 .filter-wrapper-item { position: relative; display: inline-block; margin-left: 8px; overflow: visible; }
 /* O menu é `position: absolute` relativo ao wrapper. */
-.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
-.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
+.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
+.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu::before {
   content: '';
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
+  border-radius: var(--radius);
   pointer-events: none;
   z-index: 0;
 }
@@ -1015,7 +1002,7 @@ img { max-width: 100%; height: auto; display: block; }
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.8rem;
   color: var(--text-primary);
@@ -1163,8 +1150,6 @@ img { max-width: 100%; height: auto; display: block; }
    ================================================================ */
 .grid { display: grid; gap: 18px; }
 .grid-cols-8 { grid-template-columns: repeat(8, 1fr); }
-.grid-cols-10 { grid-template-columns: repeat(10, 1fr); }
-.grid-cols-12 { grid-template-columns: repeat(12, 1fr); }
 
 /* ================================================================
    GROUP HEADERS
@@ -1551,13 +1536,13 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 .relink-item {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
   background: var(--bg-elevated); border: 1px solid var(--border);
-  border-radius: 12px; padding: 8px; cursor: pointer;
+  border-radius: var(--radius); padding: 8px; cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
 .relink-item:hover:not(:disabled) { background: var(--bg-elevated-hover); border-color: var(--border-strong); }
 .relink-item--current { opacity: 0.45; cursor: not-allowed; }
 .relink-thumb {
-  flex: 0 0 40px; width: 40px; height: 56px; border-radius: 8px; overflow: hidden;
+  flex: 0 0 40px; width: 40px; height: 56px; border-radius: var(--radius-sm); overflow: hidden;
   background: var(--bg-surface); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;
 }
@@ -1655,7 +1640,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
    inteira. Rótulo em cima, valor embaixo, sempre. Sem font-family próprio:
    herda a base, para não quebrar o contrato de papéis da tipografia. */
 .ti-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.ti-cell { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-width: 0; text-align: center; }
+.ti-cell { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; min-width: 0; text-align: center; }
 /* O bloco largo (Gênero) ocupa a linha inteira menos 2%. */
 .ti-cell--wide { flex: 1 1 100%; max-width: 98%; }
 .ti-cell-label { display: block; font-size: 0.6rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; text-align: center; }
@@ -1683,7 +1668,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
    o projeto não usa halo. */
 .ti-age {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 30px; height: 30px; padding: 0 9px; border-radius: 8px;
+  min-width: 30px; height: 30px; padding: 0 9px; border-radius: var(--radius-sm);
   font-size: 0.78rem; font-weight: 700; line-height: 1; color: #fff;
   vertical-align: middle;
 }
@@ -1737,7 +1722,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
   text-align: center;
 }
 .ti-cast-card img, .ti-cast-ph {
-  width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 10px;
+  width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: var(--radius);
   border: 1px solid var(--border); background: var(--bg-elevated); display: flex;
   align-items: center; justify-content: center; color: var(--text-muted); font-size: 1rem;
 }
@@ -2200,22 +2185,11 @@ a:focus-visible,
 /* ================================================================
    RESPONSIVIDADE
    ================================================================ */
-@media (max-width: 1400px) {
-  .grid-cols-12 { grid-template-columns: repeat(10, 1fr); }
-  .grid-cols-10 { grid-template-columns: repeat(8, 1fr); }
-  .grid-cols-8 { grid-template-columns: repeat(6, 1fr); }
-}
-@media (max-width: 1200px) {
-  .grid-cols-12 { grid-template-columns: repeat(6, 1fr); }
-  .grid-cols-10 { grid-template-columns: repeat(4, 1fr); }
-  .grid-cols-8 { grid-template-columns: repeat(4, 1fr); }
-}
+/* O grid é 8 colunas no desktop (base acima). Só o celular/tablet estreito
+   reduz — para 4 —, e sem os degraus intermediários de 6/4/2 que existiam
+   quando a densidade era escolhida pelo usuário. */
 @media (max-width: 900px) {
-  .grid-cols-12,
-
-  .grid-cols-10,
-
-  .grid-cols-8 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-8 { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ================================================================
@@ -2240,7 +2214,7 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .navbar-brand-icon { height: 32px; width: 32px; }
+  .navbar-brand-logo { height: 24px; }
 }
 
 /* ================================================================
@@ -2391,12 +2365,6 @@ a:focus-visible,
   box-shadow: var(--shadow-lg);
 }
 
-.toolbar-filters .density-menu {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-lg);
-}
-
 /* Ajuste do main-content */
 @media (max-width: 700px) {
   .toolbar-left { gap: 8px; }
@@ -2411,8 +2379,8 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  /* Agrupar e densidade somem juntos: esconder os dois botões deixaria a
-     cápsula "Visualizar" vazia, então quem some é a cápsula inteira. */
+  /* A cápsula "Visualizar" (só o botão de agrupar) some no estreito: o alvo
+     fica pequeno demais e o botão cabe na linha de cima sem ela. */
   .toolbar-filters .tool-group:last-child { display: none; }
 }
 
@@ -2429,7 +2397,7 @@ a:focus-visible,
   align-items: center;
   gap: 5px;
   padding: 5px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius);
   background: var(--bg-surface);
   border: 1px solid var(--border);
   cursor: pointer;
@@ -2585,11 +2553,7 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .grid-cols-12,
-
-  .grid-cols-10,
-
-  .grid-cols-8 { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .grid-cols-8 { gap: 10px; }
   .card-body { padding: 10px; }
   .card-title { font-size: 0.68rem; }
   .main-content { max-width: 100%; }
@@ -3079,17 +3043,30 @@ a:focus-visible,
 .skeleton-line.short { width: 60%; }
 @keyframes skeletonShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* ── Saudação ────────────────────────────────────────────────
-   O topo da página. */
-.home-greeting { display: flex; flex-direction: column; gap: 4px; }
-.home-greeting-title {
+/* ── Hero de boas-vindas ──────────────────────────────────────
+   O topo da página. É um painel sobre a superfície de cartão com a
+   saudação. O título herda Sora do `h1`. */
+.home-hero {
+  display: flex;
+  align-items: center;
+  padding: var(--home-space-section);
+  background: var(--home-surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.home-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.home-hero-title {
   font-size: var(--fs-display);
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
-.home-greeting-subtitle { font-size: 0.9rem; color: var(--text-muted); }
 
 /* ── Em Breve ───────────────────────────────────────────────────
    A estreia é o motivo da seção existir: sem a data, o cartão "Em
@@ -3113,11 +3090,66 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
-/* ── Categorias ───────────────────────────────────────────────
-   Wrapper das seções de gênero. Sem `gap` próprio: o espaçamento
-   entre elas é o mesmo da página, porque elas são seções como as
-   outras e ficam dentro do mesmo contêiner. */
-.home-categories { display: flex; flex-direction: column; gap: var(--home-space-section); }
+/* ── Explorar por gênero ──────────────────────────────────────
+   Uma seção só, com um trilho só. No estado inicial o trilho mostra
+   os cards de gênero; ao clicar, o mesmo trilho passa a mostrar os
+   títulos daquele gênero e o "Voltar" reaparece. Antes cada gênero
+   era uma seção própria — seis títulos e seis botões de atualizar
+   empilhados. O título fica à esquerda e empurra os controles
+   (voltar + atualizar) para a direita. */
+#homeGenreSection .home-section-head { justify-content: flex-start; }
+#homeGenreSection .home-section-title { margin-right: auto; }
+.home-genre-back {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--fs-btn);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.home-genre-back:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.home-genre-back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.home-genre-back[hidden] { display: none; }
+.home-genre-card {
+  flex: 0 0 var(--home-card-w);
+  width: var(--home-card-w);
+  /* Mesma caixa do card de pôster: a largura do trilho com a proporção 2/3
+     da imagem. O card de pôster não tem corpo quando está vazio, então a
+     altura dele é a da imagem — e é essa que o tile de gênero acompanha. */
+  aspect-ratio: 2/3;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--home-space-inner);
+  padding: var(--home-space-block);
+  background: var(--home-surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.home-genre-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+.home-genre-card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.home-genre-card-icon { font-size: 1.3rem; line-height: 1; color: var(--accent); }
+.home-genre-card-name {
+  font-family: var(--font-display);
+  font-size: var(--fs-btn);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
 
 /* ── Calendário da semana ─────────────────────────────────────
    A grade é o mesmo trilho das faixas de cartões. Cada coluna é uma
@@ -3507,8 +3539,8 @@ a:focus-visible,
   box-shadow: var(--shadow);
 }
 .tp-hud-top { background: var(--bg-elevated); border-radius: 999px; }
-.tp-main { background: transparent; border-radius: 18px; }
-.tp-frame { border-radius: 14px; }
+.tp-main { background: transparent; border-radius: var(--radius); }
+.tp-frame { border-radius: var(--radius); }
 /* Botões padronizados — todos iguais na página de título */
 .title-page .dm-status-btn,
 .title-page .dm-action-btn,

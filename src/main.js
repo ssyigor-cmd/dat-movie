@@ -61,9 +61,6 @@ function showErrorToast(userMessage, error, duration = 3000) {
 }
 
 // ========== ELEMENTOS DOM ==========
-const densityToggleBtn = dom.densityToggleBtn;
-const densityMenu = dom.densityMenu;
-const densityOptions = dom.densityOptions;
 
 // Filtros da barra de ferramentas (selects ocultos + painel único)
 const filterStatus = dom.filterStatus;
@@ -121,22 +118,6 @@ const homeSection = dom.homeSection;
 const searchInput = dom.searchInput;
 const titleInfoModal = dom.titleInfoModal;
 
-function densityLabelForValue(v) {
-  const map = { '8': 'Compacto', '10': 'Padrão', '12': 'Amplo' };
-  return map[String(v)] || 'Padrão';
-}
-
-setTimeout(() => {
-    try {
-      // density: keep icon, set accessible title instead of replacing content
-      if (densityToggleBtn) {
-        const label = densityLabelForValue(state.gridDensity);
-        densityToggleBtn.setAttribute('title', label);
-        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
-      }
-    } catch { /* ignore if DOM not ready */ }
-}, 0);
-
 /**
  * Aplica a preferência de exibição da barra de progresso.
  *
@@ -186,7 +167,7 @@ function applyTheme() {
   for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
     radio.checked = radio.value === state.theme;
   }
-  // O favicon é o mesmo rosto da marca e na aba clara o branco some na
+  // O favicon é a mesma marca e, na aba clara, as faixas areia somem na
   // barra de tarefas — o único dos ativos da marca que não dá para trocar
   // por CSS, porque `content` não muda o `href` de um <link>.
   const favicon = document.querySelector('link[rel="icon"]');
@@ -1538,8 +1519,8 @@ async function render() {
   if (toolbarSearchLocal) toolbarSearchLocal.style.display = state.currentTab === 'pesquisa' ? 'none' : (state.currentTab === 'home' ? 'none' : '');
   if (toolbarSearchTmdb) toolbarSearchTmdb.style.display = state.currentTab === 'pesquisa' ? '' : 'none';
   if (mainHeader) mainHeader.style.display = state.currentTab === 'home' ? 'none' : '';
-  // Na aba Pesquisar os filtros da barra (status/tier, ordenar, agrupar,
-  // densidade) agem sobre a grade do catálogo — que ali está escondida. A
+  // Na aba Pesquisar os filtros da barra (status/tier, ordenar, agrupar)
+  // agem sobre a grade do catálogo — que ali está escondida. A
   // pesquisa tem os filtros próprios no bloco lateral, então esconde a cápsula.
   if (toolbarFilters) toolbarFilters.style.display = state.currentTab === 'pesquisa' ? 'none' : '';
 
@@ -1599,7 +1580,7 @@ async function render() {
     const marca = ++renderSeq;
     const alvos = filtered.filter(i => i.tmdb_id);
     grid.innerHTML = `<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Buscando dados… <span id="enrichCount"></span></p></div>`;
-    grid.className = `grid grid-cols-${state.gridDensity}`;
+    grid.className = 'grid grid-cols-8';
     const det = await warmDetailsBatch(alvos, (p) => {
       if (marca !== renderSeq) return;
       const el = document.getElementById('enrichCount');
@@ -1663,10 +1644,10 @@ async function render() {
   grid.innerHTML = '';
   if (filtered.length === 0) {
     grid.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>Nenhum título encontrado</p></div>`;
-    grid.className = `grid grid-cols-${state.gridDensity}`;
+    grid.className = 'grid grid-cols-8';
     return;
   }
-  grid.className = `grid grid-cols-${state.gridDensity}`;
+  grid.className = 'grid grid-cols-8';
   const fragment = document.createDocumentFragment();
 
   if (state.groupingActive && state.currentTab !== 'planejado') {
@@ -1954,46 +1935,6 @@ if (filterYear) filterYear.addEventListener('change', render);
 if (filterAge) filterAge.addEventListener('change', render);
 sortOrder.addEventListener('change', render);
 
-  // Initialize density dropdown control (icon + menu)
-  if (densityToggleBtn && densityMenu) {
-    function setDensity(value) {
-      state.gridDensity = parseInt(value, 10) || state.gridDensity;
-      localStorage.setItem('state.gridDensity', state.gridDensity);
-      // update active state
-      densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(state.gridDensity)));
-      // update accessible title for density button (keep icon)
-      if (densityToggleBtn) {
-        const label = densityLabelForValue(state.gridDensity);
-        densityToggleBtn.setAttribute('title', label);
-        densityToggleBtn.setAttribute('aria-label', `Densidade: ${label}`);
-      }
-      // close menu
-      densityMenu.classList.remove('show');
-      densityToggleBtn.setAttribute('aria-expanded', 'false');
-      render();
-    }
-
-    // mark current selection
-    densityOptions.forEach(o => o.classList.toggle('active', String(o.dataset.value) === String(state.gridDensity)));
-
-    densityToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = densityMenu.classList.contains('show');
-      densityMenu.classList.toggle('show', !isOpen);
-      densityToggleBtn.setAttribute('aria-expanded', String(!isOpen));
-    });
-
-    densityOptions.forEach(opt => {
-      opt.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setDensity(opt.dataset.value);
-      });
-    });
-
-    // close when clicking outside or pressing Esc
-    document.addEventListener('click', () => { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { densityMenu.classList.remove('show'); densityToggleBtn.setAttribute('aria-expanded', 'false'); } });
-  }
   // Initialize filter icon dropdowns (status, tier, sort)
   function closeAllFilterMenus() {
     document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
@@ -2233,7 +2174,7 @@ groupToggle.addEventListener('click', () => {
 // Function to update logos
 function updateLogos() {
   const authLogo = document.querySelector('.auth-logo-img');
-  const brandIconImg = document.querySelector('.navbar-brand-icon');
+  const brandIconImg = document.querySelector('.navbar-brand-logo');
   
   if (authLogo) {
     authLogo.src = '/assets/logo/stacked-dark.svg';
@@ -2241,7 +2182,7 @@ function updateLogos() {
   }
   
   if (brandIconImg) {
-    brandIconImg.src = '/assets/icon/icon-face.svg';
+    brandIconImg.src = '/assets/logo/logotype-dark.svg';
     brandIconImg.alt = 'datmovie';
   }
 }

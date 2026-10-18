@@ -6,7 +6,6 @@
 export const STORAGE_KEYS = {
   ACTIVE_TAB: 'activeTab',
   ACTIVE_LIST_ID: 'activeListId',
-  GRID_DENSITY: 'gridDensity',
   GROUPING_ACTIVE: 'groupingActive',
   SHOW_PROGRESS_BAR: 'showProgressBar',
   THEME: 'theme'
@@ -22,7 +21,6 @@ export const state = {
   currentUser: null,
   userLists: [],
   listsSortable: null,
-  gridDensity: parseInt(localStorage.getItem(STORAGE_KEYS.GRID_DENSITY)) || 8,
   groupingActive: (localStorage.getItem(STORAGE_KEYS.GROUPING_ACTIVE)) === 'true',
   // Padrão é *mostrar*. Quem nunca escolheu nada não deve ver a tela mudar ao
   // atualizar o app; a ausência da chave conta como "não escolheu".

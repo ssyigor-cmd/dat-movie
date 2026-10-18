@@ -152,13 +152,13 @@ describe('modo claro: a marca e os logos não somem', () => {
     // Os arquivos `-dark` da marca são brancos. O `content` troca a imagem
     // renderizada já na primeira pintura, sem esperar o JS — o `src` no
     // HTML continua sendo o `-dark` e o CSS vence na hora.
-    expect(css).toContain('[data-theme="light"] .navbar-brand-icon');
-    expect(css).toContain("content: url('assets/icon/icon-face-light.svg')");
+    expect(css).toContain('[data-theme="light"] .navbar-brand-logo');
+    expect(css).toContain("content: url('assets/logo/logotype-light.svg')");
     expect(css).toContain('[data-theme="light"] .auth-logo-img');
     expect(css).toContain("content: url('assets/logo/stacked-light.svg')");
     // Caminho escrito no CSS é caminho que existe: typo aqui vira ícone
     // quebrado que só aparece no tema errado.
-    for (const asset of ['assets/icon/icon-face-light.svg', 'assets/logo/stacked-light.svg']) {
+    for (const asset of ['assets/logo/logotype-light.svg', 'assets/logo/stacked-light.svg']) {
       expect(existsSync(join(raiz, asset)), asset).toBe(true);
     }
   });

@@ -64,7 +64,7 @@ describe('interface da pesquisa avançada', () => {
   });
 
   it('a barra superior esconde a cápsula de filtros na aba Pesquisar', () => {
-    // Status/tier, ordenar, agrupar e densidade agem sobre a grade do
+    // Status/tier, ordenar e agrupar agem sobre a grade do
     // catálogo, que na Pesquisar está escondida. Sem isso fica um grupo de
     // botões mortos ao lado do campo de busca.
     expect(main).toMatch(/toolbarFilters\.style\.display\s*=\s*state\.currentTab === 'pesquisa' \? 'none'/);

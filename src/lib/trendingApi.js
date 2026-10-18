@@ -271,15 +271,11 @@ export async function getTrendingToSuggest(catalogItems, limit = null, opts = {}
   }
 }
 
-export const CATEGORIES = [
-  { id: 10759, name: 'Ação', icon: 'fa-bolt' },
-  { id: 16, name: 'Animação', icon: 'fa-palette' },
-  { id: 35, name: 'Comédia', icon: 'fa-laugh' },
-  { id: 18, name: 'Drama', icon: 'fa-theater-masks' },
-  { id: 27, name: 'Terror', icon: 'fa-ghost' },
-  { id: 10765, name: 'Ficção Científica', icon: 'fa-rocket' },
-];
-
+/**
+ * Gêneros de TV com nome e ícone. É o catálogo de apoio de `getUserTopGenres`
+ * (que precisa nomear qualquer id vindo do TMDb) e a fonte das categorias
+ * fixas da home.
+ */
 const GENRE_MAP = {
   10759: { name: 'Ação', icon: 'fa-bolt' },
   16: { name: 'Animação', icon: 'fa-palette' },
@@ -287,12 +283,27 @@ const GENRE_MAP = {
   18: { name: 'Drama', icon: 'fa-theater-masks' },
   27: { name: 'Terror', icon: 'fa-ghost' },
   10765: { name: 'Ficção Científica', icon: 'fa-rocket' },
-  10762: { name: 'Infantil', icon: 'fa-child' },
   9648: { name: 'Mistério', icon: 'fa-search' },
   80: { name: 'Crime', icon: 'fa-user-secret' },
   99: { name: 'Documentário', icon: 'fa-film' },
-  10768: { name: 'Guerra', icon: 'fa-fighter-jet' },
+  10762: { name: 'Infantil', icon: 'fa-child' },
+  10751: { name: 'Família', icon: 'fa-people-roof' },
+  10768: { name: 'Guerra e Política', icon: 'fa-fighter-jet' },
+  10764: { name: 'Reality Show', icon: 'fa-tv' },
+  37: { name: 'Faroeste', icon: 'fa-hat-cowboy' },
 };
+
+/**
+ * Ordem das categorias fixas da home. A lista é larga de propósito: a seção
+ * "Explorar por gênero" é um trilho único, e com seis cards ele ficava pela
+ * metade numa tela larga. Aqui são catorze, o suficiente para preencher a
+ * faixa e ainda sobrar rolagem no estreito.
+ */
+const CATEGORY_IDS = [
+  10759, 16, 35, 18, 27, 10765, 9648, 80, 99, 10762, 10751, 10768, 10764, 37
+];
+
+export const CATEGORIES = CATEGORY_IDS.map((id) => ({ id, ...GENRE_MAP[id] }));
 
 /**
  * Quantas categorias de gosto pessoal podem entrar **além** das 6 fixas.

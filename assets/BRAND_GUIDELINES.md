@@ -6,21 +6,46 @@
 ```
 assets/
 ├── logo/
-│   ├── logotype-dark.svg    # Full horizontal logotype (dark theme)
-│   └── stacked-dark.svg     # Stacked vertical logo (dark theme)
+│   ├── logotype-dark.svg     # Horizontal: faixas + texto (tema escuro)
+│   ├── logotype-light.svg    # Horizontal: faixas + texto (tema claro)
+│   ├── stacked-dark.svg      # Vertical: faixas sobre o texto (escuro)
+│   └── stacked-light.svg     # Vertical: faixas sobre o texto (claro)
 ├── icon/
-│   └── icon-96-dark.svg     # App icon 96px (dark theme)
+│   ├── icon-face.svg         # Marca isolada (tema escuro)
+│   ├── icon-face-light.svg   # Marca isolada (tema claro)
+│   ├── icon-96-dark.svg      # Ícone de app 96px (escuro)
+│   ├── icon-96-light.svg     # Ícone de app 96px (claro)
+│   ├── icon-192.png          # PWA
+│   ├── icon-512.png          # PWA
+│   └── apple-touch-icon.png  # iOS 180x180
 └── favicon/
-    └── favicon-32-dark.svg  # Favicon 32px (dark theme)
+    ├── favicon-32-dark.svg   # Favicon 32px (escuro)
+    └── favicon-32-light.svg  # Favicon 32px (claro)
 ```
+
+Os mesmos arquivos vivem em `public/assets/` — é de lá que o Vite serve em
+runtime. Ao trocar um ativo, copie para os dois lugares, senão o build e o
+`npm run dev` mostram marcas diferentes.
 
 ## Color Palette
 
-### Primary Colors
-- **Dark Background**: `#08080F`
-- **Accent Blue**: `#4A9EFF`
-- **Text Light**: `#FFFFFF`
-- **Divider Gray**: `#666666`
+A paleta é quente e tem o areia como única cor de marca.
+
+### Cores base
+- **Fundo (escuro)**: `#101112`
+- **Cartão / superfície (escuro)**: `#191A1C`
+- **Controle aninhado (escuro)**: `#222325`
+- **Acento areia**: `#E5D8BF` (marca, progresso, foco)
+- **Texto claro (escuro)**: `#F2EDE3`
+
+### Cores base (tema claro)
+- **Fundo**: `#F4F1EA`
+- **Superfície**: `#FFFFFF`
+- **Acento areia escurecido**: `#7A663B` (o creme cheio não se lê como texto)
+- **Texto escuro**: `#1B1915`
+
+Os valores vivem nos tokens do `style.css` (`--accent`, `--bg-primary`, …):
+o guia descreve a intenção, o token é a fonte de verdade.
 
 ## Typography
 
@@ -80,26 +105,28 @@ folha.
 
 ### Nota sobre os SVG do logo
 
-Os SVG carregam `<text font-family="Inter, sans-serif">` em vez de contorno em
-`<path>`. Como o logo é carregado por `<img src>`, o SVG é renderizado num
-contexto isolado e **não enxerga a webfont da página**: ele usa a Inter
-instalada no sistema, ou cai no `sans-serif` genérico. Para a marca ficar
-idêntica em qualquer máquina, o texto precisa ser convertido em `<path>` na
-exportação. É o item em aberto desta seção.
+Os SVG carregam `<text font-family="Sora, Inter, sans-serif">` em vez de
+contorno em `<path>`. Como o logo é carregado por `<img src>`, o SVG é
+renderizado num contexto isolado e **não enxerga a webfont da página**: ele
+usa a Sora instalada no sistema, ou cai no `sans-serif` genérico. Para a marca
+ficar idêntica em qualquer máquina, o texto precisa ser convertido em `<path>`
+na exportação. É o item em aberto desta seção.
 
 ## Logo Usage
 
 ### Full Logotype (Horizontal)
 - **Use cases**: Headers, navigation, main branding
 - **Dark theme**: `assets/logo/logotype-dark.svg`
-- **Dimensions**: 320x80px
-- **Minimum size**: 160x40px
+- **Light theme**: `assets/logo/logotype-light.svg`
+- **Dimensions**: 200x48px (viewBox)
+- **Minimum size**: 100x24px
 
 ### Stacked Logo (Vertical)
 - **Use cases**: Splash screens, mobile headers, condensed spaces
 - **Dark theme**: `assets/logo/stacked-dark.svg`
-- **Dimensions**: 200x200px
-- **Minimum size**: 100x100px
+- **Light theme**: `assets/logo/stacked-light.svg`
+- **Dimensions**: 160x160px (viewBox)
+- **Minimum size**: 80x80px
 
 ### App Icon
 - **Use cases**: App launcher, mobile icons, PWA
@@ -115,22 +142,31 @@ exportação. É o item em aberto desta seção.
 
 ## Icon Design
 
-The TV mark features:
-- **Beige frame** (`#E9DCC0`) with rounded corners
-- **Black body** (`#232326`)
-- **Light screen** (`#F2F2F2`), plain rounded rect (no barrel curve, para
-  manter nitidez em 32px)
-- **Gray X** (`#8C8C8C`) with round caps, centered on the screen —
-  traço cheio para leitura em tamanho pequeno
-- **Theme-independent**: the same mark works on dark and light themes;
-  only the logotype/stacked text color changes (`#FFFFFF` / `#08080F`)
+The mark is **three sand bars**, left-aligned (a shelf / a list), and it
+replaced the old TV face:
+
+- **Bars** (`#E5D8BF` on dark, `#7A663B` on light), rounded ends
+- **Widths 24 / 31 / 24** (top short, middle long, bottom short), height 6,
+  gap 5, corner radius 2 — proporção da marca
+- **Left-aligned, not centered**: a borda direita é irregular de propósito, é
+  o que dá o desenho de "lista/estante"
+- **Theme-independent geometry**: muda só a cor. No escuro as faixas são
+  areia; no claro, bronze escuro, para não sumir no papel
+- **Favicon / app icon**: as faixas vêm sobre uma pastilha (fundo sólido
+  `#101112` no escuro, `#F4F1EA` no claro), porque faixas transparentes
+  somem na aba do navegador
 
 ## Theme Implementation
 
 ### Dark Theme
-- Background: `#08080F`
-- Text: `#FFFFFF`
-- Icon elements: White with varying opacity
+- Background: `#101112`
+- Bars: `#E5D8BF` (sand)
+- Logotype/stacked text: `#F2EDE3`
+
+### Light Theme
+- Background: `#F4F1EA`
+- Bars: `#7A663B`
+- Logotype/stacked text: `#1B1915`
 
 ## Usage Guidelines
 
@@ -160,9 +196,8 @@ The TV mark features:
 - Export from SVG using appropriate tools
 - **iPhone**: `assets/icon/apple-touch-icon.png` em **180x180** exatos
   (é o que o Safari usa no "Adicionar à Tela de Início"), fundo sólido
-  `#090909` sem alfa. A TV vai em full-bleed nas laterais (5px) — o iOS
-  aplica a máscara arredondada sozinho e corta os cantos do filete, como
-  em todo ícone sangrado
+  `#101112` sem alfa. As faixas ficam dentro da zona segura; o iOS aplica a
+  máscara arredondada sozinho
 - **PWA**: `assets/icon/icon-192.png` e `assets/icon/icon-512.png`
   declarados no `public/manifest.json`
 
@@ -212,8 +247,8 @@ The TV mark features:
       "purpose": "any maskable"
     }
   ],
-  "theme_color": "#08080F",
-  "background_color": "#08080F"
+  "theme_color": "#101112",
+  "background_color": "#101112"
 }
 ```
 

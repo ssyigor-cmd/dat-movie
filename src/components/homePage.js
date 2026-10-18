@@ -128,9 +128,9 @@ function setupSectionRefresh(section, onRefresh, label = 'Atualizar lista') {
 }
 
 /**
- * Gera saudação personalizada a partir do usuário
+ * Gera a saudação personalizada a partir do usuário
  * @param {Object|null} user - objeto com email, user_metadata
- * @returns {{greeting:string, subtitle:string}}
+ * @returns {string}
  */
 export function buildGreeting(user) {
   let name = '';
@@ -145,11 +145,9 @@ export function buildGreeting(user) {
       name = user.email.split('@')[0];
     }
   }
-  if (!name) {
-    return { greeting: 'Bem-vindo', subtitle: 'Acompanhe o que assiste, o que já viu e o que quer ver' };
-  }
+  if (!name) return 'Bom te ver';
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
-  return { greeting: `Olá, ${escapeHTML(cap)}`, subtitle: 'Acompanhe o que assiste, o que já viu e o que quer ver' };
+  return `Bom te ver, ${escapeHTML(cap)}.`;
 }
 
 /**
@@ -236,12 +234,13 @@ function createHomeCard({ posterUrl, title, onClick, extraHtml = '', item = null
  */
 export function renderHomeBase(container, context) {
   const { user } = context;
-  const { greeting, subtitle } = buildGreeting(user);
+  const greeting = buildGreeting(user);
 
   container.innerHTML = `
-    <section class="home-greeting" aria-label="Saudação">
-      <h1 class="home-greeting-title">${greeting}</h1>
-      <p class="home-greeting-subtitle">${escapeHTML(subtitle)}</p>
+    <section class="home-hero" aria-label="Saudação">
+      <div class="home-hero-text">
+        <h1 class="home-hero-title">${greeting}</h1>
+      </div>
     </section>
 
     <section class="home-section" id="homeContinueSection" aria-label="Continuar assistindo">
@@ -349,7 +348,14 @@ export function renderHomeBase(container, context) {
       <div class="home-h-scroll" id="homeFavoritesGrid"></div>
     </section>
 
-    <section class="home-categories" id="homeCategories" aria-label="Categorias"></section>
+    <section class="home-section" id="homeGenreSection" aria-label="Explorar por gênero">
+      <div class="home-section-head">
+        <h2 class="home-section-title" id="homeGenreTitle"><i class="fas fa-layer-group"></i> Explorar por gênero</h2>
+        <button type="button" class="home-genre-back" id="homeGenreBack" hidden><i class="fas fa-arrow-left"></i> Voltar aos gêneros</button>
+      </div>
+      <div class="home-h-scroll" id="homeGenreGrid"></div>
+      <div class="home-h-scroll home-skeleton" id="homeGenreSkeleton" style="display:none;">${skeletonHTML()}</div>
+    </section>
 
     <div class="home-foot">
       <button type="button" id="homeBackToTop" class="home-backtop">
@@ -898,39 +904,93 @@ export async function loadAndRenderAffinityRails(container, items, onAddFromTren
 const CAT_SORT = 'popularity.desc';
 
 /**
- * Carrega uma única categoria, sem tocar nas demais seções, para que o botão de
- * atualizar recarregue apenas a lista em que foi clicado.
+ * Estado da seção única de gêneros. `activeGenreCat` é o gênero aberto
+ * (null = mostrando a lista de gêneros); `genreCtx` guarda o que os cliques
+ * precisam para redesenhar a seção sem receber tudo por parâmetro.
+ */
+let activeGenreCat = null;
+let genreCtx = null;
+
+/**
+ * Pinta a lista de gêneros como cards clicáveis no trilho da seção.
+ *
+ * Antes a home tinha um carrossel por gênero — seis ou oito faixas
+ * empilhadas, cada uma com título e botão de atualizar próprios. Agora os
+ * gêneros são o conteúdo da própria faixa: clicar num card troca o trilho
+ * pelos títulos daquele gênero.
  * @param {Element} container - Container da home.
  * @param {Array} items - Catálogo.
- * @param {Object} cat - Categoria { id, name, icon }.
+ * @param {Array} cats - Gêneros { id, name, icon }.
  * @param {Function} onAddFromTrending - Callback dos cards.
- * @param {Object} [opts] - { fresh }: o clique de atualizar pede dado novo da
- *   TMDb em vez de reexibir o pool do cache.
+ */
+function renderGenrePicker(container, items, cats, onAddFromTrending) {
+  const section = container.querySelector('#homeGenreSection');
+  if (!section) return;
+  activeGenreCat = null;
+  const grid = section.querySelector('#homeGenreGrid');
+  const skel = section.querySelector('#homeGenreSkeleton');
+  const title = section.querySelector('#homeGenreTitle');
+  const back = section.querySelector('#homeGenreBack');
+  const refresh = section.querySelector('.home-refresh-btn');
+  if (back) back.hidden = true;
+  if (refresh) refresh.style.display = 'none';
+  if (title) title.innerHTML = '<i class="fas fa-layer-group"></i> Explorar por gênero';
+  if (skel) skel.style.display = 'none';
+  if (!grid) return;
+  grid.style.display = '';
+  grid.innerHTML = '';
+  cats.forEach((cat) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'home-genre-card';
+    btn.dataset.genre = String(cat.id);
+    btn.innerHTML = `
+      <span class="home-genre-card-icon"><i class="fas ${cat.icon || 'fa-tag'}"></i></span>
+      <span class="home-genre-card-name">${escapeHTML(cat.name)}</span>
+    `;
+    btn.addEventListener('click', () => openGenre(cat));
+    grid.appendChild(btn);
+  });
+}
+
+/**
+ * Abre um gênero: mostra o "Voltar" e carrega os títulos no mesmo trilho.
+ * @param {Object} cat - Gênero { id, name, icon }.
+ */
+function openGenre(cat) {
+  if (!genreCtx) return;
+  activeGenreCat = cat;
+  renderCategorySection(genreCtx.container, genreCtx.items, cat, genreCtx.onAddFromTrending);
+}
+
+/**
+ * Carrega os títulos de um gênero no trilho único da seção.
+ *
+ * Mesmo contrato de antes (`{ fresh: true }` no botão de atualizar), só que
+ * escreve sempre no mesmo trilho em vez de criar uma seção por gênero.
+ * @param {Element} container - Container da home.
+ * @param {Array} items - Catálogo.
+ * @param {Object} cat - Gênero { id, name, icon }.
+ * @param {Function} onAddFromTrending - Callback dos cards.
+ * @param {Object} [opts] - { fresh }: pede dado novo da TMDb em vez do cache.
  * @returns {Promise<void>}
  */
 function renderCategorySection(container, items, cat, onAddFromTrending, opts = {}) {
-  const wrap = container.querySelector('#homeCategories');
-  if (!wrap) return Promise.resolve();
-  const key = `cat-${cat.id}`;
-  let section = wrap.querySelector(`#homeCatSection-${cat.id}`);
-  if (!section) {
-    section = document.createElement('section');
-    section.className = 'home-section';
-    section.id = `homeCatSection-${cat.id}`;
-    section.innerHTML = `
-      <div class="home-section-head">
-        <h2 class="home-section-title"><i class="fas ${cat.icon}"></i> ${escapeHTML(cat.name)}</h2>
-      </div>
-      <div class="home-h-scroll" id="cat-${cat.id}"></div>
-      <div class="home-h-scroll home-skeleton" id="cat-skel-${cat.id}">${skeletonHTML()}</div>
-    `;
-    wrap.appendChild(section);
-  }
-  const grid = section.querySelector(`#cat-${cat.id}`);
-  const skel = section.querySelector(`#cat-skel-${cat.id}`);
+  const section = container.querySelector('#homeGenreSection');
+  if (!section) return Promise.resolve();
+  const grid = section.querySelector('#homeGenreGrid');
+  const skel = section.querySelector('#homeGenreSkeleton');
+  const title = section.querySelector('#homeGenreTitle');
+  const back = section.querySelector('#homeGenreBack');
+  const refresh = section.querySelector('.home-refresh-btn');
   if (!grid || !skel) return Promise.resolve();
 
-  section.style.display = '';
+  activeGenreCat = cat;
+  if (back) back.hidden = false;
+  if (refresh) refresh.style.display = '';
+  if (title) title.innerHTML = `<i class="fas ${cat.icon || 'fa-tag'}"></i> ${escapeHTML(cat.name)}`;
+
+  const key = `cat-${cat.id}`;
   grid.style.display = 'none';
   skel.style.display = '';
 
@@ -939,47 +999,71 @@ function renderCategorySection(container, items, cat, onAddFromTrending, opts = 
       const pool = await getTitlesByGenre(cat.id, items, null, { sortBy: CAT_SORT, fresh: opts.fresh });
       const titles = pickScoredForSection(key, pool, getFullWidthCount());
       skel.style.display = 'none';
+      grid.style.display = '';
+      grid.innerHTML = '';
       if (!titles || titles.length === 0) {
-        section.style.display = 'none';
-        return;
+        grid.innerHTML = '<p class="home-hint">Nada por aqui por enquanto.</p>';
+      } else {
+        titles.forEach((t) => {
+          const card = createHomeCard({
+            posterUrl: t.posterUrl,
+            title: t.title,
+            onClick: () => onAddFromTrending && onAddFromTrending(t)
+          });
+          grid.appendChild(card);
+        });
+        animateCards(grid);
       }
       setupSectionRefresh(section, () => {
         bumpSeed(key);
-        renderCategorySection(container, items, cat, onAddFromTrending, { fresh: true });
+        renderCategorySection(container, items, activeGenreCat || cat, onAddFromTrending, { fresh: true });
       }, `Atualizar ${cat.name}`);
-      grid.style.display = '';
-      grid.innerHTML = '';
-      titles.forEach((t) => {
-        const card = createHomeCard({
-          posterUrl: t.posterUrl,
-          title: t.title,
-          onClick: () => onAddFromTrending && onAddFromTrending(t)
-        });
-        grid.appendChild(card);
-      });
-      animateCards(grid);
     } catch {
       skel.style.display = 'none';
-      section.style.display = 'none';
+      grid.style.display = '';
     }
   })();
 }
 
 /**
- * Monta e carrega as categorias da home. Ver `composeCategoryList`.
+ * Monta a seção única de gêneros: os cards de gênero viram atalho para os
+ * títulos no mesmo trilho. Ver `composeCategoryList`.
+ *
+ * A lista fixa pinta na hora, sem rede: o picker nunca fica vazio e nunca
+ * mostra esqueleto antes de a pessoa escolher um gênero — antes o template
+ * deixava o esqueleto visível enquanto `getUserTopGenres` respondia, e o que
+ * aparecia "sozinho" na tela era um trilho de cartões fantasma.
  */
 export async function loadAndRenderCategories(container, items, onAddFromTrending) {
-  const wrap = container.querySelector('#homeCategories');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-  // As 6 categorias fixas entram sempre; os gêneros do usuário viram extras.
+  const section = container.querySelector('#homeGenreSection');
+  if (!section) return;
+
+  genreCtx = { container, items, cats: CATEGORIES, onAddFromTrending };
+  bindGenreBack(section);
+  renderGenrePicker(container, items, CATEGORIES, onAddFromTrending);
+
+  // Os gêneros do usuário entram depois, somando às fixas. Se a pessoa já abriu
+  // um gênero nesse meio-tempo, o redesenho espera: não atropela a faixa aberta.
   let userCats = null;
   try {
     userCats = await getUserTopGenres(items, 4);
   } catch {}
-  for (const cat of composeCategoryList(userCats)) {
-    await renderCategorySection(container, items, cat, onAddFromTrending);
-  }
+  const cats = composeCategoryList(userCats);
+  genreCtx.cats = cats;
+  if (!activeGenreCat) renderGenrePicker(container, items, cats, onAddFromTrending);
+}
+
+/**
+ * Liga o "Voltar aos gêneros" uma única vez; o que ele reabre sai de `genreCtx`.
+ * @param {Element} section - Seção de gêneros.
+ */
+function bindGenreBack(section) {
+  const back = section.querySelector('#homeGenreBack');
+  if (!back || back.dataset.bound) return;
+  back.dataset.bound = '1';
+  back.addEventListener('click', () => {
+    if (genreCtx) renderGenrePicker(genreCtx.container, genreCtx.items, genreCtx.cats, genreCtx.onAddFromTrending);
+  });
 }
 
 /**

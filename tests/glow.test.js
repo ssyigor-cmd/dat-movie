@@ -70,7 +70,7 @@ describe('glow: o que foi removido não era o estado', () => {
     // de um item comum — e isso é um defeito silencioso, do tipo que só
     // aparece para quem olha a tela.
     const alvos = [
-      ['.nav-item.active', 'background: var(--accent-soft)'],
+      ['.nav-item.active', 'color: var(--text-primary)'],
       ['.episode-item.episode-current', 'border-left: 3px solid var(--accent)'],
       ['.title-page .dm-status-btn.active', 'background: var(--accent)'],
       ['.title-status-overlay .dm-status-btn.active', 'background: var(--accent)']
@@ -81,6 +81,11 @@ describe('glow: o que foi removido não era o estado', () => {
       expect(regra[1], seletor).toContain(marca);
       expect(regra[1], seletor).not.toContain('box-shadow');
     }
+    // O item de nav ativo trocou a cápsula pela barra: o marcador agora é o
+    // `::after` na cor do destaque. Sem ele, o item ativo não se distingue.
+    expect(css, 'barra do nav ativo').toMatch(
+      /\.nav-item\.active::after\s*\{[^}]*background:\s*var\(--accent\)/
+    );
   });
 });
 

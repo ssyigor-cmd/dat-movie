@@ -41,11 +41,6 @@ export const dom = {
   // Modals
   titleInfoModal: $('titleInfoModal'),
 
-  // Density
-  densityToggleBtn: $('densityToggleBtn'),
-  densityMenu: $('densityMenu'),
-  densityOptions: document.querySelectorAll('.density-option'),
-
   // Lists
 
   // Filter wrappers

@@ -1,0 +1,9 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- datmovie apple-touch: faixas areia em full-bleed, fundo sólido sem alfa -->
+  <rect width="180" height="180" fill="#101112"/>
+  <g fill="#E5D8BF">
+    <rect x="34" y="46" width="88" height="22" rx="7"/>
+    <rect x="34" y="79" width="112" height="22" rx="7"/>
+    <rect x="34" y="112" width="88" height="22" rx="7"/>
+  </g>
+</svg>

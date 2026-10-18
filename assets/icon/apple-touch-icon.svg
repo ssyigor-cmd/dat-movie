@@ -1,11 +1,9 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- datmovie apple-touch: TV em full-bleed, sangrando nas laterais -->
-  <rect width="180" height="180" fill="#090909"/>
-  <g transform="translate(90, 90)">
-    <rect x="-85" y="-60.5" width="170" height="121" rx="30" fill="#232326"/>
-    <rect x="-85" y="-60.5" width="170" height="121" rx="30" fill="none" stroke="#E9DCC0" stroke-width="10"/>
-    <rect x="-52" y="-31" width="104" height="62" rx="14" fill="#F2F2F2"/>
-    <path d="M-24 -16 L24 16" stroke="#8C8C8C" stroke-width="12" stroke-linecap="round"/>
-    <path d="M24 -16 L-24 16" stroke="#8C8C8C" stroke-width="12" stroke-linecap="round"/>
+  <!-- datmovie apple-touch: faixas areia em full-bleed, fundo sólido sem alfa -->
+  <rect width="180" height="180" fill="#101112"/>
+  <g fill="#E5D8BF">
+    <rect x="34" y="46" width="88" height="22" rx="7"/>
+    <rect x="34" y="79" width="112" height="22" rx="7"/>
+    <rect x="34" y="112" width="88" height="22" rx="7"/>
   </g>
 </svg>

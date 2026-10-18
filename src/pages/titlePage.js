@@ -173,14 +173,14 @@ function renderTitlePage(item, container) {
         </div>
         <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
           ${item.tier ? `<div class="tier-stamp ${tierClass}" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; cursor:pointer; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">${item.tier}</div>` : `<div class="tier-stamp" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">Tier</div>`}
-          <div id="tpTierDropdown" style="display:none; position:absolute; top:30px; right:0; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:10px; padding:6px; flex-direction:column; gap:4px; z-index:50; box-shadow:var(--shadow-lg); min-width:80px;">
-            <button class="tier-option" data-tier="S+" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S+</button>
-            <button class="tier-option" data-tier="S" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S</button>
-            <button class="tier-option" data-tier="A" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">A</button>
-            <button class="tier-option" data-tier="B" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">B</button>
-            <button class="tier-option" data-tier="C" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">C</button>
-            <button class="tier-option" data-tier="D" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">D</button>
-            <button class="tier-option" data-tier="" style="padding:8px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-primary); cursor:pointer;">N/A</button>
+          <div id="tpTierDropdown" style="display:none; position:absolute; top:30px; right:0; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:var(--radius); padding:6px; flex-direction:column; gap:4px; z-index:50; box-shadow:var(--shadow-lg); min-width:80px;">
+            <button class="tier-option" data-tier="S+" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S+</button>
+            <button class="tier-option" data-tier="S" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S</button>
+            <button class="tier-option" data-tier="A" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">A</button>
+            <button class="tier-option" data-tier="B" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">B</button>
+            <button class="tier-option" data-tier="C" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">C</button>
+            <button class="tier-option" data-tier="D" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">D</button>
+            <button class="tier-option" data-tier="" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">N/A</button>
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ function renderTitlePage(item, container) {
       <div class="tp-main" style="flex:1;">
         <!-- C1) Poster vertical -->
         <div class="tp-poster-col" style="flex:0 0 357px; max-width:377px; display:flex; flex-direction:column;">
-          <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex:0 1 auto; align-self:flex-start; width:100%; min-height:0;">
+          <div class="tp-frame tp-poster-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; align-items:center; justify-content:center; flex:0 1 auto; align-self:flex-start; width:100%; min-height:0;">
               <img id="titlePosterImgCard" src="${item.imagem || ''}" alt="Poster" style="width:100%; height:auto; object-fit:contain; object-position:center; display:${item.imagem ? 'block' : 'none'};" onerror="this.style.display='none'" />
             <div id="titlePosterPlaceholder" style="display:${item.imagem ? 'none' : 'flex'}; align-items:center; justify-content:center; width:100%; min-height:180px; color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-image"></i>&nbsp; Imagem vertical</div>
           </div>
@@ -207,7 +207,7 @@ function renderTitlePage(item, container) {
 
         <!-- C2) Conteúdo direita -->
         <div class="tp-content-col" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px;">
-        <div class="tp-frame tp-backdrop-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; flex:0 1 auto; align-self:flex-start; width:fit-content; max-width:100%;">
+        <div class="tp-frame tp-backdrop-frame" style="position:relative; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; flex:0 1 auto; align-self:flex-start; width:fit-content; max-width:100%;">
             <img id="titleBackdrop" src="" alt="" style="position:relative; width:100%; height:auto; object-fit:contain; object-position:center; display:none;" />
             <div id="titleBackdropPlaceholder" style="position:relative; z-index:1; color:var(--text-muted); font-size:0.85rem; display:flex; align-items:center; justify-content:center; width:100%; min-height:180px;">Imagem horizontal</div>
             <button id="tpBackdropPrev" class="poster-icon-btn" aria-label="Imagem anterior" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); display:none; z-index:3; width:28px; height:28px;"><i class="fas fa-chevron-left"></i></button>
@@ -217,7 +217,7 @@ function renderTitlePage(item, container) {
           </div>
 
           <div class="tp-episode-row" style="display:flex; gap:12px; align-items:stretch;">
-            <div class="tp-season-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
+            <div class="tp-season-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius);">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Temporada</span>
               <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleTemporadaDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curTempInit}</span>
@@ -229,7 +229,7 @@ function renderTitlePage(item, container) {
                 <button class="poster-stepper-btn stepper-btn" data-target="titleTemporada" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
               </div>
             </div>
-            <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px;">
+            <div class="tp-episode-block" style="flex:0 0 110px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius);">
               <span class="tp-label" style="font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Episódio</span>
               <div style="display:flex; align-items:baseline; gap:4px; font-weight:800; line-height:1;">
                 <span id="titleEpisodioDisplay" style="font-size:2.2rem; color:var(--text-primary);">${curEpInit}</span>
@@ -241,7 +241,7 @@ function renderTitlePage(item, container) {
                 <button class="poster-stepper-btn stepper-btn" data-target="titleEpisodio" data-step="-1" style="width:36px; height:36px; border-radius:999px; border:1px solid var(--border); background:var(--bg-surface); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; cursor:pointer;">-</button>
               </div>
             </div>
-            <div class="tp-synopsis-block" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; text-align:left; position:relative; overflow:hidden;">
+            <div class="tp-synopsis-block" style="flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:var(--radius); text-align:left; position:relative; overflow:hidden;">
               <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
                 <span id="titleEpTitle" style="font-size:0.82rem; font-weight:600; color:var(--text-primary); flex:1; min-width:0;">Sinopse do episódio</span>
                 <span id="titleEpDate" style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap;"></span>

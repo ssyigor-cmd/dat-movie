@@ -295,7 +295,7 @@ describe('getTitlesByGenre - fallback de genero sem dados', () => {
   });
 });
 describe('composeCategoryList', () => {
-  it('mantem as 6 categorias fixas mesmo com generos do usuario', async () => {
+  it('mantem as categorias fixas mesmo com generos do usuario', async () => {
     const mod = await import('../src/lib/trendingApi.js');
     const user = [
       { id: 10759, name: 'Acao', icon: 'fa-bolt' },
@@ -310,32 +310,32 @@ describe('composeCategoryList', () => {
     for (const fixo of mod.CATEGORIES.map(c => c.id)) {
       expect(ids).toContain(fixo);
     }
-    expect(list).toHaveLength(6);
+    expect(list).toHaveLength(mod.CATEGORIES.length);
   });
 
-  it('soma generos do usuario que nao estao entre as 6, com teto', async () => {
+  it('soma generos do usuario que nao estao entre as fixas, com teto', async () => {
     const mod = await import('../src/lib/trendingApi.js');
     const extras = [
-      { id: 9648, name: 'Misterio', icon: 'fa-search' },
-      { id: 80, name: 'Crime', icon: 'fa-user-secret' },
-      { id: 99, name: 'Documentario', icon: 'fa-film' },
-      { id: 10768, name: 'Guerra', icon: 'fa-fighter-jet' }
+      { id: 1, name: 'Extra A', icon: 'fa-tag' },
+      { id: 2, name: 'Extra B', icon: 'fa-tag' },
+      { id: 3, name: 'Extra C', icon: 'fa-tag' },
+      { id: 4, name: 'Extra D', icon: 'fa-tag' }
     ];
     const list = mod.composeCategoryList(extras);
     const ids = list.map(c => c.id);
-    expect(ids).toContain(9648);
-    expect(ids).toContain(80);
+    expect(ids).toContain(1);
+    expect(ids).toContain(2);
     // Teto de 2 extras: cada categoria roda ate 15 paginas de busca.
-    expect(list).toHaveLength(6 + mod.EXTRA_GENRE_LIMIT);
-    expect(ids).not.toContain(99);
-    expect(ids).not.toContain(10768);
+    expect(list).toHaveLength(mod.CATEGORIES.length + mod.EXTRA_GENRE_LIMIT);
+    expect(ids).not.toContain(3);
+    expect(ids).not.toContain(4);
   });
 
   it('nao duplica as fixas e tolera entrada invalida', async () => {
     const mod = await import('../src/lib/trendingApi.js');
-    expect(mod.composeCategoryList(null)).toHaveLength(6);
-    expect(mod.composeCategoryList(undefined)).toHaveLength(6);
-    expect(mod.composeCategoryList([null, { id: 27 }])).toHaveLength(6);
+    expect(mod.composeCategoryList(null)).toHaveLength(mod.CATEGORIES.length);
+    expect(mod.composeCategoryList(undefined)).toHaveLength(mod.CATEGORIES.length);
+    expect(mod.composeCategoryList([null, { id: 27 }])).toHaveLength(mod.CATEGORIES.length);
     const comRepetido = mod.composeCategoryList([{ id: 27 }, { id: 27 }, { id: 9648 }]);
     expect(comRepetido.filter(c => c.id === 27)).toHaveLength(1);
   });
