@@ -4085,10 +4085,10 @@ a:focus-visible,
 .tp-layout { display:flex; gap:8px; align-items:stretch; }
 /* -10% na sidebar para acompanhar o card encolhido: as duas colunas
    diminuem juntas e o vao entre elas nao abre. */
-.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; margin-top: 224px; }
-/* A sidebar alinha verticalmente com a fileira de episódios (temporada/episódio/sinopse)
-   que fica abaixo do backdrop. O backdrop tem min-height: 200px + gap: 12px = 212px,
-   arredondamos para 224px para compensar o padding do tp-main. */
+.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
+/* Espaçador no topo da sidebar para alinhar com a fileira de episódios (abaixo do backdrop).
+   O backdrop tem min-height: 200px + gap 12px + padding tp-main 12px ≈ 224px. */
+.tp-side-hud::before { content: ''; height: 224px; flex-shrink: 0; }
 .tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 /* Antes este bloco tinha `margin-top:auto`, que empurrava "Ações" para o
    fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
@@ -4336,6 +4336,7 @@ a:focus-visible,
 @media (max-width: 900px) {
   .tp-layout { flex-direction:column; }
   .tp-side-hud { flex:1 1 auto; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; }
+  .tp-side-hud::before { display: none; }
   .tp-side-hud .tp-status-col { flex-direction:row; flex-wrap:wrap; }
   .tp-main { flex-direction:column; }
   .tp-poster-col { flex:1 1 auto; max-width:100%; }
