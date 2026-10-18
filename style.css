@@ -4085,8 +4085,8 @@ a:focus-visible,
 .tp-layout { display:flex; gap:12px; align-items:stretch; }
 /* -10% na sidebar para acompanhar o card encolhido: as duas colunas
    diminuem juntas e o vao entre elas nao abre. */
-.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
-.tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
+.tp-side-hud { flex:0 0 153px; display:flex; flex-direction:column; gap:6px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
+.tp-side-card { display:flex; flex-direction:column; gap:6px; padding:8px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 /* Antes este bloco tinha `margin-top:auto`, que empurrava "Ações" para o
    fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
    três cartões em gap igual, ele não é mais o elemento mais alto da linha
@@ -4170,12 +4170,8 @@ a:focus-visible,
 /* Todos os vãos do menu lateral em 8px: entre os três cartões e entre os
    botões de cada um. Antes Status usava 8px e Coleções/Ações 5px, o que
    deixava os blocos desiguais. */
-.tp-side-hud { gap: 8px; }
-/* Os cartões ficam com a altura do próprio conteúdo e o espaço que sobra é
-   distribuído como espaçamento IGUAL entre eles (space-between), em vez de
-   ficar ocioso no fim da coluna ou dentro de um cartão. */
-.tp-side-hud { gap: 8px; justify-content: space-between; }
-.title-page .tp-side-card { padding: 6px 8px; gap: 8px; flex: 0 0 auto; }
+.tp-side-hud { gap: 6px; }
+.title-page .tp-side-card { padding: 8px; gap: 6px; flex: 0 0 auto; }
 .title-page .tp-side-card .tp-status-col { gap: 8px; }
 /* Painel de episódio mais baixo, para a coluna direita terminar na mesma linha
    do card vertical. */
