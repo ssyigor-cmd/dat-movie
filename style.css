@@ -4082,7 +4082,7 @@ a:focus-visible,
 .tp-meta-group { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding-left:12px; border-left:1px solid var(--ghost-strong); min-width:0; }
 
 /* — B) Layout + Sidebar Vertical — */
-.tp-layout { display:flex; gap:6px; align-items:center; }
+.tp-layout { display:flex; gap:4px; align-items:center; }
 /* -10% na sidebar para acompanhar o card encolhido: as duas colunas
    diminuem juntas e o vao entre elas nao abre. */
 .tp-side-hud { flex:0 0 134px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
