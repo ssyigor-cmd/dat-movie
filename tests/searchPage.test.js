@@ -19,7 +19,7 @@ const lib = readFileSync(join(raiz, 'src/lib/discoverSearch.js'), 'utf8');
 
 describe('interface da pesquisa avançada', () => {
   const ids = [
-    'advFilters', 'advFiltersCount', 'advFiltersPanel', 'advGenres', 'advCountries',
+    'searchFiltersPanel', 'advFiltersToggleBtn', 'advFiltersPanel', 'advGenres', 'advCountries',
     'advCertification', 'advRuntime', 'advLanguage', 'advStatus', 'advType', 'advSort',
     'advYearFrom', 'advYearTo', 'advClear', 'pesquisaSummary', 'pesquisaMore', 'pesquisaMoreBtn'
   ];
@@ -67,7 +67,8 @@ describe('interface da pesquisa avançada', () => {
     // Status/tier, ordenar e agrupar agem sobre a grade do
     // catálogo, que na Pesquisar está escondida. Sem isso fica um grupo de
     // botões mortos ao lado do campo de busca.
-    expect(main).toMatch(/toolbarFilters\.style\.display\s*=\s*state\.currentTab === 'pesquisa' \? 'none'/);
+    // O botão de "Filtros avançados" permanece visível (tool-group--search-filters).
+    expect(main).toMatch(/\.tool-group:not\([^)]*tool-group--search-filters[^)]*\)[^}]*\.style\.display\s*=\s*state\.currentTab === 'pesquisa' \? 'none'/);
   });
 });
 

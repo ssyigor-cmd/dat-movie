@@ -75,6 +75,7 @@ export function setupSearchPage({ onOpenTitle } = {}) {
   const more = $('pesquisaMore');
   const moreBtn = $('pesquisaMoreBtn');
   const countBadge = $('advFiltersCount');
+  const toolbarCountBadge = $('advFiltersToolbarCount');
   const clearBtn = $('advClear');
   const genresEl = $('advGenres');
   const countriesEl = $('advCountries');
@@ -86,6 +87,8 @@ export function setupSearchPage({ onOpenTitle } = {}) {
   const sortEl = $('advSort');
   const yearFromEl = $('advYearFrom');
   const yearToEl = $('advYearTo');
+  const advFiltersToggleBtn = $('advFiltersToggleBtn');
+  const searchFiltersPanel = $('searchFiltersPanel');
 
   if (!view || !input || !grid) {
     return { activate() {}, refresh() {} };
@@ -118,6 +121,61 @@ export function setupSearchPage({ onOpenTitle } = {}) {
       fillChips(genresEl, list, (g) => g.id, (g) => g.name);
     })
     .catch(() => {});
+
+  // ===== Painel de filtros expansível (abaixo do header) =====
+  function openSearchFilters() {
+    if (!searchFiltersPanel || !advFiltersToggleBtn) return;
+    searchFiltersPanel.hidden = false;
+    advFiltersToggleBtn.classList.add('active');
+    advFiltersToggleBtn.setAttribute('aria-expanded', 'true');
+    // Scroll suave para o painel se necessário
+    searchFiltersPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function closeSearchFilters() {
+    if (!searchFiltersPanel || !advFiltersToggleBtn) return;
+    searchFiltersPanel.hidden = true;
+    advFiltersToggleBtn.classList.remove('active');
+    advFiltersToggleBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleSearchFilters() {
+    const isOpen = !searchFiltersPanel?.hidden;
+    if (isOpen) closeSearchFilters();
+    else openSearchFilters();
+  }
+
+  if (advFiltersToggleBtn) {
+    advFiltersToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSearchFilters();
+    });
+  }
+
+  // Fechar painel ao clicar fora (opcional)
+  document.addEventListener('click', (e) => {
+    if (searchFiltersPanel && !searchFiltersPanel.hidden &&
+        !searchFiltersPanel.contains(e.target) &&
+        !advFiltersToggleBtn?.contains(e.target)) {
+      closeSearchFilters();
+    }
+  });
+
+  // Fechar ao clicar em um filtro (opcional, para melhor UX)
+  [certEl, runtimeEl, languageEl, statusEl, typeEl, sortEl].forEach((el) => {
+    el?.addEventListener('change', () => {
+      // Em mobile, pode fechar após seleção
+      if (window.innerWidth <= 700) closeSearchFilters();
+    });
+  });
+
+  [genresEl, countriesEl].forEach((container) => {
+    container?.addEventListener('click', (e) => {
+      if (e.target.classList.contains('adv-chip') && window.innerWidth <= 700) {
+        setTimeout(closeSearchFilters, 150);
+      }
+    });
+  });
 
   // ===== leitura do estado da interface =====
   function readChipStates(container) {
@@ -171,6 +229,10 @@ export function setupSearchPage({ onOpenTitle } = {}) {
     if (countBadge) {
       countBadge.textContent = String(n);
       countBadge.hidden = n === 0;
+    }
+    if (toolbarCountBadge) {
+      toolbarCountBadge.textContent = String(n);
+      toolbarCountBadge.hidden = n === 0;
     }
   }
 
@@ -372,13 +434,22 @@ export function setupSearchPage({ onOpenTitle } = {}) {
     });
   }
 
+  // Elemento do botão de filtros da toolbar
+  const searchFiltersGroup = document.querySelector('.tool-group--search-filters');
+
   return {
     /** Chamado quando a aba Pesquisar fica ativa. */
     activate() {
       syncIndicators();
+      if (searchFiltersGroup) searchFiltersGroup.classList.remove('hidden');
       if (mode === 'idle' && results.length === 0 && !grid.children.length) {
         showEmpty('Digite pelo menos 2 caracteres para buscar');
       }
+    },
+    /** Chamado ao sair da aba Pesquisar. */
+    deactivate() {
+      if (searchFiltersGroup) searchFiltersGroup.classList.add('hidden');
+      closeSearchFilters();
     },
     /** Reexecuta a busca atual (usado após adicionar título, por exemplo). */
     refresh() {

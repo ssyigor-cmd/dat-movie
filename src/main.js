@@ -210,6 +210,47 @@ for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
 const navbar = document.getElementById('topNavbar');
 const navbarNav = document.getElementById('navbarNav');
 const headerListName = document.getElementById('headerListName');
+const navHamburger = document.getElementById('navHamburger');
+
+// Mobile hamburger menu toggle
+function initMobileNav() {
+  if (!navHamburger || !navbarNav) return;
+  
+  navHamburger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = navbarNav.classList.toggle('open');
+    navHamburger.setAttribute('aria-expanded', String(isOpen));
+    navHamburger.hidden = false;
+  });
+  
+  // Close mobile nav when clicking a nav item (except lists dropdown trigger)
+  navbarNav.addEventListener('click', (e) => {
+    const navItem = e.target.closest('.nav-item');
+    if (navItem && !navItem.classList.contains('add-list-btn') && !navItem.id?.includes('listsToggle')) {
+      navbarNav.classList.remove('open');
+      navHamburger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Close mobile nav on outside click
+  document.addEventListener('click', (e) => {
+    if (navbarNav.classList.contains('open') && !navbar.contains(e.target)) {
+      navbarNav.classList.remove('open');
+      navHamburger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Close mobile nav on resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 700) {
+      navbarNav.classList.remove('open');
+      navHamburger.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+// Initialize mobile nav after DOM is ready
+initMobileNav();
 
 // ========== AUTENTICAÇÃO ==========
 
@@ -1522,7 +1563,12 @@ async function render() {
   // Na aba Pesquisar os filtros da barra (status/tier, ordenar, agrupar)
   // agem sobre a grade do catálogo — que ali está escondida. A
   // pesquisa tem os filtros próprios no bloco lateral, então esconde a cápsula.
-  if (toolbarFilters) toolbarFilters.style.display = state.currentTab === 'pesquisa' ? 'none' : '';
+  if (toolbarFilters) {
+    const filterGroups = toolbarFilters.querySelectorAll('.tool-group:not(.tool-group--search-filters)');
+    filterGroups.forEach(g => g.style.display = state.currentTab === 'pesquisa' ? 'none' : '');
+    const searchFilterGroup = toolbarFilters.querySelector('.tool-group--search-filters');
+    if (searchFilterGroup) searchFilterGroup.style.display = state.currentTab === 'pesquisa' ? 'inline-flex' : 'none';
+  }
 
   // Home tab
   if (state.currentTab === 'home') {
@@ -1542,6 +1588,11 @@ async function render() {
     return;
   }
   if (homeSection) homeSection.style.display = 'none';
+
+  // Deactivate search page when leaving search tab
+  if (searchPageApi && typeof searchPageApi.deactivate === 'function' && state.currentTab !== 'pesquisa') {
+    searchPageApi.deactivate();
+  }
 
   if (state.currentTab === 'pesquisa') {
     gridSection.style.display = 'none';
@@ -1916,10 +1967,14 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 setupConfirmModal();
-// O formulário começa no modo login; `hidden` no HTML só esconde os campos de
-// cadastro, o texto e os atributos precisam ser montados por `setAuthMode`.
-setAuthMode('login');
-checkSession();
+
+  // Inicializa a tela de pesquisa ANTES do checkSession para que o render() possa usar searchPageApi
+  searchPageApi = setupSearchPage({ onOpenTitle: openTitlePageForSearch });
+
+  // O formulário começa no modo login; `hidden` no HTML só esconde os campos de
+  // cadastro, o texto e os atributos precisam ser montados por `setAuthMode`.
+  setAuthMode('login');
+  checkSession();
 
 
 let searchDebounceTimer = null;
@@ -2201,7 +2256,3 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ========== PESQUISA TMDB COM FILTROS ==========
-// Toda a lógica (busca por nome, discover com filtros, paginação) vive em
-// `searchPage.js`. Aqui só montamos a tela e injetamos a abertura de título.
-searchPageApi = setupSearchPage({ onOpenTitle: openTitlePageForSearch });

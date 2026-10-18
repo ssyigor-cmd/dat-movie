@@ -22,6 +22,7 @@
   --bg-hover: #26282C;         /* Estados hover */
   --border: transparent;           /* Bordas padrão (desligadas: blocos sem fio) */
   --border-strong: transparent;    /* Bordas de destaque/foco (desligadas) */
+  --border-outline: #2A2C30;       /* Contorno visível para blocos "outline-only" — mais claro que bg-surface */
 
   /* Textos */
   --text-primary: #F2EDE3;     /* Texto principal, branco quente */
@@ -148,13 +149,20 @@
   --fs-btn: 0.8rem;                           /* rótulo de botão */
   --fs-label: 0.72rem;                        /* rótulo maiúsculo com tracking */
 
-  /* Alvos de toque. O botão de atualizar era 20×20px, abaixo do mínimo
-     confortável de dedo; 28px é o piso que adoto aqui. */
+/* Alvos de toque. O botão de atualizar era 20×20px, abaixo do mínimo
+      confortável de dedo; 28px é o piso que adoto aqui. 44px é o mínimo
+      acessível (WCAG) — usamos tokens para escalar no mobile. */
   --tap-icon: 28px;
   --tap-btn: 36px;
+  --touch-target: 44px;         /* mínimo acessível global */
+  --touch-target-sm: 40px;      /* compacto onde 44px não cabe */
   --focus-ring: 0 0 0 2px var(--accent);     /* anel de foco, sem offset */
 
   --z-dropdown: 20;            /* acima do conteúdo, abaixo da navbar (100) */
+
+  /* Tipografia mínima legível no mobile */
+  --fs-min: 0.75rem;            /* 12px piso absoluto */
+  --fs-min-comfort: 0.875rem;   /* 14px confortável */
 
   /* Padding da página. A navbar é fixa e a folga do `padding-top` é o espaço
      entre ela e o primeiro conteúdo — é aqui que a home começa, e um valor
@@ -254,6 +262,7 @@
   --bg-well: #E4DED1;
   --border: transparent;
   --border-strong: transparent;
+  --border-outline: #D4D0C8;       /* Contorno visível no tema claro — mais escuro que bg-surface */
 
   --text-primary: #1B1915;
   --text-secondary: #55524A;
@@ -304,6 +313,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+.hidden { display: none !important; }
+
 body {
   font-family: var(--font-body);
   background: var(--bg-primary);
@@ -344,6 +355,110 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ================================================================
+   MOBILE TOUCH TARGETS & BASE RESPONSIVENESS
+   ================================================================ */
+/* Garante alvos de toque mínimos 44×44px (WCAG AA) */
+button,
+[role="button"],
+a[class*="btn"],
+.nav-item,
+.tool-btn,
+.tool-btn-sm,
+.filter-option,
+.adv-chip,
+.dm-btn,
+.dm-status-btn,
+.dm-action-btn,
+.modal-close,
+.stepper-btn,
+.poster-stepper-btn,
+.poster-icon-btn,
+.home-refresh-btn,
+.home-empty-btn,
+.home-backtop,
+.home-genre-back,
+.tp-back-btn--unified,
+.tier-option,
+.nav-action-icon,
+.profile-name-edit-btn,
+.profile-name-row button,
+.add-list-btn,
+.filters-clear,
+.adv-clear,
+.adv-more-btn,
+.group-toggle,
+#groupToggle,
+#filtersToggleBtn,
+#sortToggleBtn,
+#profileToggle,
+#authRevealBtn,
+#authSwitchBtn,
+#authSubmitBtn,
+#logoutBtn,
+#confirmOk,
+#confirmCancel,
+#detailListModalClose,
+#episodesClose,
+#titleInfoClose,
+#relinkClose,
+#titleEpBack,
+#titleBack {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+}
+
+/* Elementos inline-flex que não podem ter min-width fixo */
+.nav-item,
+.filter-option,
+.adv-chip,
+.tool-btn-sm,
+.dm-status-btn,
+.dm-action-btn,
+.tier-option,
+.nav-action-icon {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+}
+
+/* Inputs e selects com altura mínima */
+input,
+select,
+textarea {
+  min-height: var(--touch-target);
+  font-size: var(--fs-min-comfort); /* evita zoom no iOS */
+}
+
+/* Checkbox/radio wrappers para touch target */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]) {
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* Safe area insets para dispositivos com notch/Dynamic Island */
+:root {
+  --safe-top: env(safe-area-inset-top, 0);
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+  --safe-left: env(safe-area-inset-left, 0);
+  --safe-right: env(safe-area-inset-right, 0);
+}
+
+/* Overscroll behavior para modais */
+.modal-overlay {
+  overscroll-behavior: contain;
+}
 
 /* ================================================================
    TOP NAVBAR - MONOCROMÁTICO SÓLIDO
@@ -417,12 +532,12 @@ h1, h2, h3, h4, h5, h6 {
 .nav-item {
   background: transparent;
   border: 1px solid transparent;
-  padding: 7px 14px;
+  padding: 10px 16px;
   border-radius: var(--radius-pill);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-secondary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
@@ -431,6 +546,7 @@ h1, h2, h3, h4, h5, h6 {
   text-align: left;
   position: relative;
   flex-shrink: 0;
+  min-height: var(--touch-target);
 }
 .nav-item i {
   width: 20px;
@@ -442,7 +558,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 .nav-item:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-strong);
   border-color: var(--border);
 }
 .nav-item:hover i { color: var(--accent); }
@@ -592,7 +708,7 @@ h1, h2, h3, h4, h5, h6 {
   accent-color: var(--accent);
   cursor: pointer;
 }
-.profile-pref:hover { color: var(--text-primary); }
+.profile-pref:hover { color: var(--text-strong); }
 .profile-pref input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: 3px; }
 
 /* Tema: mesma linha de preferência, mas são três rádios em vez de um
@@ -609,7 +725,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-secondary);
   cursor: pointer;
 }
-.theme-option:hover { color: var(--text-primary); }
+.theme-option:hover { color: var(--text-strong); }
 .theme-option input {
   width: 14px;
   height: 14px;
@@ -657,7 +773,7 @@ h1, h2, h3, h4, h5, h6 {
   white-space: nowrap;
 }
 .profile-head-mail {
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -760,7 +876,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Cancelar é a saída de quem não quer mudar nada: fica neutro, e só ganha
    destaque no hover, para não competir com o Salvar. */
 .profile-name-row .profile-name-cancel-btn { color: var(--text-muted); }
-.profile-name-row .profile-name-cancel-btn:hover { color: var(--text-primary); background: var(--bg-hover); border-color: var(--border-strong); }
+.profile-name-row .profile-name-cancel-btn:hover { color: var(--text-strong); background: var(--bg-hover); border-color: var(--border-strong); }
 
 /* O campo sujo avisa antes de perder a alteração: a borda muda e o botão de
    salvar sai do estado desabilitado. */
@@ -795,7 +911,10 @@ img { max-width: 100%; height: auto; display: block; }
    ================================================================ */
 .main-content {
   flex: 1;
-  padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom);
+  padding: calc(var(--page-pad-top) + var(--safe-top)) 
+         calc(var(--page-pad-x) + var(--safe-right)) 
+         calc(var(--page-pad-bottom) + var(--safe-bottom)) 
+         calc(var(--page-pad-x) + var(--safe-left));
   margin-left: 0;
   max-width: 100%;
   overflow-y: auto;
@@ -900,19 +1019,19 @@ img { max-width: 100%; height: auto; display: block; }
    não pela visibilidade: com Status e Tier desligados, Época continuava
    herdando a borda de uma seção invisível. Por isso o `--off` dos dois lados. */
 .filters-section:not(.filters-section--off) + .filters-section:not(.filters-section--off) { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-.filters-label { display: block; font-size: 0.62rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.filters-label { display: block; font-size: var(--fs-min); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
 .filters-options { display: flex; flex-wrap: wrap; gap: 6px; }
-.filters-panel .filter-option { display: inline-flex; width: auto; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); background: var(--bg-surface); }
+.filters-panel .filter-option { display: inline-flex; width: auto; padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px; font-size: var(--fs-min-comfort); font-weight: 600; color: var(--text-secondary); background: var(--bg-surface); min-height: var(--touch-target); }
 .filters-panel .filter-option:hover { border-color: var(--accent); }
 .filters-panel .filter-option.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 /* Selo de contagem no botão: quantos filtros estão ativos. */
 #filtersToggleBtn { position: relative; }
-.filters-count { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 0.62rem; font-weight: 700; line-height: 18px; text-align: center; }
+.filters-count { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: var(--fs-min); font-weight: 700; line-height: 20px; text-align: center; }
 /* Limpar filtros: ação fantasma em linha inteira no fim do painel. */
 .filters-clear { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 600; font-family: var(--font-body); cursor: pointer; transition: color var(--transition), border-color var(--transition), background var(--transition); }
-.filters-clear:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-hover); }
+.filters-clear:hover { color: var(--text-strong); border-color: var(--border-strong); background: var(--bg-hover); }
 .filter-option { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; color: var(--text-primary); font-weight: 600; cursor: pointer; border-radius: 6px; }
-.filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--accent); }
+.filter-option:hover, .filter-option.active { background: var(--accent-soft); color: var(--text-strong); }
 
 /* hide toolbar selects visually but keep modal selects visible (we prefer native selects inside modals) */
 #filterStatus, #filterTier, #sortOrder { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -1053,7 +1172,7 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 0.65rem;
 }
 .dm-status-btn:hover {
-  color: var(--text-primary);
+  color: var(--text-strong);
   background: var(--bg-hover);
   border-color: var(--border-strong);
 }
@@ -1084,7 +1203,7 @@ img { max-width: 100%; height: auto; display: block; }
   white-space: nowrap;
 }
 .dm-action-btn:hover {
-  color: var(--text-primary);
+  color: var(--text-strong);
   background: var(--bg-hover);
   border-color: var(--border-strong);
 }
@@ -1103,12 +1222,12 @@ img { max-width: 100%; height: auto; display: block; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  font-size: 0.72rem;
+  padding: 8px 16px;
+  font-size: var(--fs-min-comfort);
   border-radius: var(--radius-pill);
   font-weight: 600;
   transition: all 0.2s;
-  min-height: 36px;
+  min-height: var(--touch-target);
   border: none;
   cursor: pointer;
 }
@@ -1143,13 +1262,21 @@ img { max-width: 100%; height: auto; display: block; }
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 .tool-btn:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.tool-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--accent); }
+.tool-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: var(--text-strong); }
 
 /* ================================================================
    GRID
    ================================================================ */
 .grid { display: grid; gap: 18px; }
-.grid-cols-8 { grid-template-columns: repeat(8, 1fr); }
+/* Responsive grid using minmax - cards are min 130px, max 1fr */
+.grid-cols-8 {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
+/* Override for search results which may want different min */
+.search-view .grid-cols-8 {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
 
 /* ================================================================
    GROUP HEADERS
@@ -1205,7 +1332,7 @@ img { max-width: 100%; height: auto; display: block; }
   align-items: flex-start;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.52rem;
+  font-size: var(--fs-min);
   letter-spacing: 0.01em;
   text-align: center;
   z-index: 5;
@@ -1345,7 +1472,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .progress-pct {
   font-family: var(--font-mono);
-  font-size: 0.56rem;
+  font-size: var(--fs-min);
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
@@ -1427,7 +1554,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 .modal-header h2 { font-size: 1.4rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
 #detailListModalTitle { font-size: 1rem; font-weight: 600; }
 .modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-.modal-close:hover { color: var(--text-primary); transform: rotate(90deg); }
+.modal-close:hover { color: var(--text-strong); transform: rotate(90deg); }
 .modal-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
 
 .tier-option {
@@ -1466,6 +1593,91 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 
 .tier-option:hover {
   background: var(--bg-elevated-hover);
+}
+
+/* ================================================================
+   MODAL MOBILE ADJUSTMENTS
+   ================================================================ */
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-end;
+  }
+  .modal {
+    padding: 16px;
+    max-height: 90vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transform: translateY(100%);
+    max-width: 100%;
+  }
+  .modal-overlay.active .modal {
+    transform: translateY(0);
+  }
+  .modal-header {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+  .modal-body {
+    max-height: calc(90vh - 100px);
+  }
+  
+  /* Confirm modal buttons */
+  .modal-confirm .modal-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .modal-confirm .dm-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* List select modal */
+  .modal.modal-lists {
+    max-height: 80vh;
+  }
+  .list-select-body label {
+    padding: 12px 16px;
+    font-size: var(--fs-min-comfort);
+    min-height: 44px;
+  }
+  
+  /* Episodes modal */
+  .modal.modal-episodes {
+    max-height: 95vh;
+  }
+  .episode-item {
+    padding: 12px 8px;
+    min-height: 60px;
+  }
+  .episode-thumb {
+    width: 56px;
+    height: 56px;
+  }
+  
+  /* Title info modal */
+  .modal.modal-info {
+    max-height: 95vh;
+  }
+  .ti-cast {
+    --ti-cast-w: 72px;
+  }
+  
+  /* Relink modal */
+  .modal.modal-relink {
+    max-height: 90vh;
+  }
+  .relink-search-row input {
+    font-size: var(--fs-min-comfort);
+    height: 44px;
+  }
+  .relink-item {
+    padding: 12px;
+    min-height: 60px;
+  }
+  .relink-thumb {
+    width: 48px;
+    height: 68px;
+  }
 }
 
 .tool-btn.active {
@@ -1732,8 +1944,8 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 .ti-cast-card img.ti-team-logo { object-fit: contain; padding: 10px; background: #EDEDED; filter: drop-shadow(0 0 1px rgba(0,0,0,0.9)); }
 /* Divisória vertical entre os grupos da Equipe, que dividem o mesmo trilho. */
 .ti-team-sep { flex: 0 0 auto; align-self: stretch; width: 1px; background: var(--border); margin: 10px 4px; }
-.ti-cast-name { font-size: 0.7rem; font-weight: 600; color: var(--text-primary); margin-top: 6px; line-height: 1.25; }
-.ti-cast-role { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; line-height: 1.25; }
+.ti-cast-name { font-size: var(--fs-min-comfort); font-weight: 600; color: var(--text-primary); margin-top: 6px; line-height: 1.25; }
+.ti-cast-role { font-size: var(--fs-min); color: var(--text-muted); margin-top: 2px; line-height: 1.25; }
 
 .ti-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .ti-list li { font-size: 0.8rem; line-height: 1.55; color: var(--text-secondary); }
@@ -1944,7 +2156,7 @@ button {
 }
 button:hover { transform: translateY(-2px); box-shadow: var(--shadow); background: var(--accent-hover); }
 button.secondary { background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border); }
-button.secondary:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
+button.secondary:hover { background: var(--bg-hover); color: var(--text-strong); border-color: var(--border-strong); }
 
 .form-loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 8px; color: var(--text-muted); }
 
@@ -2086,7 +2298,7 @@ a:focus-visible,
   font-size: 0.85rem;
   transition: color 0.2s, background 0.2s;
 }
-.auth-reveal:hover { color: var(--text-primary); background: var(--bg-surface); }
+.auth-reveal:hover { color: var(--text-strong); background: var(--bg-surface); }
 .auth-reveal:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Força da senha: a barra só aparece no cadastro e nunca empurra o layout,
@@ -2149,7 +2361,7 @@ a:focus-visible,
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.auth-switch button:hover { color: var(--text-primary); }
+.auth-switch button:hover { color: var(--text-strong); }
 .auth-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 
 #authMessage.is-error { color: var(--danger-text); }
@@ -2185,11 +2397,8 @@ a:focus-visible,
 /* ================================================================
    RESPONSIVIDADE
    ================================================================ */
-/* O grid é 8 colunas no desktop (base acima). Só o celular/tablet estreito
-   reduz — para 4 —, e sem os degraus intermediários de 6/4/2 que existiam
-   quando a densidade era escolhida pelo usuário. */
 @media (max-width: 900px) {
-  .grid-cols-8 { grid-template-columns: repeat(4, 1fr); }
+  /* Grid usa auto-fill com minmax(130px, 1fr) - não precisa de breakpoint fixo */
 }
 
 /* ================================================================
@@ -2205,16 +2414,76 @@ a:focus-visible,
   .navbar-actions { order: 3; width: 100%; gap: 8px; flex-wrap: wrap; }
   .navbar-nav { order: 2; flex: 1; min-width: 0; }
   .navbar-brand { order: 1; margin-right: 0; }
-  .nav-dropdown {
-    left: auto;
+  .nav-hamburger { display: inline-flex; }
+  .navbar-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
     right: 0;
-    min-width: 200px;
-    max-width: calc(100vw - 24px);
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    padding: 12px 10px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 99;
+  }
+  .navbar-nav.open {
+    display: flex;
+  }
+  .nav-item {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 12px 16px;
+  }
+  .nav-dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+    padding: 8px 0 0 16px;
+    max-width: none;
+    min-width: 0;
+  }
+  .nav-dropdown.show {
+    display: flex;
   }
 }
 
 @media (max-width: 480px) {
   .navbar-brand-logo { height: 24px; }
+}
+
+/* Hamburger button */
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  margin-right: 8px;
+}
+.nav-hamburger:hover {
+  background: var(--bg-hover);
+  transform: scale(1.05);
+}
+.nav-hamburger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nav-hamburger[aria-expanded="true"] i {
+  transform: rotate(90deg);
+}
+.nav-hamburger[aria-expanded="true"] i::before {
+  content: "\f00d"; /* fa-times */
 }
 
 /* ================================================================
@@ -2553,16 +2822,16 @@ a:focus-visible,
 }
 
 @media (max-width: 480px) {
-  .grid-cols-8 { gap: 10px; }
   .card-body { padding: 10px; }
-  .card-title { font-size: 0.68rem; }
+  .card-title { font-size: var(--fs-min); }
   .main-content { max-width: 100%; }
   .modal { padding: 20px; max-width: 100%; }
   .profile-dropdown { right: 0; left: auto; top: calc(100% + 8px); min-width: 200px; max-width: calc(100vw - 24px); }
   .dm-action-btn {
-    padding: 5px 10px;
-    font-size: 0.68rem;
-    gap: 3px;
+    padding: 8px 12px;
+    font-size: var(--fs-min);
+    gap: 6px;
+    min-height: 44px;
   }
   .season-header h3 {
     font-size: 0.9rem;
@@ -2574,16 +2843,123 @@ a:focus-visible,
 }
 
 /* ================================================================
+   LANDSCAPE ORIENTATION SUPPORT
+   ================================================================ */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Navbar mais compacta em landscape */
+  .top-navbar {
+    height: 52px;
+    padding: 0 16px;
+  }
+  .navbar-brand-logo {
+    height: 24px;
+  }
+  .nav-item {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  /* Main content padding reduzido */
+  .main-content {
+    padding-top: calc(70px + var(--safe-top));
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+  
+  /* Modais mais altos */
+  .modal {
+    max-height: 95vh;
+    padding: 16px;
+  }
+  .modal-overlay {
+    padding: 8px;
+    align-items: center;
+  }
+  .modal-overlay.active .modal {
+    transform: translateY(0);
+  }
+  
+  /* Title page landscape: side by side */
+  .tp-layout {
+    flex-direction: row !important;
+  }
+  .tp-poster-col {
+    flex: 0 0 35% !important;
+    max-width: 35% !important;
+  }
+  .tp-main {
+    flex-direction: row !important;
+  }
+  .tp-episode-row {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+  .tp-season-block,
+  .tp-episode-block,
+  .tp-synopsis-block {
+    flex: 1 1 30% !important;
+    min-width: 120px !important;
+  }
+  .tp-side-hud {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    width: 200px;
+    flex-shrink: 0;
+  }
+  
+  /* Search landscape */
+  .search-view {
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    margin-top: -20px;
+  }
+  .adv-filters {
+    position: sticky !important;
+    top: 70px !important;
+    max-height: calc(100vh - 80px) !important;
+    transform: none !important;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-right: 1px solid var(--border) !important;
+    box-shadow: none !important;
+  }
+  .adv-filters::before {
+    display: none;
+  }
+  
+  /* Home carousels */
+  .home-h-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  
+  /* Grid mais compacto */
+  .grid {
+    gap: 12px;
+  }
+}
+
+/* Landscape em tablets (altura maior) */
+@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
+  .top-navbar {
+    height: 56px;
+  }
+  .main-content {
+    padding-top: calc(74px + var(--safe-top));
+  }
+  .modal {
+    max-height: 90vh;
+  }
+}
+
+/* ================================================================
    PESQUISA (TMDB Search View)
    ================================================================ */
 .search-view {
   flex: 1;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 24px;
   align-items: start;
-  /* Alinhado à barra superior: sem padding lateral próprio (o pai já aplica
-     `--page-pad-x`) e puxado para cima para encostar na borda inferior dela. */
   margin-top: -24px;
 }
 
@@ -2670,7 +3046,7 @@ a:focus-visible,
 .adv-field-label {
   display: block;
   margin-bottom: 8px;
-  font-size: 0.72rem;
+  font-size: var(--fs-min);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2679,28 +3055,55 @@ a:focus-visible,
 
 .adv-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.adv-chips::-webkit-scrollbar {
+  height: 8px;
+}
+.adv-chips::-webkit-scrollbar-track {
+  background: transparent;
+}
+.adv-chips::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius);
+}
+.adv-chips::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .adv-chips--scroll {
-  max-height: 132px;
-  overflow-y: auto;
-  padding-right: 4px;
+  max-height: none;
+  overflow-y: visible;
+  padding-right: 0;
 }
 
 .adv-chip {
-  padding: 6px 12px;
+  padding: 12px 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
+  min-height: 44px;
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.adv-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+.adv-chip:hover { border-color: var(--accent); color: var(--text-strong); background: var(--bg-hover); }
 .adv-chip.active {
   border-color: var(--accent);
   background: var(--accent-soft);
@@ -2719,9 +3122,9 @@ a:focus-visible,
 
 .adv-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px 18px;
-  margin-bottom: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px 20px;
+  margin-bottom: 16px;
 }
 
 .adv-field { display: block; min-width: 0; }
@@ -2774,7 +3177,7 @@ a:focus-visible,
   cursor: pointer;
 }
 
-.adv-clear:hover { border-color: var(--accent); color: var(--accent); }
+.adv-clear:hover { border-color: var(--accent); color: var(--text-strong); background: var(--bg-hover); }
 
 .pesquisa-summary {
   margin: 0 0 14px;
@@ -2804,19 +3207,152 @@ a:focus-visible,
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.adv-more-btn:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--accent); }
+.adv-more-btn:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--text-strong); }
 
-/* Em telas estreitas o bloco lateral vira uma faixa acima dos resultados. */
+/* ================================================================
+   SEARCH FILTERS PANEL — expansível abaixo do header
+   ================================================================ */
+.search-filters-panel {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
+  /* Mesmo padding horizontal do conteúdo da página para alinhar com "Pesquisa" e botões */
+  padding-left: calc(var(--page-pad-x) + var(--safe-left));
+  padding-right: calc(var(--page-pad-x) + var(--safe-right));
+}
+.search-filters-panel[hidden] {
+  display: none;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-filters-panel .adv-panel {
+  padding: 18px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+/* Mobile: panel full width */
+@media (max-width: 700px) {
+  .search-filters-panel .adv-panel {
+    padding: 16px 16px 24px;
+  }
+  .search-filters-panel .adv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Toolbar button active state */
+#advFiltersToggleBtn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+#advFiltersToggleBtn.active i {
+  color: var(--accent);
+}
+
+/* Em telas estreitas o bloco lateral vira bottom sheet (legacy - mantido para compatibilidade). */
 @media (max-width: 900px) {
   .search-view { grid-template-columns: 1fr; margin-top: 0; }
   .adv-filters {
-    position: static;
-    max-height: none;
-    overflow: visible;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    max-height: 75vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg-primary);
+    padding: 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  }
+  .adv-filters.open {
+    transform: translateY(0);
+  }
+  .adv-filters::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+  .adv-header {
+    padding: 16px 18px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+  .adv-panel {
+    padding: 8px 18px 24px;
+    max-height: calc(75vh - 80px);
+    overflow-y: auto;
+  }
+  .adv-actions {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 18px 8px;
+    background: linear-gradient(to top, var(--bg-primary), transparent);
     border-top: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    margin: 0 -18px;
+  }
+  .adv-clear {
+    height: 44px;
+    font-size: var(--fs-min-comfort);
+  }
+  .adv-select {
+    height: 44px;
+    font-size: var(--fs-min-comfort);
+  }
+  .adv-year input {
+    height: 44px;
+    font-size: var(--fs-min-comfort);
+  }
+  .adv-chip {
+    padding: 12px 18px;
+    font-size: var(--fs-min-comfort);
+    min-height: 44px;
+    min-width: max-content;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tool-group--search-filters {
+    display: inline-flex !important;
   }
   .pesquisa-results { padding-top: 0; }
+}
+
+/* Overlay para fechar bottom sheet ao clicar fora */
+@media (max-width: 900px) {
+  .adv-filters-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+  .adv-filters-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 /* ================================================================
@@ -2905,7 +3441,7 @@ a:focus-visible,
   justify-content: center;
   transition: color var(--transition), background var(--transition);
 }
-.home-refresh-btn:hover:not(:disabled) { color: var(--text-primary); background: var(--accent-soft); }
+.home-refresh-btn:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .home-refresh-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .home-refresh-btn:disabled { cursor: default; color: var(--text-muted); opacity: 0.4; }
 .home-refresh-btn.is-loading i { animation: homeSpin 0.8s linear infinite; }
@@ -2937,11 +3473,62 @@ a:focus-visible,
      desalinharia a borda do pôster com a do título. */
   -webkit-mask-image: linear-gradient(to right, black 90%, transparent 100%);
   mask-image: linear-gradient(to right, black 90%, transparent 100%);
+  /* Scroll affordance: indicador visual de rolagem */
+  position: relative;
 }
 .home-h-scroll::-webkit-scrollbar { height: 6px; }
 .home-h-scroll::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 3px;
+}
+
+/* Scroll affordance indicator - seta indicando rolagem horizontal */
+.home-h-scroll::after {
+  content: '›';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.3s;
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+
+/* Esconder indicador quando chegar ao fim */
+.home-h-scroll.at-end::after {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* No hover/touch, mostrar scrollbar */
+.home-h-scroll:hover::-webkit-scrollbar-thumb,
+.home-h-scroll:active::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+}
+
+/* Landscape: remover máscara e indicador */
+@media (orientation: landscape) and (max-height: 700px) {
+  .home-h-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .home-h-scroll::after {
+    display: none;
+  }
 }
 /* `home-skeleton` é estado, não layout: a classe existe para o JavaScript
    marcar "isto está carregando" e para os testes, e de propósito NÃO tem regra
@@ -2969,7 +3556,7 @@ a:focus-visible,
    tracejada de altura cheia para dizer uma frase. */
 .home-empty {
   background: var(--home-surface-panel);
-  border: 1px dashed var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 20px;
   text-align: center;
@@ -3044,13 +3631,12 @@ a:focus-visible,
 @keyframes skeletonShine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── Hero de boas-vindas ──────────────────────────────────────
-   O topo da página. É um painel sobre a superfície de cartão com a
-   saudação. O título herda Sora do `h1`. */
+   O topo da página. Painel preenchido com superfície elevada. */
 .home-hero {
   display: flex;
   align-items: center;
   padding: var(--home-space-section);
-  background: var(--home-surface-card);
+  background: var(--home-surface-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -3115,7 +3701,7 @@ a:focus-visible,
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
-.home-genre-back:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.home-genre-back:hover { color: var(--text-strong); border-color: var(--border-strong); }
 .home-genre-back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .home-genre-back[hidden] { display: none; }
 .home-genre-card {
@@ -3171,7 +3757,7 @@ a:focus-visible,
   scroll-snap-align: start;
 }
 /* Hoje merece achar na rolagem; o que já saiu fica recessivo. */
-.home-calendar-day.is-today { border-color: var(--accent); }
+.home-calendar-day.is-today { border-color: var(--accent); border-width: 3px; }
 .home-calendar-day.is-past { opacity: 0.55; }
 .home-calendar-day.is-past:hover, .home-calendar-day.is-today:hover { opacity: 1; }
 .home-calendar-date {
@@ -3202,7 +3788,7 @@ a:focus-visible,
 /* O corpo do card do Calendário diz qual episódio sai naquela data: só o
    número, em mono (dado técnico). */
 .home-calendar-epinfo { display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
-.home-calendar-epnum { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-secondary); }
+.home-calendar-epnum { font-family: var(--font-mono); font-size: var(--fs-min); color: var(--text-secondary); }
 .home-hint {
   font-size: var(--fs-btn);
   color: var(--text-muted);
@@ -3229,7 +3815,7 @@ a:focus-visible,
   display: flex;
   gap: 20px;
   align-items: center;
-  background: var(--home-surface-card);
+  background: var(--home-surface-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 16px;
@@ -3265,18 +3851,15 @@ a:focus-visible,
   text-align: center;
   width: 100%;
   max-width: 560px;
-  background: var(--home-surface-card);
-  border: 1px dashed var(--border);
+  background: var(--home-surface-panel);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 .home-roulette-history { font-size: var(--fs-meta); color: var(--text-muted); text-align: center; }
 
 /* ── Painéis das seções de ESCOLHA ───────────────────────────
-   Roleta, afinidade e destaques do ano recebem uma caixa, para não se
-   confundirem com as faixas — que são só título + trilho, sem nada em
-   volta. A superfície é a mesma do cartão (`--home-surface-panel` =
-   `--home-surface-card`, padronizada com os blocos Detalhes): o cartão
-   dentro do painel se declara pela borda, não pelo tom. */
+   Roleta, afinidade e destaques do ano recebem uma caixa preenchida,
+   para se distinguirem das faixas — que são só título + trilho. */
 .home-section--panel {
   background: var(--home-surface-panel);
   border: 1px solid var(--border);
@@ -3349,7 +3932,7 @@ a:focus-visible,
   cursor: pointer;
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
-.home-backtop:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--bg-hover); }
+.home-backtop:hover { color: var(--text-strong); border-color: var(--border-strong); background: var(--bg-hover); }
 .home-backtop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .home-backtop i { font-size: 0.75rem; }
 
@@ -3378,7 +3961,7 @@ a:focus-visible,
   max-height: 320px;
   overflow-y: auto;
   background: var(--home-surface-card);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
   z-index: var(--z-dropdown);
@@ -3571,7 +4154,7 @@ a:focus-visible,
 .title-page .dm-action-btn:hover,
 .title-page .poster-stepper-btn:hover,
 .title-page .tp-back-btn--unified:hover,
-.title-page .tier-option:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); transform: translateY(-1px); }
+.title-page .tier-option:hover { background: var(--bg-hover); color: var(--text-strong); border-color: var(--border-strong); transform: translateY(-1px); }
 /* Status ativo: fundo sólido já o distingue, o halo só acrescentava brilho. */
 .title-page .dm-status-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .title-page .dm-btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
@@ -3745,10 +4328,10 @@ a:focus-visible,
   background: var(--ghost-bg) !important;
   border-color: var(--ghost-border) !important;
   color: var(--text-soft) !important;
-  width: 36px !important;
-  height: 36px !important;
-  min-height: 36px !important;
-  min-width: 36px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  min-width: 44px !important;
   border-radius: 50% !important;
   padding: 0 !important;
 }
@@ -3763,6 +4346,120 @@ a:focus-visible,
 }
 @media (max-width: 700px) {
   .tp-hud-top { flex-direction:column; border-radius:18px; gap:6px; padding:10px; }
+}
+
+/* ================================================================
+   TITLE PAGE MOBILE RESPONSIVE
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Poster column: full width, centered */
+  .tp-poster-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    align-self: center;
+  }
+  .tp-frame.tp-poster-frame {
+    align-self: stretch;
+    max-width: 320px;
+  }
+  
+  /* Episode row: stack vertically */
+  .tp-episode-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .tp-season-block,
+  .tp-episode-block,
+  .tp-synopsis-block {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  
+  /* Sidebar: 2-column grid */
+  .tp-side-hud {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    justify-content: stretch !important;
+  }
+  .tp-side-card {
+    padding: 8px !important;
+  }
+  .tp-status-col {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+  .tp-side-hud .dm-status-btn,
+  .tp-side-hud .dm-action-btn,
+  .tp-side-hud .dm-btn {
+    min-height: 44px !important;
+    font-size: var(--fs-min-comfort) !important;
+    padding: 10px 16px !important;
+  }
+  
+  /* Stepper buttons: 44x44px */
+  .title-page .poster-stepper-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* Backdrop nav arrows: 44x44px */
+  .title-page .poster-icon-btn {
+    width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* Tier dropdown button: larger */
+  .title-page .tier-stamp {
+    width: 36px !important;
+    height: 44px !important;
+    font-size: var(--fs-min) !important;
+  }
+  
+  /* Synopsis: expand clamp */
+  #titleSynopsisEp {
+    -webkit-line-clamp: 6 !important;
+    line-clamp: 6 !important;
+  }
+  
+  /* Tier dropdown position */
+  #tpTierDropdown {
+    right: auto !important;
+    left: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tp-hud-top {
+    flex-direction: column;
+    border-radius: 14px;
+    padding: 8px;
+  }
+  .tp-logo-block {
+    padding: 4px 0;
+  }
+  #titleName {
+    font-size: 0.85rem !important;
+  }
+  .tp-tier-block {
+    position: static !important;
+    margin-top: 8px;
+  }
+  .tp-side-hud {
+    grid-template-columns: 1fr !important;
+  }
+  .tp-frame.tp-poster-frame {
+    max-width: 280px;
+  }
+  .tp-back-btn--unified {
+    padding: 8px 16px !important;
+    font-size: var(--fs-min-comfort) !important;
+  }
 }
 
 /* Status buttons - barra inferior unificada */

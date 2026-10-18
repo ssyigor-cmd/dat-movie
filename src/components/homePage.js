@@ -11,6 +11,41 @@ import { affinityShown, rememberAffinity, nextAffinitySeed, nextAffinityOffset }
 import { filterNotInCatalog } from '../lib/catalog.js';
 
 /**
+ * Adiciona indicador de fim de rolagem aos carrosséis horizontais.
+ * Remove a classe que mostra a seta quando chega ao final.
+ */
+function setupScrollAffordance(rail) {
+  if (!rail || rail.dataset.scrollAffordance === 'true') return;
+  rail.dataset.scrollAffordance = 'true';
+  
+  const updateIndicator = () => {
+    const { scrollLeft, scrollWidth, clientWidth } = rail;
+    const atEnd = scrollLeft + clientWidth >= scrollWidth - 4; // 4px tolerância
+    rail.classList.toggle('at-end', atEnd);
+  };
+  
+  // Atualizar no scroll
+  rail.addEventListener('scroll', updateIndicator, { passive: true });
+  
+  // Atualizar inicial
+  updateIndicator();
+  
+  // Re-verificar após renderização de cards (imagens podem mudar largura)
+  const observer = new ResizeObserver(updateIndicator);
+  observer.observe(rail);
+  
+  // Cleanup não necessário pois rail vive na página
+}
+
+/**
+ * Aplica scroll affordance a todos os carrosséis visíveis.
+ */
+function applyScrollAffordance(container) {
+  const rails = container?.querySelectorAll('.home-h-scroll') || [];
+  rails.forEach(setupScrollAffordance);
+}
+
+/**
  * Estado de variedade por lista: semente do último clique e ids já exibidos,
  * para o botão de atualizar trazer títulos diferentes sempre que houver material.
  */
@@ -388,6 +423,9 @@ export function renderHomeBase(container, context) {
       }
     });
   }
+
+  // Aplicar indicador de rolagem aos carrosséis
+  applyScrollAffordance(container);
 }
 
 /**
