@@ -4085,7 +4085,7 @@ a:focus-visible,
 .tp-layout { display:flex; gap:8px; align-items:center; }
 /* -10% na sidebar para acompanhar o card encolhido: as duas colunas
    diminuem juntas e o vao entre elas nao abre. */
-.tp-side-hud { flex:0 0 138px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
+.tp-side-hud { flex:0 0 134px; display:flex; flex-direction:column; gap:12px; padding:0; border:none; background:transparent; box-shadow:none; align-items:stretch; }
 .tp-side-card { display:flex; flex-direction:column; gap:12px; padding:12px; border:1px solid var(--border); background:var(--bg-elevated); border-radius:14px; box-shadow:var(--shadow); }
 /* Antes este bloco tinha `margin-top:auto`, que empurrava "Ações" para o
    fundo da sidebar e abria um vão de ~80px entre Coleções e Ações. Com os
