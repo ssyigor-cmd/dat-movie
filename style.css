@@ -2401,6 +2401,37 @@ a:focus-visible,
   /* Grid usa auto-fill com minmax(130px, 1fr) - não precisa de breakpoint fixo */
 }
 
+/* Hamburger button */
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--transition-fast), transform var(--transition-fast);
+  margin-right: 8px;
+}
+.nav-hamburger:hover {
+  background: var(--bg-hover);
+  transform: scale(1.05);
+}
+.nav-hamburger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nav-hamburger[aria-expanded="true"] i {
+  transform: rotate(90deg);
+}
+.nav-hamburger[aria-expanded="true"] i::before {
+  content: "\f00d"; /* fa-times */
+}
+
 /* ================================================================
    NAVBAR RESPONSIVA
    ================================================================ */
@@ -2412,6 +2443,7 @@ a:focus-visible,
 @media (max-width: 700px) {
   .top-navbar { flex-wrap: wrap; height: auto; padding: 8px 10px; gap: 8px; }
   .navbar-actions { order: 3; width: 100%; gap: 8px; flex-wrap: wrap; }
+  .navbar-center { order: 2; }
   .navbar-nav { order: 2; flex: 1; min-width: 0; }
   .navbar-brand { order: 1; margin-right: 0; }
   .nav-hamburger { display: inline-flex; }
@@ -2453,37 +2485,6 @@ a:focus-visible,
 
 @media (max-width: 480px) {
   .navbar-brand-logo { height: 24px; }
-}
-
-/* Hamburger button */
-.nav-hamburger {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  margin-right: 8px;
-}
-.nav-hamburger:hover {
-  background: var(--bg-hover);
-  transform: scale(1.05);
-}
-.nav-hamburger:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.nav-hamburger[aria-expanded="true"] i {
-  transform: rotate(90deg);
-}
-.nav-hamburger[aria-expanded="true"] i::before {
-  content: "\f00d"; /* fa-times */
 }
 
 /* ================================================================
