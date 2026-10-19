@@ -2642,8 +2642,19 @@ a:focus-visible,
   .toolbar-search { max-width: none; min-width: 0; }
   .toolbar-filters { gap: 6px; }
   .tool-group { padding: 1px; gap: 3px; }
-  .tool-group .tool-btn-sm { width: 28px; height: 28px; }
-  .tool-btn-sm { width: 32px; height: 32px; font-size: 0.75rem; }
+  .tool-group .tool-btn-sm {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  .tool-btn-sm {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 0.75rem;
+  }
   .toolbar-search input { height: 32px; font-size: 0.75rem; padding: 0 32px 0 30px; }
   .main-header { gap: 8px; padding-bottom: 12px; }
   .header-list-name { font-size: 1.3rem; }
