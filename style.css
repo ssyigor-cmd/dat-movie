@@ -932,10 +932,10 @@ img { max-width: 100%; height: auto; display: block; }
 /* Mesma chave de breakpoints da navbar, porque é a navbar que define a altura
    que precisa ser coberta. 97px e 89px são as alturas medidas com o DOM real. */
 @media (max-width: 700px) {
-  :root { --page-pad-top: 152px; }   /* navbar 97px + 55 */
+  :root { --page-pad-top: 130px; }   /* navbar 97px + 33 (reduzido) */
 }
 @media (max-width: 480px) {
-  :root { --page-pad-top: 144px; }   /* navbar 89px + 55 */
+  :root { --page-pad-top: 120px; }   /* navbar 89px + 31 (reduzido) */
 }
 
 .main-header {
@@ -1842,6 +1842,21 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
     drop-shadow(0 0.1px 0 #808080) drop-shadow(0 -0.1px 0 #808080)
     drop-shadow(0.1px 0 0 #808080) drop-shadow(-0.1px 0 0 #808080);
 }
+
+/* Prevent logos from overflowing containers */
+#titleLogoImg,
+#titleInfoLogoImg {
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+#titleLogoWrap {
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .ti-sep { height: 1px; background: var(--border); margin: 14px 0 16px; }
 .ti-name { font-size: 1.3rem; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
 .ti-original { font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: 2px; }
@@ -2648,10 +2663,30 @@ a:focus-visible,
 
 /* Ajuste do main-content */
 @media (max-width: 700px) {
-  .toolbar-left { gap: 8px; }
-  .toolbar-search { max-width: none; min-width: 0; }
-  .toolbar-filters { gap: 6px; }
-  .tool-group { padding: 1px; gap: 3px; }
+  .toolbar-left {
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .toolbar-left::-webkit-scrollbar {
+    display: none;
+  }
+  .toolbar-search {
+    max-width: none;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  .toolbar-filters {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tool-group {
+    padding: 1px;
+    gap: 3px;
+    flex-shrink: 0;
+  }
   .tool-group .tool-btn-sm {
     width: 28px;
     height: 28px;
@@ -2665,9 +2700,19 @@ a:focus-visible,
     min-height: 32px;
     font-size: 0.75rem;
   }
-  .toolbar-search input { height: 32px; font-size: 0.75rem; padding: 0 32px 0 30px; }
-  .main-header { gap: 8px; padding-bottom: 12px; }
-  .header-list-name { font-size: 1.3rem; }
+  .toolbar-search input {
+    height: 32px;
+    font-size: 0.75rem;
+    padding: 0 32px 0 30px;
+    min-width: 180px;
+  }
+  .main-header {
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .header-list-name {
+    font-size: 1.3rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2862,6 +2907,14 @@ a:focus-visible,
   .episode-thumb {
     width: 40px;
     height: 40px;
+  }
+  /* Mobile logo constraints */
+  #titleLogoWrap {
+    max-width: 200px;
+  }
+  #titleLogoImg,
+  #titleInfoLogoImg {
+    max-height: 32px;
   }
 }
 
@@ -3505,37 +3558,7 @@ a:focus-visible,
   border-radius: 3px;
 }
 
-/* Scroll affordance indicator - seta indicando rolagem horizontal */
-.home-h-scroll::after {
-  content: '›';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent);
-  font-size: 1rem;
-  line-height: 1;
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 1;
-  transition: opacity 0.3s;
-  font-family: var(--font-body);
-  font-weight: 700;
-}
 
-/* Esconder indicador quando chegar ao fim */
-.home-h-scroll.at-end::after {
-  opacity: 0;
-  pointer-events: none;
-}
 
 /* No hover/touch, mostrar scrollbar */
 .home-h-scroll:hover::-webkit-scrollbar-thumb,
@@ -3543,14 +3566,11 @@ a:focus-visible,
   background: var(--text-muted);
 }
 
-/* Landscape: remover máscara e indicador */
+/* Landscape: remover máscara */
 @media (orientation: landscape) and (max-height: 700px) {
   .home-h-scroll {
     -webkit-mask-image: none;
     mask-image: none;
-  }
-  .home-h-scroll::after {
-    display: none;
   }
 }
 /* `home-skeleton` é estado, não layout: a classe existe para o JavaScript
@@ -4379,30 +4399,40 @@ a:focus-visible,
     align-self: stretch;
     max-width: 320px;
   }
-  
-  /* Episode row: stack vertically */
+
+  /* Episode row: temporada and episodio side by side, synopsis below */
   .tp-episode-row {
-    flex-direction: column !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
     gap: 8px !important;
   }
   .tp-season-block,
-  .tp-episode-block,
-  .tp-synopsis-block {
+  .tp-episode-block {
     flex: 0 0 auto !important;
-    width: 100% !important;
+    min-width: 100px !important;
+  }
+  .tp-synopsis-block {
+    flex: 1 1 100% !important;
     min-width: 0 !important;
   }
-  
-  /* Sidebar: 2-column grid */
+
+  /* Sidebar: single line with horizontal scroll */
   .tp-side-hud {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 6px !important;
-    justify-content: stretch !important;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tp-side-hud::-webkit-scrollbar {
+    display: none;
   }
   .tp-side-card {
-    padding: 6px !important;
-    gap: 6px !important;
+    padding: 8px !important;
+    gap: 8px !important;
+    min-width: 140px !important;
+    flex-shrink: 0 !important;
   }
   .tp-side-card-head {
     font-size: 0.62rem !important;
@@ -4419,7 +4449,7 @@ a:focus-visible,
     font-size: 0.7rem !important;
     padding: 4px 8px !important;
   }
-  
+
   /* Stepper buttons: 44x44px */
   .title-page .poster-stepper-btn {
     width: 44px !important;
