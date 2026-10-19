@@ -1278,6 +1278,14 @@ img { max-width: 100%; height: auto; display: block; }
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
+/* No estreito o cartaz de 2 por linha fica miúdo: 4 colunas. */
+@media (max-width: 480px) {
+  .grid-cols-8,
+  .search-view .grid-cols-8 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 /* ================================================================
    GROUP HEADERS
    ================================================================ */
