@@ -2443,6 +2443,7 @@ a:focus-visible,
 @media (max-width: 700px) {
   .top-navbar { flex-wrap: wrap; height: auto; padding: 8px 10px; gap: 8px; }
   .navbar-actions { order: 3; width: 100%; gap: 8px; flex-wrap: wrap; }
+  .navbar-profile { margin-left: auto; }
   .navbar-center { order: 2; }
   .navbar-nav { order: 2; flex: 1; min-width: 0; }
   .navbar-brand { order: 1; margin-right: 0; }
