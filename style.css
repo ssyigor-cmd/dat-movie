@@ -4397,22 +4397,27 @@ a:focus-visible,
   .tp-side-hud {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
+    gap: 6px !important;
     justify-content: stretch !important;
   }
   .tp-side-card {
-    padding: 8px !important;
+    padding: 6px !important;
+    gap: 6px !important;
+  }
+  .tp-side-card-head {
+    font-size: 0.62rem !important;
+    padding-bottom: 4px !important;
   }
   .tp-status-col {
     flex-direction: column !important;
-    gap: 6px !important;
+    gap: 4px !important;
   }
   .tp-side-hud .dm-status-btn,
   .tp-side-hud .dm-action-btn,
   .tp-side-hud .dm-btn {
-    min-height: 44px !important;
-    font-size: var(--fs-min-comfort) !important;
-    padding: 10px 16px !important;
+    min-height: 32px !important;
+    font-size: 0.7rem !important;
+    padding: 4px 8px !important;
   }
   
   /* Stepper buttons: 44x44px */
