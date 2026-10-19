@@ -3355,8 +3355,8 @@ a:focus-visible,
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .tool-group--search-filters {
-    display: inline-flex !important;
+  .tool-group--search-filters:not(.hidden) {
+    display: inline-flex;
   }
   .pesquisa-results { padding-top: 0; }
 }
