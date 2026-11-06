@@ -259,7 +259,7 @@ describe('padrão da home: cabeçalho de seção', () => {
     }
   });
 
-  it('o botão de atualizar tem alvo de toque, não 20px', () => {
+  it('o botão de atualizar tem alvo de clique, não 20px', () => {
     const i = css.indexOf('.home-refresh-btn {');
     const bloco = css.slice(i, css.indexOf('}', i));
     expect(bloco).toContain('width: var(--tap-icon)');
@@ -290,45 +290,31 @@ describe('padrão da home: JS e CSS medem a mesma coisa', () => {
 
   it('o padding da página não tem regra espalhada pela folha', () => {
     // A cascata antiga tinha sete regras para o mesmo padding, três delas
-    // mortas, e um degrau invertido: em 480px o topo voltava a 80px com a
-    // navbar ainda em duas linhas, e o conteúdo passava por baixo dela.
+    // mortas, e degraus de breakpoint que faziam o conteúdo passar por baixo
+    // da navbar. Agora o padding tem um dono só.
     const comPadding = [...css.matchAll(/^\s*\.main-content \{[^}]*padding[^}]*\}/gm)].map((m) => m[0]);
     expect(comPadding).toHaveLength(1);
     expect(comPadding[0]).toContain('padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom)');
   });
 
-  it('o padding do topo muda só onde a navbar muda de altura', () => {
-    // Duas alturas de navbar (uma linha, duas linhas) e dois degraus. A
-    // tabela antiga tinha três degraus por largura arbitrária, e um deles
-    // era menor que a navbar que precisava cobrir.
-    const degraus = [...css.matchAll(/@media \(max-width: (\d+)px\) \{\s*\n?\s*:root \{[^}]*--page-pad-top:\s*(\d+)px/g)]
-      .map((m) => [Number(m[1]), Number(m[2])]);
-    expect(degraus).toEqual([[700, 152], [480, 144]]);
+  it('o padding do topo não muda com a largura da janela', () => {
+    // O app é desktop: a navbar tem uma altura só (64px), então o padding do
+    // conteúdo não tem degraus de breakpoint.
+    const degraus = [...css.matchAll(/@media \(max-width: \d+px\)[\s\S]*?--page-pad-top/g)];
+    expect(degraus).toEqual([]);
+    expect(token('--page-pad-top')).toEqual(['120px']);
 
-    // E cada folga precisa ser positiva, com a folga real medida no DOM:
-    // navbar 64/97/89px contra 120/152/144px de padding.
-    const navbar = [64, 97, 89];
-    const pads = [120, 152, 144];
-    const folgas = pads.map((p, i) => p - navbar[i]);
-    expect(folgas.every((f) => f > 0), `folgas: ${folgas}`).toBe(true);
-    // 55 ou 56px em toda largura: a distância não "salta" de um degrau para
-    // o outro, que era o defeito.
-    expect(Math.max(...folgas) - Math.min(...folgas)).toBeLessThanOrEqual(2);
+    // A folga real medida no DOM: navbar 64px contra 120px de padding.
+    expect(120 - 64).toBe(56);
   });
 
-  it('getFullWidthCount quebra nos mesmos degraus que o CSS', () => {
-    // A tabela antiga quebrava em 640 e 1024, que não existem em lugar nenhum
-    // do layout. A 700px ela devolvia 14 com o cartão já Reducedo a 120px, e a
-    // 1000px encolhia o pedido sem o cartão ter mudado de tamanho — o
-    // esqueleto dava um salto de largura sem o trilho acompanhar.
+  it('getFullWidthCount acompanha a largura da janela', () => {
     const comLargura = (w) => {
       globalThis.window = { innerWidth: w };
       try { return getFullWidthCount(); } finally { delete globalThis.window; }
     };
-    // Degraus do CSS: 480 e 768 mudam `--home-card-w`.
-    expect(comLargura(400)).toBe(10);
-    expect(comLargura(500)).toBe(14);   // antes: 10
-    expect(comLargura(800)).toBe(18);   // antes: 14
+    expect(comLargura(800)).toBe(18);
+    expect(comLargura(1440)).toBe(18);
     expect(comLargura(1500)).toBe(20);
     expect(comLargura(2560)).toBe(20);
   });
@@ -336,11 +322,11 @@ describe('padrão da home: JS e CSS medem a mesma coisa', () => {
   it('pede mais do que cabe na tela, senão o atualizar não tem de onde escolher', () => {
     // O trilho rola: o excedente é o que permite a próxima rodada trazer
     // títulos diferentes em vez de reordenar a mesma lista.
-    for (const w of [400, 700, 1200, 1920]) {
+    for (const w of [1024, 1200, 1440, 1920]) {
       globalThis.window = { innerWidth: w };
       try {
-        const card = w <= 768 ? 120 : 130;
-        const visiveis = Math.floor((w - (w <= 480 ? 24 : 64)) / (card + 12));
+        const card = 160;
+        const visiveis = Math.floor((w - 64) / (card + 12));
         expect(getFullWidthCount(), `${w}px`).toBeGreaterThan(visiveis);
       } finally {
         delete globalThis.window;

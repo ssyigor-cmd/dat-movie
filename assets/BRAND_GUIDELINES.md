@@ -12,12 +12,7 @@ assets/
 │   └── stacked-light.svg     # Vertical: faixas sobre o texto (claro)
 ├── icon/
 │   ├── icon-face.svg         # Marca isolada (tema escuro)
-│   ├── icon-face-light.svg   # Marca isolada (tema claro)
-│   ├── icon-96-dark.svg      # Ícone de app 96px (escuro)
-│   ├── icon-96-light.svg     # Ícone de app 96px (claro)
-│   ├── icon-192.png          # PWA
-│   ├── icon-512.png          # PWA
-│   └── apple-touch-icon.png  # iOS 180x180
+│   └── icon-face-light.svg   # Marca isolada (tema claro)
 └── favicon/
     ├── favicon-32-dark.svg   # Favicon 32px (escuro)
     └── favicon-32-light.svg  # Favicon 32px (claro)
@@ -128,11 +123,14 @@ na exportação. É o item em aberto desta seção.
 - **Dimensions**: 160x160px (viewBox)
 - **Minimum size**: 80x80px
 
-### App Icon
-- **Use cases**: App launcher, mobile icons, PWA
-- **Dark theme**: `assets/icon/icon-96-dark.svg`
+### Marca isolada (icon)
+- **Use cases**: favicon, marca sem texto
+- **Dark theme**: `assets/icon/icon-face.svg`
+- **Light theme**: `assets/icon/icon-face-light.svg`
 - **Dimensions**: 96x96px
-- **Available sizes**: 32px, 48px, 64px, 96px, 128px, 192px
+
+> O app não tem ícone de app nem camada de instalação: é **desktop-only** e
+> roda no navegador. A experiência mobile é outro projeto.
 
 ### Favicon
 - **Use cases**: Browser tabs, bookmarks
@@ -191,15 +189,11 @@ replaced the old TV face:
 - File size: ~2KB per logo
 
 ### PNG (Raster)
-- Use for legacy systems
-- Required sizes: 32, 48, 64, 96, 128, 192, 512px
-- Export from SVG using appropriate tools
-- **iPhone**: `assets/icon/apple-touch-icon.png` em **180x180** exatos
-  (é o que o Safari usa no "Adicionar à Tela de Início"), fundo sólido
-  `#101112` sem alfa. As faixas ficam dentro da zona segura; o iOS aplica a
-  máscara arredondada sozinho
-- **PWA**: `assets/icon/icon-192.png` e `assets/icon/icon-512.png`
-  declarados no `public/manifest.json`
+- **Não usado hoje.** O app não tem ícone de app, manifest nem camada de
+  instalação; todo ativo de marca está em SVG.
+- Se algum dia precisar de raster (ex.: um e-mail), exporte na hora do SVG e
+  não versione o binário. Foi assim que nasceram os `icon-192`, `icon-512` e
+  `apple-touch-icon` que viviam aqui e saíram junto com o mobile.
 
 ## Web Implementation
 
@@ -230,26 +224,6 @@ replaced the old TV face:
 ### Favicon Implementation
 ```html
 <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg">
-```
-
-## PWA Configuration
-
-### manifest.json
-```json
-{
-  "name": "Dat-Movie",
-  "short_name": "Dat-Movie",
-  "icons": [
-    {
-      "src": "assets/icon/icon-96-dark.svg",
-      "sizes": "96x96",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ],
-  "theme_color": "#101112",
-  "background_color": "#101112"
-}
 ```
 
 ## Maintenance

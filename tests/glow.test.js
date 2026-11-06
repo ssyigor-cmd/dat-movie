@@ -64,16 +64,20 @@ describe('glow: nenhum halo na cor de destaque', () => {
 });
 
 describe('glow: o que foi removido não era o estado', () => {
-  it('os quatro halos que existiam perderam só o box-shadow', () => {
+  it('os três halos que existiam perderam só o box-shadow', () => {
     // Cada um destes tinha um estado selecionado por outro meio. Se o halo
     // estava fazendo o trabalho, apagar a sombra deixa o item indistinguível
     // de um item comum — e isso é um defeito silencioso, do tipo que só
     // aparece para quem olha a tela.
+    //
+    // Eram quatro. O quarto era `.title-status-overlay .dm-status-btn.active`,
+    // de um overlay de status que não tem markup em lugar nenhum do shell nem
+    // do JS: a regra saiu junto com o resto do CSS morto. A barra de status
+    // viva é `.title-page .dm-status-btn.active`, coberta acima.
     const alvos = [
       ['.nav-item.active', 'color: var(--text-primary)'],
       ['.episode-item.episode-current', 'border-left: 3px solid var(--accent)'],
-      ['.title-page .dm-status-btn.active', 'background: var(--accent)'],
-      ['.title-status-overlay .dm-status-btn.active', 'background: var(--accent)']
+      ['.title-page .dm-status-btn.active', 'background: var(--accent)']
     ];
     for (const [seletor, marca] of alvos) {
       const regra = css.match(new RegExp(`${seletor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`));

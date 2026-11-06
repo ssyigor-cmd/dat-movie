@@ -73,27 +73,13 @@ export function cardMarkup({ posterUrl = '', titleHtml = '', titleAttr = '', ext
  * era o Catálogo com `role="listitem"` e a Home com `role="button"`, e a
  * diferença de papel é que a Home não tem lista por trás.
  *
- * Sem hover (toque) não existe passar o mouse para ver o nome, então o clique
- * vira de dois tempos: o primeiro só revela o título sobre a imagem, o segundo
- * entra no card. Só um card fica revelado por vez. Quem usa teclado não paga
- * essa conta — Enter e Espaço abrem direto.
+ * No desktop o nome aparece no hover; o clique abre o card direto, e Enter ou
+ * Espaço fazem o mesmo pelo teclado.
  */
 export function attachCardInteraction(card, onActivate) {
   if (typeof onActivate !== 'function') return;
-  const semHover = () =>
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(hover: none)').matches;
 
   card.addEventListener('click', (e) => {
-    if (semHover() && !card.classList.contains('is-revealed')) {
-      document.querySelectorAll('.card.is-revealed').forEach((outro) => {
-        if (outro !== card) outro.classList.remove('is-revealed');
-      });
-      card.classList.add('is-revealed');
-      return;
-    }
-    card.classList.remove('is-revealed');
     onActivate(e);
   });
   card.addEventListener('keydown', (e) => {

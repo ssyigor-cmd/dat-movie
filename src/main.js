@@ -24,7 +24,6 @@ import Sortable from 'sortablejs';
 import { cacheClear, cacheGet, cacheSet } from './lib/cache.js';
 import { state, persistNavState, STORAGE_KEYS } from './lib/state.js';
 import dom from './lib/dom.js';
-if (typeof window !== 'undefined') window.anime = anime;
 
 const $ = (id) => {
   const found = dom[id];
@@ -210,47 +209,6 @@ for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
 const navbar = document.getElementById('topNavbar');
 const navbarNav = document.getElementById('navbarNav');
 const headerListName = document.getElementById('headerListName');
-const navHamburger = document.getElementById('navHamburger');
-
-// Mobile hamburger menu toggle
-function initMobileNav() {
-  if (!navHamburger || !navbarNav) return;
-  
-  navHamburger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = navbarNav.classList.toggle('open');
-    navHamburger.setAttribute('aria-expanded', String(isOpen));
-    navHamburger.hidden = false;
-  });
-  
-  // Close mobile nav when clicking a nav item (except lists dropdown trigger)
-  navbarNav.addEventListener('click', (e) => {
-    const navItem = e.target.closest('.nav-item');
-    if (navItem && !navItem.classList.contains('add-list-btn') && !navItem.id?.includes('listsToggle')) {
-      navbarNav.classList.remove('open');
-      navHamburger.setAttribute('aria-expanded', 'false');
-    }
-  });
-  
-  // Close mobile nav on outside click
-  document.addEventListener('click', (e) => {
-    if (navbarNav.classList.contains('open') && !navbar.contains(e.target)) {
-      navbarNav.classList.remove('open');
-      navHamburger.setAttribute('aria-expanded', 'false');
-    }
-  });
-  
-  // Close mobile nav on resize to desktop
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 700) {
-      navbarNav.classList.remove('open');
-      navHamburger.setAttribute('aria-expanded', 'false');
-    }
-  });
-}
-
-// Initialize mobile nav after DOM is ready
-initMobileNav();
 
 // ========== AUTENTICAÇÃO ==========
 

@@ -8,15 +8,9 @@
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
-  <!-- Tela inicial do iOS: Safari ignora rel="icon" e captura screenshot da
-       página. O apple-touch-icon é o que vira o ícone do atalho — e o Safari
-       exige PNG: em SVG ele não renderiza e o atalho sai sem logo. -->
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon/apple-touch-icon.png" />
-  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="assets/icon/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-title" content="dat-movie" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="manifest" href="manifest.json" />
+  <!-- O app é desktop-only: não há manifest, ícone de app nem meta tags de
+       instalação em celular. A experiência mobile é outro projeto — não
+       reintroduza a camada PWA aqui. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -105,9 +99,6 @@
   <!-- TOP NAVBAR -->
   <header class="top-navbar" id="topNavbar" role="navigation" aria-label="Navegação principal">
     <div class="navbar-brand">
-      <button class="nav-hamburger" id="navHamburger" aria-label="Abrir menu" aria-expanded="false" aria-controls="navbarNav">
-        <i class="fas fa-bars"></i>
-      </button>
       <img src="/assets/logo/logotype-dark.svg" alt="datmovie" class="navbar-brand-logo" />
     </div>
     <div class="navbar-center">

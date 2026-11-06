@@ -474,26 +474,13 @@ function renderTitlePage(item, container) {
   }
   if (backdropPrev) backdropPrev.addEventListener('click', (e) => { e.stopPropagation(); navegarPara(prevImage(currentBackdropIndex, backdropImages.length)); });
   if (backdropNext) backdropNext.addEventListener('click', (e) => { e.stopPropagation(); navegarPara(nextImage(currentBackdropIndex, backdropImages.length)); });
-  // teclado ←→ e swipe
+  // teclado ←→
   container.addEventListener('keydown', (e) => {
     if (backdropImages.length <= 1) return;
     if (e.key === 'ArrowLeft') navegarPara(prevImage(currentBackdropIndex, backdropImages.length));
     if (e.key === 'ArrowRight') navegarPara(nextImage(currentBackdropIndex, backdropImages.length));
   });
   container.setAttribute('tabindex', '0');
-  let touchStartX = null;
-  if (backdropEl) {
-    backdropEl.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
-    backdropEl.addEventListener('touchend', (e) => {
-      if (touchStartX === null) return;
-      const dx = e.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(dx) > 40 && backdropImages.length > 1) {
-        if (dx > 0) navegarPara(prevImage(currentBackdropIndex, backdropImages.length));
-        else navegarPara(nextImage(currentBackdropIndex, backdropImages.length));
-      }
-      touchStartX = null;
-    });
-  }
 
   let epRequestId = 0;
   async function syncEpisodePanel() {
@@ -584,10 +571,8 @@ function renderTitlePage(item, container) {
       applyStep(btn);
     });
     btn.addEventListener('mousedown', () => startHold(btn));
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(btn); }, { passive: false });
     btn.addEventListener('mouseup', stopHold);
     btn.addEventListener('mouseleave', stopHold);
-    btn.addEventListener('touchend', stopHold);
   });
 
   // — Salvar / Remover / Adicionar (com listas)

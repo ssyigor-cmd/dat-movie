@@ -108,7 +108,7 @@
      um ritmo mais lento e alinhado ao painel de acompanhamento. */
   --home-space-section: 32px;   /* entre seções */
   --home-space-block: 20px;     /* entre blocos de uma seção */
-  --home-space-item: 16px;      /* entre itens de um carrossel */
+  --home-space-item: 12px;      /* entre cards: trilhos e grade */
   --home-space-inner: 12px;     /* dentro de um cartão */
 
   /* Superfícies: painel e cartão no mesmo degrau, por decisão de produto
@@ -127,11 +127,14 @@
 
   /* Cartões. A largura é a única medida que o JS precisa conhecer, porque
      "quantos cabem na tela" é uma conta de divisão. `getFullWidthCount` e
-     `getPickCount` replicam estes valores — se mudarem aqui, mudam lá. */
-  --home-card-w: 130px;        /* cartão comum, único para todos os trilhos */
-  --home-card-w-sm: 120px;     /* abaixo de 768px */
+     `getPickCount` replicam estes valores — se mudarem aqui, mudam lá.
+
+     Medida única para o sistema inteiro: a grade do Catálogo, a busca e os
+     trilhos da Home usam a mesma largura. Antes a grade nascia em 130px e
+     esticava até ~137px, enquanto o trilho ficava parado em 130px; os cards
+     pareciam de telas diferentes. */
+  --home-card-w: 160px;        /* cartão padrão: grade e trilhos */
   --home-panel-pad: 18px 20px; /* respiro interno dos painéis (roleta, afinidade, ano) */
-  --home-panel-pad-sm: 14px;   /* abaixo de 480px */
 
   /* Escala de texto da HOME. Antes eram 12 tamanhos ad-hoc, com o subtítulo
      do cartão em 0.62rem (~10px, abaixo do legível) e o título do cartão em
@@ -149,18 +152,17 @@
   --fs-btn: 0.8rem;                           /* rótulo de botão */
   --fs-label: 0.72rem;                        /* rótulo maiúsculo com tracking */
 
-/* Alvos de toque. O botão de atualizar era 20×20px, abaixo do mínimo
-      confortável de dedo; 28px é o piso que adoto aqui. 44px é o mínimo
-      acessível (WCAG) — usamos tokens para escalar no mobile. */
+/* Alvos de clique. O botão de atualizar era 20×20px, abaixo do mínimo
+      confortável; 28px é o piso que adoto aqui. 44px é o mínimo acessível
+      (WCAG). */
   --tap-icon: 28px;
   --tap-btn: 36px;
   --touch-target: 44px;         /* mínimo acessível global */
-  --touch-target-sm: 40px;      /* compacto onde 44px não cabe */
   --focus-ring: 0 0 0 2px var(--accent);     /* anel de foco, sem offset */
 
   --z-dropdown: 20;            /* acima do conteúdo, abaixo da navbar (100) */
 
-  /* Tipografia mínima legível no mobile */
+  /* Tipografia mínima legível */
   --fs-min: 0.75rem;            /* 12px piso absoluto */
   --fs-min-comfort: 0.875rem;   /* 14px confortável */
 
@@ -168,15 +170,9 @@
      entre ela e o primeiro conteúdo — é aqui que a home começa, e um valor
      errado aqui põe texto debaixo da navbar em vez de "descobrir" o problema.
 
-     A navbar tem exatamente duas alturas: 64px com uma linha, e duas linhas
-     abaixo de 700px, porque os controles de ação vão para uma linha inteira
-     (`.navbar-actions { width: 100% }`). Então o `padding-top` acompanha esses
-     dois formatos, e não cada largura. A tabela antiga fazia o inverso: três
-     valores para três faixas arbitrárias, um deles (80px em 480px) menor que
-     a navbar de 89px — o conteúdo passava por baixo dela.
-
-     Medido com o DOM real: 56px de folga em 1440, 55px em 700–481, 55px até
-     360px. Sem sobreposição em nenhuma largura. */
+     A navbar fixa tem 64px de altura. O `padding-top` é essa altura mais uma
+     folga de 56px, medida com o DOM real, para o conteúdo não começar debaixo
+     dela. */
   --page-pad-x: 32px;
   --page-pad-top: 120px;   /* navbar 64px + 56 */
   --page-pad-bottom: 28px;
@@ -357,9 +353,9 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ================================================================
-   MOBILE TOUCH TARGETS & BASE RESPONSIVENESS
+   ALVOS DE CLIQUE & BASE
    ================================================================ */
-/* Garante alvos de toque mínimos 44×44px (WCAG AA) */
+/* Garante alvos de clique mínimos 44×44px (WCAG AA) */
 button,
 [role="button"],
 a[class*="btn"],
@@ -428,10 +424,10 @@ input,
 select,
 textarea {
   min-height: var(--touch-target);
-  font-size: var(--fs-min-comfort); /* evita zoom no iOS */
+  font-size: var(--fs-min-comfort);
 }
 
-/* Checkbox/radio wrappers para touch target */
+/* Checkbox/radio wrappers */
 input[type="checkbox"],
 input[type="radio"] {
   width: 20px;
@@ -445,14 +441,6 @@ label:has(input[type="radio"]) {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-}
-
-/* Safe area insets para dispositivos com notch/Dynamic Island */
-:root {
-  --safe-top: env(safe-area-inset-top, 0);
-  --safe-bottom: env(safe-area-inset-bottom, 0);
-  --safe-left: env(safe-area-inset-left, 0);
-  --safe-right: env(safe-area-inset-right, 0);
 }
 
 /* Overscroll behavior para modais */
@@ -525,9 +513,6 @@ label:has(input[type="radio"]) {
   flex-shrink: 0;
 }
 
-.navbar-profile {
-  position: relative;
-}
 
 .nav-item {
   background: transparent;
@@ -911,31 +896,11 @@ img { max-width: 100%; height: auto; display: block; }
    ================================================================ */
 .main-content {
   flex: 1;
-  padding: calc(var(--page-pad-top) + var(--safe-top)) 
-         calc(var(--page-pad-x) + var(--safe-right)) 
-         calc(var(--page-pad-bottom) + var(--safe-bottom)) 
-         calc(var(--page-pad-x) + var(--safe-left));
+  padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom);
   margin-left: 0;
   max-width: 100%;
   overflow-y: auto;
   transition: padding 0.3s ease;
-}
-
-/* Padding lateral por degrau. Só o `getFullWidthCount`, em trendingApi.js,
-   precisa conhecer estes degraus, para a conta de "quantos cards cabem". */
-@media (max-width: 900px) {
-  :root { --page-pad-x: 16px; --page-pad-bottom: 16px; }
-}
-@media (max-width: 480px) {
-  :root { --page-pad-x: 12px; --page-pad-bottom: 12px; }
-}
-/* Mesma chave de breakpoints da navbar, porque é a navbar que define a altura
-   que precisa ser coberta. 97px e 89px são as alturas medidas com o DOM real. */
-@media (max-width: 700px) {
-  :root { --page-pad-top: 130px; }   /* navbar 97px + 33 (reduzido) */
-}
-@media (max-width: 480px) {
-  :root { --page-pad-top: 120px; }   /* navbar 89px + 31 (reduzido) */
 }
 
 .main-header {
@@ -992,7 +957,6 @@ img { max-width: 100%; height: auto; display: block; }
 /* Reuse filter-menu styles for other filter dropdowns */
 .filter-wrapper-item { position: relative; display: inline-block; margin-left: 8px; overflow: visible; }
 /* O menu é `position: absolute` relativo ao wrapper. */
-.filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px; box-shadow: var(--shadow-lg); display: none; min-width: 160px; z-index: 1200; overflow: visible; }
 .filter-menu::before {
   content: '';
@@ -1215,9 +1179,6 @@ img { max-width: 100%; height: auto; display: block; }
 .dm-action-btn.active:hover {
   background: var(--accent-soft);
 }
-.dm-action-btn i {
-  font-size: 0.65rem;
-}
 .dm-btn {
   display: inline-flex;
   align-items: center;
@@ -1267,24 +1228,21 @@ img { max-width: 100%; height: auto; display: block; }
 /* ================================================================
    GRID
    ================================================================ */
-.grid { display: grid; gap: 18px; }
-/* Responsive grid using minmax - cards are min 130px, max 1fr */
+/* Mesmo gap e mesma largura mínima do trilho: a grade do Catálogo é a
+   referência de tamanho do sistema. */
+.grid { display: grid; gap: var(--home-space-item); }
 .grid-cols-8 {
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--home-card-w), 1fr));
 }
 
-/* Override for search results which may want different min */
+/* A busca usa o mesmo mínimo. O 140px era uma exceção que fazia o resultado
+   parecer maior que o Catálogo sem nenhum motivo de conteúdo. */
 .search-view .grid-cols-8 {
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--home-card-w), 1fr));
 }
 
-/* No estreito o cartaz de 2 por linha fica miúdo: 4 colunas. */
-@media (max-width: 480px) {
-  .grid-cols-8,
-  .search-view .grid-cols-8 {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
+/* No estreito, duas colunas: manter quatro com o card padrão espremeria o
+   pôster para menos de 90px. Duas colunas é o mesmo formato do Catálogo. */
 
 /* ================================================================
    GROUP HEADERS
@@ -1384,10 +1342,9 @@ img { max-width: 100%; height: auto; display: block; }
    com dois tamanhos, e um deles fora da folha. */
 .card-img i { font-size: 1.8rem; opacity: 0.3; }
 /* Overlay e título: o nome mora dentro do pôster, não no corpo. No hover a
-   imagem escurece e o nome sobe; no toque (sem hover) a mesma revelação é
-   feita pela classe `is-revealed`, que o primeiro clique aplica. O overlay é
-   um gradiente com o pé mais escuro — o nome fica na borda de baixo, e o
-   fundo escuro puro apagaria o pôster inteiro. */
+   imagem escurece e o nome sobe. O overlay é um gradiente com o pé mais
+   escuro — o nome fica na borda de baixo, e o fundo escuro puro apagaria o
+   pôster inteiro. */
 .card-img::after {
   content: '';
   position: absolute;
@@ -1419,14 +1376,12 @@ img { max-width: 100%; height: auto; display: block; }
   transform: translateY(8px);
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.card:hover .card-img::after,
-.card.is-revealed .card-img::after { opacity: 1; }
-/* Título longo: em repouso mostra até 3 linhas; no hover/revelação expande
-   para o nome completo (sem clamp, com rolagem se passar do pôster), em vez
-   de cortar títulos grandes com reticências. O `title` do markup segue como
-   tooltip nativo. */
-.card:hover .card-title,
-.card.is-revealed .card-title {
+.card:hover .card-img::after { opacity: 1; }
+/* Título longo: em repouso mostra até 3 linhas; no hover expande para o nome
+   completo (sem clamp, com rolagem se passar do pôster), em vez de cortar
+   títulos grandes com reticências. O `title` do markup segue como tooltip
+   nativo. */
+.card:hover .card-title {
   opacity: 1;
   transform: none;
   display: block;
@@ -1601,91 +1556,6 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 
 .tier-option:hover {
   background: var(--bg-elevated-hover);
-}
-
-/* ================================================================
-   MODAL MOBILE ADJUSTMENTS
-   ================================================================ */
-@media (max-width: 480px) {
-  .modal-overlay {
-    padding: 8px;
-    align-items: flex-end;
-  }
-  .modal {
-    padding: 16px;
-    max-height: 90vh;
-    border-radius: var(--radius) var(--radius) 0 0;
-    transform: translateY(100%);
-    max-width: 100%;
-  }
-  .modal-overlay.active .modal {
-    transform: translateY(0);
-  }
-  .modal-header {
-    padding-bottom: 12px;
-    margin-bottom: 12px;
-  }
-  .modal-body {
-    max-height: calc(90vh - 100px);
-  }
-  
-  /* Confirm modal buttons */
-  .modal-confirm .modal-footer {
-    flex-direction: column-reverse;
-    gap: 8px;
-  }
-  .modal-confirm .dm-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  /* List select modal */
-  .modal.modal-lists {
-    max-height: 80vh;
-  }
-  .list-select-body label {
-    padding: 12px 16px;
-    font-size: var(--fs-min-comfort);
-    min-height: 44px;
-  }
-  
-  /* Episodes modal */
-  .modal.modal-episodes {
-    max-height: 95vh;
-  }
-  .episode-item {
-    padding: 12px 8px;
-    min-height: 60px;
-  }
-  .episode-thumb {
-    width: 56px;
-    height: 56px;
-  }
-  
-  /* Title info modal */
-  .modal.modal-info {
-    max-height: 95vh;
-  }
-  .ti-cast {
-    --ti-cast-w: 72px;
-  }
-  
-  /* Relink modal */
-  .modal.modal-relink {
-    max-height: 90vh;
-  }
-  .relink-search-row input {
-    font-size: var(--fs-min-comfort);
-    height: 44px;
-  }
-  .relink-item {
-    padding: 12px;
-    min-height: 60px;
-  }
-  .relink-thumb {
-    width: 48px;
-    height: 68px;
-  }
 }
 
 .tool-btn.active {
@@ -2178,8 +2048,6 @@ button {
   display: inline-flex; align-items: center; gap: 6px;
 }
 button:hover { transform: translateY(-2px); box-shadow: var(--shadow); background: var(--accent-hover); }
-button.secondary { background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border); }
-button.secondary:hover { background: var(--bg-hover); color: var(--text-strong); border-color: var(--border-strong); }
 
 .form-loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 8px; color: var(--text-muted); }
 
@@ -2273,7 +2141,6 @@ a:focus-visible,
 .auth-box h2 {
   font-size: 1.4rem;
   font-weight: 700;
-  margin-bottom: 22px;
   text-align: center;
   color: var(--text-primary);
 }
@@ -2416,102 +2283,6 @@ a:focus-visible,
   to { opacity: 1; transform: translateY(0); }
 }
 .card { animation: fadeSlideUp 0.4s ease both; }
-
-/* ================================================================
-   RESPONSIVIDADE
-   ================================================================ */
-@media (max-width: 900px) {
-  /* Grid usa auto-fill com minmax(130px, 1fr) - não precisa de breakpoint fixo */
-}
-
-/* Hamburger button */
-.nav-hamburger {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  margin-right: 8px;
-}
-.nav-hamburger:hover {
-  background: var(--bg-hover);
-  transform: scale(1.05);
-}
-.nav-hamburger:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.nav-hamburger[aria-expanded="true"] i {
-  transform: rotate(90deg);
-}
-.nav-hamburger[aria-expanded="true"] i::before {
-  content: "\f00d"; /* fa-times */
-}
-
-/* ================================================================
-   NAVBAR RESPONSIVA
-   ================================================================ */
-@media (max-width: 900px) {
-  .top-navbar { padding: 0 12px; gap: 8px; }
-  .navbar-brand { margin-right: 8px; }
-}
-
-@media (max-width: 700px) {
-  .top-navbar { flex-wrap: wrap; height: auto; padding: 8px 10px; gap: 8px; }
-  .navbar-actions { order: 3; gap: 8px; }
-  .navbar-profile { margin-left: auto; min-width: 0; }
-  #profileToggle { width: auto; max-width: min(50vw, 240px); padding: 8px 12px; }
-  #profileToggle #profileName { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .navbar-center { order: 2; }
-  .navbar-nav { order: 2; flex: 1; min-width: 0; }
-  .navbar-brand { order: 1; margin-right: 0; }
-  .nav-hamburger { display: inline-flex; }
-  .navbar-nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
-    padding: 12px 10px;
-    display: none;
-    flex-direction: column;
-    gap: 4px;
-    z-index: 99;
-  }
-  .navbar-nav.open {
-    display: flex;
-  }
-  .nav-item {
-    width: 100%;
-    justify-content: flex-start;
-    padding: 12px 16px;
-  }
-  .nav-dropdown {
-    position: static;
-    box-shadow: none;
-    border: none;
-    background: transparent;
-    padding: 8px 0 0 16px;
-    max-width: none;
-    min-width: 0;
-  }
-  .nav-dropdown.show {
-    display: flex;
-  }
-}
-
-@media (max-width: 480px) {
-  .navbar-brand-logo { height: 24px; }
-}
 
 /* ================================================================
    CONTENT TOOLBAR - Busca e filtros na mesma linha do contador
@@ -2661,72 +2432,8 @@ a:focus-visible,
   box-shadow: var(--shadow-lg);
 }
 
-/* Ajuste do main-content */
-@media (max-width: 700px) {
-  .toolbar-left {
-    gap: 8px;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .toolbar-left::-webkit-scrollbar {
-    display: none;
-  }
-  .toolbar-search {
-    max-width: none;
-    min-width: 0;
-    flex-shrink: 0;
-  }
-  .toolbar-filters {
-    gap: 6px;
-    flex-shrink: 0;
-  }
-  .tool-group {
-    padding: 1px;
-    gap: 3px;
-    flex-shrink: 0;
-  }
-  .tool-group .tool-btn-sm {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
-  }
-  .tool-btn-sm {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    font-size: 0.75rem;
-  }
-  .toolbar-search input {
-    height: 32px;
-    font-size: 0.75rem;
-    padding: 0 32px 0 30px;
-    min-width: 180px;
-  }
-  .main-header {
-    gap: 8px;
-    padding-bottom: 12px;
-  }
-  .header-list-name {
-    font-size: 1.3rem;
-  }
-}
 
-@media (max-width: 480px) {
-  /* A cápsula "Visualizar" (só o botão de agrupar) some no estreito: o alvo
-     fica pequeno demais e o botão cabe na linha de cima sem ela. */
-  .toolbar-filters .tool-group:last-child { display: none; }
-}
 
-@media (max-width: 768px) {
-  .dm-status-btn {
-    padding: 4px 8px;
-    font-size: 0.6rem;
-  }
-}
 
 /* Listas nos modais (add/detail) */
 .list-checkbox-pill {
@@ -2882,150 +2589,7 @@ a:focus-visible,
   cursor: default;
 }
 
-@media (max-width: 768px) {
-  .modal.modal-episodes {
-    padding: 16px;
-  }
-  .modal.modal-episodes { max-width: 100%; }
-}
 
-@media (max-width: 480px) {
-  .card-body { padding: 10px; }
-  .card-title { font-size: var(--fs-min); }
-  .main-content { max-width: 100%; }
-  .modal { padding: 20px; max-width: 100%; }
-  .profile-dropdown { right: 0; left: auto; top: calc(100% + 8px); min-width: 200px; max-width: calc(100vw - 24px); }
-  .dm-action-btn {
-    padding: 8px 12px;
-    font-size: var(--fs-min);
-    gap: 6px;
-    min-height: 44px;
-  }
-  .season-header h3 {
-    font-size: 0.9rem;
-  }
-  .episode-thumb {
-    width: 40px;
-    height: 40px;
-  }
-  /* Mobile logo constraints */
-  #titleLogoWrap {
-    max-width: 200px;
-  }
-  #titleLogoImg,
-  #titleInfoLogoImg {
-    max-height: 32px;
-  }
-}
-
-/* ================================================================
-   LANDSCAPE ORIENTATION SUPPORT
-   ================================================================ */
-@media (orientation: landscape) and (max-height: 500px) {
-  /* Navbar mais compacta em landscape */
-  .top-navbar {
-    height: 52px;
-    padding: 0 16px;
-  }
-  .navbar-brand-logo {
-    height: 24px;
-  }
-  .nav-item {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-  
-  /* Main content padding reduzido */
-  .main-content {
-    padding-top: calc(70px + var(--safe-top));
-    padding-bottom: calc(16px + var(--safe-bottom));
-  }
-  
-  /* Modais mais altos */
-  .modal {
-    max-height: 95vh;
-    padding: 16px;
-  }
-  .modal-overlay {
-    padding: 8px;
-    align-items: center;
-  }
-  .modal-overlay.active .modal {
-    transform: translateY(0);
-  }
-  
-  /* Title page landscape: side by side */
-  .tp-layout {
-    flex-direction: row !important;
-  }
-  .tp-poster-col {
-    flex: 0 0 35% !important;
-    max-width: 35% !important;
-  }
-  .tp-main {
-    flex-direction: row !important;
-  }
-  .tp-episode-row {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-  }
-  .tp-season-block,
-  .tp-episode-block,
-  .tp-synopsis-block {
-    flex: 1 1 30% !important;
-    min-width: 120px !important;
-  }
-  .tp-side-hud {
-    display: flex !important;
-    flex-direction: column !important;
-    grid-template-columns: none !important;
-    width: 200px;
-    flex-shrink: 0;
-  }
-  
-  /* Search landscape */
-  .search-view {
-    grid-template-columns: 280px minmax(0, 1fr) !important;
-    margin-top: -20px;
-  }
-  .adv-filters {
-    position: sticky !important;
-    top: 70px !important;
-    max-height: calc(100vh - 80px) !important;
-    transform: none !important;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
-    border-bottom: 1px solid var(--border) !important;
-    border-right: 1px solid var(--border) !important;
-    box-shadow: none !important;
-  }
-  .adv-filters::before {
-    display: none;
-  }
-  
-  /* Home carousels */
-  .home-h-scroll {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  
-  /* Grid mais compacto */
-  .grid {
-    gap: 12px;
-  }
-}
-
-/* Landscape em tablets (altura maior) */
-@media (orientation: landscape) and (min-height: 501px) and (max-height: 700px) {
-  .top-navbar {
-    height: 56px;
-  }
-  .main-content {
-    padding-top: calc(74px + var(--safe-top));
-  }
-  .modal {
-    max-height: 90vh;
-  }
-}
 
 /* ================================================================
    PESQUISA (TMDB Search View)
@@ -3065,55 +2629,6 @@ a:focus-visible,
   margin: 0;
 }
 
-/* Filtros avançados da aba Pesquisar — bloco lateral fixo.
-   Pendurado na barra superior: sem borda no topo e cantos de cima retos,
-   para a borda inferior do header virar o topo desta coluna (o "L"). */
-.adv-filters {
-  position: sticky;
-  /* Abaixo da navbar fixa (64px + respiro): com 16px o painel grudava e
-     deslizava para trás dela ao rolar a página. */
-  top: 80px;
-  align-self: start;
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-top: none;
-  border-left-color: transparent;
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  background: transparent;
-}
-
-.adv-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.adv-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.adv-count {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 18px;
-  text-align: center;
-}
-
 .adv-panel { display: block; }
 
 .adv-group { margin-bottom: 14px; }
@@ -3137,7 +2652,6 @@ a:focus-visible,
   padding: 8px 0;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
-  -webkit-overflow-scrolling: touch;
 }
 .adv-chips::-webkit-scrollbar {
   height: 8px;
@@ -3151,12 +2665,6 @@ a:focus-visible,
 }
 .adv-chips::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
-}
-
-.adv-chips--scroll {
-  max-height: none;
-  overflow-y: visible;
-  padding-right: 0;
 }
 
 .adv-chip {
@@ -3295,8 +2803,8 @@ a:focus-visible,
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
   /* Mesmo padding horizontal do conteúdo da página para alinhar com "Pesquisa" e botões */
-  padding-left: calc(var(--page-pad-x) + var(--safe-left));
-  padding-right: calc(var(--page-pad-x) + var(--safe-right));
+  padding-left: var(--page-pad-x);
+  padding-right: var(--page-pad-x);
 }
 .search-filters-panel[hidden] {
   display: none;
@@ -3314,15 +2822,6 @@ a:focus-visible,
   min-width: 0;
 }
 
-/* Mobile: panel full width */
-@media (max-width: 700px) {
-  .search-filters-panel .adv-panel {
-    padding: 16px 16px 24px;
-  }
-  .search-filters-panel .adv-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Toolbar button active state */
 #advFiltersToggleBtn.active {
@@ -3334,102 +2833,7 @@ a:focus-visible,
   color: var(--accent);
 }
 
-/* Em telas estreitas o bloco lateral vira bottom sheet (legacy - mantido para compatibilidade). */
-@media (max-width: 900px) {
-  .search-view { grid-template-columns: 1fr; margin-top: 0; }
-  .adv-filters {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    max-height: 75vh;
-    border-radius: var(--radius) var(--radius) 0 0;
-    border: 1px solid var(--border);
-    border-bottom: none;
-    background: var(--bg-primary);
-    padding: 0;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 200;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
-  }
-  .adv-filters.open {
-    transform: translateY(0);
-  }
-  .adv-filters::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    background: var(--border-strong);
-    border-radius: 2px;
-    margin-top: 8px;
-  }
-  .adv-header {
-    padding: 16px 18px 8px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 0;
-  }
-  .adv-panel {
-    padding: 8px 18px 24px;
-    max-height: calc(75vh - 80px);
-    overflow-y: auto;
-  }
-  .adv-actions {
-    position: sticky;
-    bottom: 0;
-    padding: 12px 18px 8px;
-    background: linear-gradient(to top, var(--bg-primary), transparent);
-    border-top: 1px solid var(--border);
-    margin: 0 -18px;
-  }
-  .adv-clear {
-    height: 44px;
-    font-size: var(--fs-min-comfort);
-  }
-  .adv-select {
-    height: 44px;
-    font-size: var(--fs-min-comfort);
-  }
-  .adv-year input {
-    height: 44px;
-    font-size: var(--fs-min-comfort);
-  }
-  .adv-chip {
-    padding: 12px 18px;
-    font-size: var(--fs-min-comfort);
-    min-height: 44px;
-    min-width: max-content;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .tool-group--search-filters:not(.hidden) {
-    display: inline-flex;
-  }
-  .pesquisa-results { padding-top: 0; }
-}
 
-/* Overlay para fechar bottom sheet ao clicar fora */
-@media (max-width: 900px) {
-  .adv-filters-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 199;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
-  }
-  .adv-filters-overlay.active {
-    opacity: 1;
-    visibility: visible;
-  }
-}
 
 /* ================================================================
    HOME — padrão único de layout
@@ -3560,19 +2964,12 @@ a:focus-visible,
 
 
 
-/* No hover/touch, mostrar scrollbar */
+/* No hover, mostrar scrollbar */
 .home-h-scroll:hover::-webkit-scrollbar-thumb,
 .home-h-scroll:active::-webkit-scrollbar-thumb {
   background: var(--text-muted);
 }
 
-/* Landscape: remover máscara */
-@media (orientation: landscape) and (max-height: 700px) {
-  .home-h-scroll {
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-}
 /* `home-skeleton` é estado, não layout: a classe existe para o JavaScript
    marcar "isto está carregando" e para os testes, e de propósito NÃO tem regra
    própria. O elemento carrega `home-h-scroll` no markup e herda a primitiva
@@ -3624,7 +3021,7 @@ a:focus-visible,
 
 /* ── Botões ───────────────────────────────────────────────────
    Um só formato para todos os botões de ação da home: cápsula, altura
-   de toque de 36px, mesmo rótulo. O botão da Roleta, o de Continuar,
+   de clique de 36px, mesmo rótulo. O botão da Roleta, o de Continuar,
    o de Analisar e o de Buscar ano usavam a mesma classe, mas cada
    chamador ainda passava `padding` e `gap` próprios por atributo
    `style` no HTML. */
@@ -4050,31 +3447,6 @@ a:focus-visible,
 }
 .home-affinity-chip button:hover { color: var(--danger-text); }
 
-/* ================================================================
-   ADAPTAÇÃO
-   Um único bloco, no fim, com os mesmos degraus do JavaScript.
-   Trocar a largura do token em `:root` propaga para cartão, esqueleto,
-   calendário e para a contagem de `getFullWidthCount`/`getPickCount`:
-   é a razão de a medida morar em token.
-   ================================================================ */
-@media (max-width: 768px) {
-  :root {
-    --home-card-w: var(--home-card-w-sm);
-    --home-space-section: 24px;
-  }
-  .home-calendar-day { min-width: 142px; }
-}
-
-@media (max-width: 480px) {
-  :root {
-    --home-space-section: 20px;
-    --home-panel-pad: var(--home-panel-pad-sm);
-  }
-  .home-calendar-day { min-width: 132px; }
-  .home-roulette-card { flex-direction: column; text-align: center; gap: 12px; }
-  .home-roulette-info { align-items: center; }
-  .home-affinity-dropdown { max-width: none; }
-}
 .modal-confirm { max-width: 420px; }
 .modal-confirm .modal-footer { display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid var(--border); }
 .dm-btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
@@ -4090,9 +3462,6 @@ a:focus-visible,
    D) Episódio Unificado
    E) Tokens compartilhados
    ================================================================ */
-/* — A) Base — */
-.title-page { padding: 0 24px 24px; max-width: 1280px; margin: 0 auto; min-height: 60vh; }
-#titlePage { margin-top: -32px; }
 
 /* — A) HUD Superior — */
 .tp-hud { display:flex; flex-direction:column; gap:12px; margin-bottom:12px; position:relative; z-index:20; }
@@ -4373,186 +3742,3 @@ a:focus-visible,
   padding: 0 !important;
 }
 .title-page .tp-frame img { opacity: 1; }
-@media (max-width: 900px) {
-  .tp-layout { flex-direction:column; }
-  .tp-side-hud { flex:1 1 auto; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; }
-  .tp-side-hud .tp-status-col { flex-direction:row; flex-wrap:wrap; }
-  .tp-main { flex-direction:column; }
-  .tp-poster-col { flex:1 1 auto; max-width:100%; }
-  .tp-episode-row { flex-wrap:wrap; }
-}
-@media (max-width: 700px) {
-  .tp-hud-top { flex-direction:column; border-radius:18px; gap:6px; padding:10px; }
-}
-
-/* ================================================================
-   TITLE PAGE MOBILE RESPONSIVE
-   ================================================================ */
-@media (max-width: 768px) {
-  /* Poster column: full width, centered */
-  .tp-poster-col {
-    flex: 0 0 100% !important;
-    max-width: 100% !important;
-    align-self: center;
-  }
-  .tp-frame.tp-poster-frame {
-    align-self: stretch;
-    max-width: 320px;
-  }
-
-  /* Episode row: temporada and episodio side by side, synopsis below */
-  .tp-episode-row {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-  }
-  .tp-season-block,
-  .tp-episode-block {
-    flex: 0 0 auto !important;
-    min-width: 100px !important;
-  }
-  .tp-synopsis-block {
-    flex: 1 1 100% !important;
-    min-width: 0 !important;
-  }
-
-  /* Sidebar: single line with horizontal scroll */
-  .tp-side-hud {
-    display: flex !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    gap: 8px !important;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .tp-side-hud::-webkit-scrollbar {
-    display: none;
-  }
-  .tp-side-card {
-    padding: 8px !important;
-    gap: 8px !important;
-    min-width: 140px !important;
-    flex-shrink: 0 !important;
-  }
-  .tp-side-card-head {
-    font-size: 0.62rem !important;
-    padding-bottom: 4px !important;
-  }
-  .tp-status-col {
-    flex-direction: column !important;
-    gap: 4px !important;
-  }
-  .tp-side-hud .dm-status-btn,
-  .tp-side-hud .dm-action-btn,
-  .tp-side-hud .dm-btn {
-    min-height: 32px !important;
-    font-size: 0.7rem !important;
-    padding: 4px 8px !important;
-  }
-
-  /* Stepper buttons: 44x44px */
-  .title-page .poster-stepper-btn {
-    width: 44px !important;
-    height: 44px !important;
-    min-height: 44px !important;
-    min-width: 44px !important;
-  }
-  
-  /* Backdrop nav arrows: 44x44px */
-  .title-page .poster-icon-btn {
-    width: 44px !important;
-    height: 44px !important;
-    min-height: 44px !important;
-    min-width: 44px !important;
-  }
-  
-  /* Tier dropdown button: larger */
-  .title-page .tier-stamp {
-    width: 36px !important;
-    height: 44px !important;
-    font-size: var(--fs-min) !important;
-  }
-  
-  /* Synopsis: expand clamp */
-  #titleSynopsisEp {
-    -webkit-line-clamp: 6 !important;
-    line-clamp: 6 !important;
-  }
-  
-  /* Tier dropdown position */
-  #tpTierDropdown {
-    right: auto !important;
-    left: 0 !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .tp-hud-top {
-    flex-direction: column;
-    border-radius: 14px;
-    padding: 8px;
-  }
-  .tp-logo-block {
-    padding: 4px 0;
-  }
-  #titleName {
-    font-size: 0.85rem !important;
-  }
-  .tp-tier-block {
-    position: static !important;
-    margin-top: 8px;
-  }
-  .tp-side-hud {
-    grid-template-columns: 1fr !important;
-  }
-  .tp-frame.tp-poster-frame {
-    max-width: 280px;
-  }
-  .tp-back-btn--unified {
-    padding: 8px 16px !important;
-    font-size: var(--fs-min-comfort) !important;
-  }
-}
-
-/* Status buttons - barra inferior unificada */
-.title-status-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-  padding: 12px 8px 8px;
-  pointer-events: auto;
-}
-
-.title-status-overlay .dm-status-btn {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 8px 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  transition: all 0.3s ease;
-  margin: 0 2px;
-}
-
-.title-status-overlay .dm-status-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-}
-
-.title-status-overlay .dm-status-btn.active {
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-color: var(--accent);
-}
-
-.title-status-overlay .dm-status-btn.active:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
-}

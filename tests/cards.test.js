@@ -30,9 +30,9 @@ describe('cardMarkup: a anatomia do card', () => {
   });
 
   it('põe o título dentro da imagem, e o corpo vem depois', () => {
-    // O nome mora sobre o pôster — hover escurece e mostra, toque revela — e
-    // não no rodapé: se ele voltar para dentro de `.card-body`, a barra de
-    // progresso volta a ser empurrada por texto que não é dela.
+    // O nome mora sobre o pôster — o hover escurece e mostra — e não no
+    // rodapé: se ele voltar para dentro de `.card-body`, a barra de progresso
+    // volta a ser empurrada por texto que não é dela.
     const img = completo.slice(completo.indexOf('class="card-img"'), completo.indexOf('class="card-body"'));
     expect(img).toContain('class="card-title"');
     const corpo = completo.slice(completo.indexOf('class="card-body"'));
@@ -40,15 +40,14 @@ describe('cardMarkup: a anatomia do card', () => {
     expect(corpo).toContain('class="progress-wrap"');
   });
 
-  it('no toque, o primeiro clique revela o nome e o segundo entra no card', () => {
-    // Sem hover não existe passar o mouse: o contrato é um clique para ver o
-    // nome e outro para abrir. O CSS precisa responder à mesma classe que o
-    // JS aplica — os dois lados do contrato, cada um no seu arquivo.
+  it('no desktop, o clique abre o card e o hover revela o nome', () => {
+    // O app é desktop: o nome aparece no hover e o clique entra no card.
+    // Não há mais revelação em dois tempos para telas sem hover.
     const src = readFileSync(join(raiz, 'src/components/cards.js'), 'utf8');
-    expect(src).toContain("matchMedia('(hover: none)')");
-    expect(src).toContain("'is-revealed'");
-    expect(css).toMatch(/\.card\.is-revealed \.card-img::after[^}]*opacity:\s*1/);
-    expect(css).toMatch(/\.card\.is-revealed \.card-title[^}]*opacity:\s*1/);
+    expect(src).not.toContain("matchMedia('(hover: none)')");
+    expect(src).not.toContain("'is-revealed'");
+    expect(css).toMatch(/\.card:hover \.card-img::after[^}]*opacity:\s*1/);
+    expect(css).toMatch(/\.card:hover \.card-title[^}]*opacity:\s*1/);
   });
 
   it('esconde as peças que a tela não tem, em vez de renderizar vazio', () => {

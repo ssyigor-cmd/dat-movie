@@ -24,7 +24,7 @@
   <img src="https://img.shields.io/badge/Vitest-3E8E41?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest Badge" />
 </p>
 
-**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA). A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de persistência por usuário no Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster.
+**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA) de desktop. A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de persistência por usuário no Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster.
 
 ---
 
@@ -56,7 +56,7 @@
 ## 🛠️ Tecnologias Utilizadas
 
 - **Frontend:**
-  - HTML5 & CSS3 (Design responsivo, variáveis customizadas, layout grid flexível e efeito *Liquid Glass*).
+  - HTML5 & CSS3 (layout fixo de desktop, variáveis customizadas, grid flexível e efeito *Liquid Glass*).
   - JavaScript moderno (Vanilla JS com ES Modules).
   - [Vite](https://vite.dev/) como empacotador de assets e servidor de desenvolvimento.
   - [anime.js](https://animejs.com/) para animações e transições fluidas de UI.
@@ -237,7 +237,6 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   ├── components/          # Componentes de UI
 │   │   ├── cards.js         # Anatomia do card, em um único lugar
 │   │   ├── confirmModal.js  # Confirmação assíncrona com trava de foco
-│   │   ├── detailModal.js   # Modal de detalhes com backdrop, logo e sinopse
 │   │   ├── episodesModal.js # Modal de episódios com acordeão e destaque atual
 │   │   ├── homePage.js      # Home: continuando, roulette, calendário, afinidade
 │   │   ├── titleInfoModal.js# Ficha expandida do TMDb
@@ -253,11 +252,10 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   │   ├── logoPicker.js    # Escolha de logo por catálogo
 │   │   ├── seasonArt.js     # Arte por temporada
 │   │   ├── state.js         # Estado global e chaves de preferências
-│   │   ├── stepper.js       # Botões stepper (clique simples e hold)
 │   │   ├── supabase.js      # Inicialização do Supabase Client
 │   │   ├── titleFilters.js  # Filtros e ordenação de títulos
 │   │   ├── trendingApi.js   # Trending, sugestões e estatísticas do catálogo
-│   │   └── ...              # autoRotate, fuzzySearch, recommendScoring, titleRelations
+│   │   └── ...              # autoRotate, dates, fuzzySearch, prng, recommendScoring, titleRelations
 │   ├── pages/
 │   │   └── titlePage.js     # Página do título (ficha, episódios, backdrop)
 │   └── main.js              # Bootstrap, eventos globais e fluxo do perfil
@@ -275,7 +273,7 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   ├── typography.test.js   # Famílias, pesos reais e reserva do mono
 │   ├── glow.test.js         # Nenhum halo; anel de foco e sombra intactos
 │   ├── progressBar.test.js  # Alvo e persistência da preferência de exibição
-│   └── ...                  # 22 suítes no total
+│   └── ...                  # 29 suítes no total
 ├── index.html               # Arquivo HTML base da SPA
 ├── package.json             # Dependências e scripts
 ├── style.css                # Folha de estilos unificada

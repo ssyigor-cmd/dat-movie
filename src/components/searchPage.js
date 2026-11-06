@@ -161,22 +161,6 @@ export function setupSearchPage({ onOpenTitle } = {}) {
     }
   });
 
-  // Fechar ao clicar em um filtro (opcional, para melhor UX)
-  [certEl, runtimeEl, languageEl, statusEl, typeEl, sortEl].forEach((el) => {
-    el?.addEventListener('change', () => {
-      // Em mobile, pode fechar após seleção
-      if (window.innerWidth <= 700) closeSearchFilters();
-    });
-  });
-
-  [genresEl, countriesEl].forEach((container) => {
-    container?.addEventListener('click', (e) => {
-      if (e.target.classList.contains('adv-chip') && window.innerWidth <= 700) {
-        setTimeout(closeSearchFilters, 150);
-      }
-    });
-  });
-
   // ===== leitura do estado da interface =====
   function readChipStates(container) {
     const include = [];
