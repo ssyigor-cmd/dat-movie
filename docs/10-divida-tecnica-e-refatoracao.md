@@ -50,8 +50,8 @@ estrutura cobra um preço em três frentes:
 | IDs no shell | 117 (todos únicos) |
 | Chaves em `dom.js` | 51 (sem seções vazias) |
 | Suítes de teste | 29 |
-| Casos de teste | 526 |
-| Falhas atuais | 3 (2 arquivos) |
+| Casos de teste | 527 |
+| Falhas atuais | 0 |
 | Service worker | N/A (sem camada PWA) |
 | `onAuthStateChange` | Ausente |
 | Realtime Supabase | Ausente |
@@ -80,9 +80,9 @@ Prioridade: **P0** bloqueia uma mudança estrutural ou é risco de segurança/da
 | D02 | `main.js` | ~2000 linhas; auth, perfil, navbar, abas, render, CRUD, modais, relink | Toda mudança mexe no arquivo mais arriscado | P0 |
 | D03 | Estado | `state.js` + DOM + closures + `localStorage` | Comportamento depende da ordem de render; difícil testar | P0 |
 | D04 | Schema | RLS de `items` não versionada; `nota` ausente no DDL | Risco de segurança e de perda de dado | P0 |
-| D05 | Testes | 6 falhas; contratos de texto frágeis | Baseline vermelho; mudança sem rede confiável | P0 |
-| D06 | CSS | 3571 linhas; `.filter-menu` duplicado; title page no fim | Especificidade e ordem frágeis; difícil evoluir | P1 |
-| D07 | Title page | 789 linhas; 71 `style=`; muitos `!important` | Não tematiza nem testa; difícil compor | P1 |
+| D05 | Testes | 11 suítes leem o fonte de `src/` e o `style.css` por regex para segurar contratos visuais | Refactor que só muda formatação quebra teste e esconde regressão real | P2 |
+| D06 | CSS | 3745 linhas; title page no fim do arquivo | Especificidade e ordem frágeis; difícil evoluir | P1 |
+| D07 | Title page | 833 linhas; 71 `style=`; muitos `!important` | Não tematiza nem testa; difícil compor | P1 |
 | D08 | DOM | IDs globais; `dom.js` incompleto; `filterMenuOptions` capturado uma vez | `ReferenceError` históricos; NodeList obsoleta | P1 |
 | D09 | Render | 95 `innerHTML`; escape manual | XSS depende de disciplina; difícil compor | P1 |
 | D10 | Auth | Sem `onAuthStateChange`; sessão só no boot/refresh | Token expirado ou logout em outra aba não refletem | P1 |
@@ -121,6 +121,7 @@ parar sem deixar o app pior.
 ### 4.1 Baseline e decisões
 
 - Resolver as falhas de teste (código ou expectativa) e registrar a decisão.
+  **Feito em 06/11/2026** — a suíte está verde e as decisões estão em `09-testes.md` §7.
 - Rodar `npm run lint`, `npm test` e `npm run build` verdes.
 - Verificar a RLS de `items` no projeto hospedado e versionar a policy.
 - Decidir `items.nota`: criar coluna + migration ou remover do modelo JS.

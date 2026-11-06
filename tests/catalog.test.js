@@ -101,8 +101,18 @@ describe('calcularProgresso', () => {
   });
 
   it('limita o resultado a 100% no máximo', () => {
-    const item = { episodio: 15, totalEpisodios: 10 };
+    // Com mapa o total é confiável, então o excesso de episódios só encosta no
+    // teto: 15 assistidos contra 10 no mapa não passa de 100.
+    const item = { temporada: 1, episodio: 15, seasonEpisodesMap: { 1: 10 } };
     expect(calcularProgresso(item)).toBe(100);
+  });
+
+  it('devolve 0 quando o assistido passa do total e não há mapa', () => {
+    // Decisão registrada em docs/05 ("Por que o mapa manda"): sem mapa o total
+    // não é confiável — a coluna nasce com DEFAULT 1 e já foi gravada só com a
+    // temporada atual. Barra vazia é "faltou dado"; barra cheia marcaria como
+    // concluído um título que está no começo.
+    expect(calcularProgresso({ episodio: 15, totalEpisodios: 10 })).toBe(0);
   });
 
   it('ignora o total por temporada e usa a soma do mapa', () => {
@@ -145,9 +155,13 @@ describe('calcularProgresso', () => {
     expect(calcularProgresso(item)).toBe(0);
   });
 
-  it('ignora total por temporada que não fecha com o que foi assistido', () => {
+  it('sem mapa, divide pela coluna mesmo em temporada avançada', () => {
+    // O acumulado das temporadas anteriores só existe com mapa. Sem ele o
+    // numerador é o episódio dentro da temporada, então 2/9 = 22% é o único
+    // percentual sustentável — é a mesma regra do caso "não acumula temporadas
+    // anteriores sem seasonEpisodesMap" (3/40 = 8), neste mesmo bloco.
     const item = { temporada: 13, episodio: 2, totalEpisodios: 9 };
-    expect(calcularProgresso(item)).toBe(0);
+    expect(calcularProgresso(item)).toBe(22);
   });
 
   it('devolve 0 quando não há mapa nem total gravado', () => {

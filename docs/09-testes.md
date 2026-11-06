@@ -4,9 +4,9 @@ A suíte é o principal registro executável das decisões do projeto. Ela mistu
 **testes de domínio** (funções puras) com **contratos de texto** que leem
 `style.css`, `index.html` e os fontes para impedir regressões visuais silenciosas.
 
-> **Estado em 30/10/2026:** `npm test` executa **29 arquivos** e **526 casos**.
-> Resultado: **25 arquivos passam, 4 falham; 520 casos passam, 6 falham**. As
-> falhas estão detalhadas na seção 7. Não trate a suíte como “verde” sem rodar.
+> **Estado em 06/11/2026:** `npm test` executa **29 arquivos** e **527 casos**.
+> Resultado: **29 arquivos passam, 0 falham**; `npm run lint` também está limpo.
+> As decisões que levaram a isso estão na seção 7.
 
 ---
 
@@ -91,7 +91,7 @@ Contagem de `it(` por arquivo; “tipo” indica o foco principal.
 | 28 | `typography.test.js` | 7 | Contrato | Famílias, pesos reais, reserva do mono |
 | 29 | `upcoming.test.js` | 9 | Contrato | Posição, carregamento, TMDb e corpo do card de “Em Breve” |
 
-**Total:** 526 casos.
+**Total:** 527 casos.
 
 ### 3.1 O que cada bloco cobre, em resumo
 
@@ -207,7 +207,7 @@ mock. É um teste tautológico, não uma garantia sobre o módulo real.
 
 | Módulo | Cobertura |
 |---|---|
-| `catalog.js` | Alta (mas com 2 falhas atuais) |
+| `catalog.js` | Alta |
 | `recommendScoring.js` | Alta |
 | `discoverSearch.js` | Alta |
 | `fuzzySearch.js` | Alta |
@@ -235,30 +235,29 @@ porcentagem como substituto dos contratos de decisão.
 
 ---
 
-## 7. Falhas atuais (05/11/2026)
+## 7. Estado: suíte verde (06/11/2026)
 
-`npm test` termina com código 1. As quatro falhas:
+`npm test` fecha com **29 suítes, 527 casos e 0 falhas**; `npm run lint` também
+está limpo. O que era vermelho e como cada caso foi decidido:
 
-| Suíte | Caso | Esperado | Obtido | Leitura |
-|---|---|---|---|---|
-| `catalog.test.js` | “limita o resultado a 100% no máximo” | `100` | `0` | Item `{ episodio: 15, totalEpisodios: 10 }`, sem mapa. O código aplica o guard “sem mapa e assistido ≥ total → 0”; o teste espera clamp em 100 |
-| `catalog.test.js` | “ignora total por temporada que não fecha com o que foi assistido” | `0` | `22` | Item `{ temporada: 13, episodio: 2, totalEpisodios: 9 }`. O teste espera descartar total incoerente; o código calcula 2/9 |
-| `freshRefresh.test.js` | “getTitlesByYear não recebe fresh…” | conter `poolSizeFor(lim)\n` | contém `poolSizeFor(lim)` | Provável fragilidade a CRLF/quebra de linha na leitura do fonte |
-| `trending.test.js` | “cai para os episódios recentes em vez de esconder a seção” | `week[0][2] === false` | `true` | O fallback do calendário mudou; o teste prende o comportamento anterior |
+| Suíte | Caso | Resolução |
+|---|---|---|
+| `catalog.test.js` | "limita o resultado a 100% no máximo" | Expectativa desatualizada. O caso usava item **sem mapa**, que é exatamente o caminho do guard "total não confiável". Passou a exercitar o teto com mapa (15 contra 10 no mapa → 100), e o guard ganhou caso próprio (`→ 0`), conforme `05-logica-de-negocio.md` |
+| `catalog.test.js` | "ignora total por temporada que não fecha com o que foi assistido" | Contradizia o caso vizinho "não acumula temporadas anteriores sem seasonEpisodesMap", que fixa 3/40 → 8. Alinhada a 2/9 → 22 e renomeada para dizer o que mede |
+| `freshRefresh.test.js` | "getTitlesByYear não recebe fresh: fica com o cache de 1h" | Falso negativo de CRLF: o assert procurava `poolSizeFor(lim)\n` e o checkout no Windows tem `\r\n`. A leitura do fonte agora normaliza o EOL |
 
-### O que isso significa
+> `trending.test.js` ("cai para os episódios recentes…") já estava resolvido
+> antes deste levantamento.
 
-- **Não são quatro bugs de produto automaticamente.** Em `catalog`, o código tem
-  uma regra documentada (total não confiável); o teste pode estar desatualizado
-  ou revelar uma ambiguidade de produto que precisa de decisão.
-- Em `freshRefresh`, o teste está claramente preso a detalhes de
-  formatação/quebra de linha.
-- Em `trending`, é preciso decidir qual comportamento é o correto para o
-  calendário quando não há episódios na semana.
+### O que ficou aprendido
 
-**Antes de uma mudança estrutural, resolva esses quatro casos**: escolha o
-comportamento, ajuste o código ou o teste, e registre a decisão. Uma suíte
-vermelha no baseline impede saber se a mudança quebrou algo.
+- Teste de contrato que lê o fonte **não pode depender do EOL** do checkout: o
+  mesmo arquivo é CRLF no Windows e LF no CI, e o teste passa de um lado só.
+- Quando a expectativa contradiz um caso vizinho do mesmo bloco, o errado
+  costuma ser a expectativa — não o código que implementa a regra documentada.
+- O que continua frágil é o **tipo** de contrato, não o baseline: prender
+  refactor a regex do fonte quebra teste sem mudar comportamento. Ver
+  `10-divida-tecnica-e-refatoracao.md` (D05).
 
 ---
 

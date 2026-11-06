@@ -22,9 +22,14 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cacheClear } from '../src/lib/cache.js';
 
+// Vários asserts comparam trechos de código com '\n'. O checkout no Windows usa
+// CRLF e o do CI, LF: sem normalizar, o mesmo teste passa em um ambiente e falha
+// no outro.
+const semCrlf = (texto) => texto.replace(/\r\n/g, '\n');
+
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
-const js = readFileSync(join(raiz, 'src/components/homePage.js'), 'utf8');
-const api = readFileSync(join(raiz, 'src/lib/trendingApi.js'), 'utf8');
+const js = semCrlf(readFileSync(join(raiz, 'src/components/homePage.js'), 'utf8'));
+const api = semCrlf(readFileSync(join(raiz, 'src/lib/trendingApi.js'), 'utf8'));
 
 const MOD = '../src/lib/trendingApi.js';
 
