@@ -2,6 +2,7 @@
  * HomePage - Renderiza a página inicial do Dat-Movie
  * Seções: Saudação, Continuar Assistindo, Novidades, Em Alta, Favoritos, Estatísticas
  */
+import anime from 'animejs';
 import { escapeHTML, calcularProgresso } from '../lib/catalog.js';
 import { getTrendingToSuggest, getFavorites, formatAirDate, getTitlesByGenre, getTitlesByYear, getUpcomingTitles, CATEGORIES, getFullWidthCount, getUserTopGenres, composeCategoryList, getCalendarWeek, getAbandoned, getAffinityRecommendations, normalizeTrendingItem, pickVariety, getAffinityRail, getAffinityRails, AFFINITY_RAIL_COUNT } from '../lib/trendingApi.js';
 import { callTMDB } from '../lib/api.js';
@@ -167,7 +168,7 @@ function setupSectionRefresh(section, onRefresh, label = 'Atualizar lista') {
  * @param {Object|null} user - objeto com email, user_metadata
  * @returns {string}
  */
-export function buildGreeting(user) {
+function buildGreeting(user) {
   let name = '';
   if (user) {
     // `full_name` é a chave que o cadastro grava (`auth.js`) e que o menu do
@@ -190,7 +191,7 @@ export function buildGreeting(user) {
  * @param {number} count
  * @returns {string} HTML
  */
-export function skeletonHTML(count = null) {
+function skeletonHTML(count = null) {
   const c = count ?? getFullWidthCount();
   return Array.from({ length: c }).map(() => `
     <div class="home-skeleton-card" aria-hidden="true">
@@ -260,6 +261,26 @@ function createHomeCard({ posterUrl, title, onClick, extraHtml = '', item = null
   attachCardInteraction(card, onClick);
   resolveCardPoster(card, item);
   return card;
+}
+
+/**
+ * Card de um título vindo do TMDb, já com o clique no "adicionar".
+ *
+ * Seis trilhos da home montavam este mesmo objeto à mão. A forma vive aqui para
+ * que um campo novo no card não precise ser lembrado em seis lugares.
+ *
+ * @param {Object} t - Item normalizado do TMDb.
+ * @param {Function} [onAdd] - Callback de adicionar ao catálogo.
+ * @param {string} [extraHtml] - Conteúdo extra do card (ex.: data de estreia).
+ * @returns {HTMLElement} Card pronto para o trilho.
+ */
+function trendingCard(t, onAdd, extraHtml = '') {
+  return createHomeCard({
+    posterUrl: t.posterUrl,
+    title: t.title,
+    extraHtml,
+    onClick: () => onAdd && onAdd(t)
+  });
 }
 
 /**
@@ -431,7 +452,7 @@ export function renderHomeBase(container, context) {
 /**
  * Renderiza Continuar Assistindo (carrossel horizontal máx. 20)
  */
-export function renderHomeContinue(container, items, onCardClick) {
+function renderHomeContinue(container, items, onCardClick) {
   const grid = container.querySelector('#homeContinueGrid');
   const empty = container.querySelector('#homeContinueEmpty');
   const section = container.querySelector('#homeContinueSection');
@@ -478,7 +499,7 @@ export function renderHomeContinue(container, items, onCardClick) {
 /**
  * Renderiza Favoritos (S+ e S)
  */
-export function renderHomeFavorites(container, items, onCardClick) {
+function renderHomeFavorites(container, items, onCardClick) {
   const section = container.querySelector('#homeFavoritesSection');
   const grid = container.querySelector('#homeFavoritesGrid');
   if (!section || !grid) return;
@@ -523,7 +544,7 @@ export function renderHomeFavorites(container, items, onCardClick) {
  * @param {number} [ano] - Ano a carregar. Default: ano atual.
  * @returns {Promise<void>}
  */
-export async function loadAndRenderByYear(container, items, onAddFromTrending, ano) {
+async function loadAndRenderByYear(container, items, onAddFromTrending, ano) {
   const section = container.querySelector('#homeYearSection');
   const grid = container.querySelector('#homeYearGrid');
   const skel = container.querySelector('#homeYearSkeleton');
@@ -554,11 +575,7 @@ export async function loadAndRenderByYear(container, items, onAddFromTrending, a
     grid.style.display = '';
     grid.innerHTML = '';
     achados.forEach((t) => {
-      const card = createHomeCard({
-        posterUrl: t.posterUrl,
-        title: t.title,
-        onClick: () => onAddFromTrending && onAddFromTrending(t)
-      });
+      const card = trendingCard(t, onAddFromTrending);
       grid.appendChild(card);
     });
     animateCards(grid);
@@ -660,12 +677,7 @@ export async function loadAndRenderUpcoming(container, items, onAddFromTrending,
       // A data de estreia é o motivo da seção existir: sem ela o card "Em
       // Breve" é idêntico ao de qualquer outro trilho.
       const data = t.date ? `<div class="home-upcoming-date"><i class="fas fa-calendar-day"></i> ${escapeHTML(formatAirDate(t.date))}</div>` : '';
-      const card = createHomeCard({
-        posterUrl: t.posterUrl,
-        title: t.title,
-        extraHtml: data,
-        onClick: () => onAddFromTrending && onAddFromTrending(t)
-      });
+      const card = trendingCard(t, onAddFromTrending, data);
       grid.appendChild(card);
     });
     animateCards(grid);
@@ -715,11 +727,7 @@ export async function loadAndRenderTrending(container, items, onAddFromTrending,
     grid.style.display = '';
     grid.innerHTML = '';
     trending.forEach((t) => {
-      const card = createHomeCard({
-        posterUrl: t.posterUrl,
-        title: t.title,
-        onClick: () => onAddFromTrending && onAddFromTrending(t)
-      });
+      const card = trendingCard(t, onAddFromTrending);
       grid.appendChild(card);
     });
     animateCards(grid);
@@ -799,11 +807,7 @@ function railPaint(section, index, rail, onAddFromTrending) {
   chosen.forEach((t) => {
     // Envelope em arrow: o card chama o handler com o evento do DOM, e
     // `onAddFromTrending` espera o item.
-    grid.appendChild(createHomeCard({
-      posterUrl: t.posterUrl,
-      title: t.title,
-      onClick: () => onAddFromTrending && onAddFromTrending(t)
-    }));
+    grid.appendChild(trendingCard(t, onAddFromTrending));
   });
   animateCards(grid);
 
@@ -959,9 +963,8 @@ let genreCtx = null;
  * @param {Element} container - Container da home.
  * @param {Array} items - Catálogo.
  * @param {Array} cats - Gêneros { id, name, icon }.
- * @param {Function} onAddFromTrending - Callback dos cards.
  */
-function renderGenrePicker(container, items, cats, onAddFromTrending) {
+function renderGenrePicker(container, items, cats) {
   const section = container.querySelector('#homeGenreSection');
   if (!section) return;
   activeGenreCat = null;
@@ -1043,11 +1046,7 @@ function renderCategorySection(container, items, cat, onAddFromTrending, opts = 
         grid.innerHTML = '<p class="home-hint">Nada por aqui por enquanto.</p>';
       } else {
         titles.forEach((t) => {
-          const card = createHomeCard({
-            posterUrl: t.posterUrl,
-            title: t.title,
-            onClick: () => onAddFromTrending && onAddFromTrending(t)
-          });
+          const card = trendingCard(t, onAddFromTrending);
           grid.appendChild(card);
         });
         animateCards(grid);
@@ -1078,7 +1077,7 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
 
   genreCtx = { container, items, cats: CATEGORIES, onAddFromTrending };
   bindGenreBack(section);
-  renderGenrePicker(container, items, CATEGORIES, onAddFromTrending);
+  renderGenrePicker(container, items, CATEGORIES);
 
   // Os gêneros do usuário entram depois, somando às fixas. Se a pessoa já abriu
   // um gênero nesse meio-tempo, o redesenho espera: não atropela a faixa aberta.
@@ -1088,7 +1087,7 @@ export async function loadAndRenderCategories(container, items, onAddFromTrendin
   } catch {}
   const cats = composeCategoryList(userCats);
   genreCtx.cats = cats;
-  if (!activeGenreCat) renderGenrePicker(container, items, cats, onAddFromTrending);
+  if (!activeGenreCat) renderGenrePicker(container, items, cats);
 }
 
 /**
@@ -1100,7 +1099,7 @@ function bindGenreBack(section) {
   if (!back || back.dataset.bound) return;
   back.dataset.bound = '1';
   back.addEventListener('click', () => {
-    if (genreCtx) renderGenrePicker(genreCtx.container, genreCtx.items, genreCtx.cats, genreCtx.onAddFromTrending);
+    if (genreCtx) renderGenrePicker(genreCtx.container, genreCtx.items, genreCtx.cats);
   });
 }
 
@@ -1190,7 +1189,7 @@ export async function loadAndRenderCalendar(container, items, onCardClick, opts 
   } catch { skel.style.display = 'none'; section.style.display = 'none'; }
 }
 
-export function loadAndRenderAbandoned(container, items, onCardClick) {
+function loadAndRenderAbandoned(container, items, onCardClick) {
   const section = container.querySelector('#homeAbandonedSection');
   const grid = container.querySelector('#homeAbandonedGrid');
   if (!section || !grid) return;
@@ -1210,7 +1209,7 @@ export function loadAndRenderAbandoned(container, items, onCardClick) {
   animateCards(grid);
 }
 
-export function setupRoulette(container, items, onCardClick, onAddFromTrending) {
+function setupRoulette(container, items, onCardClick, onAddFromTrending) {
   const btn = container.querySelector('#homeRouletteBtn');
   const res = container.querySelector('#homeRouletteResult');
   const histWrap = container.querySelector('#homeRouletteHistory');
@@ -1277,9 +1276,7 @@ export function setupRoulette(container, items, onCardClick, onAddFromTrending) 
       histWrap.style.display = '';
       histList.textContent = history.join(' • ');
     }
-    if (typeof window !== 'undefined' && window.anime) {
-      window.anime({ targets: wrap, scale: [0.96,1], opacity: [0,1], duration: 300, easing: 'easeOutQuad' });
-    }
+    anime({ targets: wrap, scale: [0.96,1], opacity: [0,1], duration: 300, easing: 'easeOutQuad' });
     btn.disabled = false; btn.innerHTML = '<i class="fas fa-dice"></i> Sortear aleatório';
   });
 }
@@ -1361,7 +1358,7 @@ function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
       grid.style.display = 'flex';
       grid.innerHTML = '';
       recs.forEach(t => {
-        const card = createHomeCard({ posterUrl: t.posterUrl, title: t.title, onClick: () => onAddFromTrending && onAddFromTrending(t) });
+        const card = trendingCard(t, onAddFromTrending);
         grid.appendChild(card);
       });
       animateCards(grid);
@@ -1376,18 +1373,16 @@ function setupAffinityDiscovery(container, catalogItems, onAddFromTrending) {
 }
 
 function animateCards(gridEl) {
-  if (typeof window !== 'undefined' && window.anime) {
-    const cards = gridEl.querySelectorAll('.card--rail, .card--calendar, .home-skeleton-card');
-    if (cards.length) {
-      window.anime({
-        targets: cards,
-        translateY: [16, 0],
-        opacity: [0, 1],
-        duration: 400,
-        delay: window.anime.stagger(60),
-        easing: 'easeOutQuad'
-      });
-    }
+  const cards = gridEl.querySelectorAll('.card--rail, .card--calendar, .home-skeleton-card');
+  if (cards.length) {
+    anime({
+      targets: cards,
+      translateY: [16, 0],
+      opacity: [0, 1],
+      duration: 400,
+      delay: anime.stagger(60),
+      easing: 'easeOutQuad'
+    });
   }
 }
 

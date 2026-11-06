@@ -1,3 +1,5 @@
+import { parseLocalDate } from './dates.js';
+import { seededRandom } from './prng.js';
 import { hasArtwork, displayTitle, isStrictlyNonLatinTitle, isAbsurdFutureDate, isBlockedProduction, isAllowedLanguage } from './titleFilters.js';
 
 /**
@@ -96,21 +98,6 @@ function clamp(value, min, max) {
 }
 
 /**
- * PRNG determinístico (mulberry32): mesma semente, mesma seleção.
- * @param {number} seed - Semente inteira.
- * @returns {Function} Gerador de números em [0, 1).
- */
-function seededRandom(seed) {
-  let a = (Math.trunc(seed) || 0) >>> 0;
-  return function next() {
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
  * Rating bayesiano: encolhe a média para a média global quando há poucos votos,
  * evitando que um 9,8 com 12 votos domine um 8,7 com 3.000 votos.
  * @param {number} voteAverage - Nota média (0-10).
@@ -131,21 +118,6 @@ export function bayesianRating(voteAverage, voteCount) {
  */
 export function logPopularity(popularity) {
   return Math.log10(1 + Math.max(0, Number(popularity) || 0));
-}
-
-/**
- * Interpreta a data do TMDB ("YYYY-MM-DD") no fuso local. `new Date('2026-09-27')`
- * é tratado como UTC e, em fusos negativos, cai no dia anterior.
- * @param {string|Date} value - Data.
- * @returns {Date|null} Data válida ou null.
- */
-function parseLocalDate(value) {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value !== 'string') return null;
-  const parts = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (parts) return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 /**

@@ -25,7 +25,7 @@ const GENRES_CACHE_KEY = 'search_tv_genres_pt';
  * Gêneros de TV, em pt-BR. Fonte de fallback quando `genre/tv/list` falha.
  * Os ids são os do TMDB; os nomes acompanham a resposta pt-BR do endpoint.
  */
-export const TV_GENRES_FALLBACK = [
+const TV_GENRES_FALLBACK = [
   { id: 10759, name: 'Ação & Aventura' },
   { id: 16, name: 'Animação' },
   { id: 35, name: 'Comédia' },

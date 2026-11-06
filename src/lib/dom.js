@@ -27,10 +27,6 @@ export const dom = {
   grid: $('grid'),
   gridSection: document.getElementById('gridSection'),
   searchView: document.getElementById('searchView'),
-  pesquisaInput: $('pesquisaInput'),
-  pesquisaGrid: $('pesquisaGrid'),
-  pesquisaEmpty: $('pesquisaEmpty'),
-  pesquisaLoading: $('pesquisaLoading'),
   searchInput: $('searchInput'),
   filterStatus: $('filterStatus'),
   filterTier: $('filterTier'),
@@ -41,10 +37,7 @@ export const dom = {
   // Modals
   titleInfoModal: $('titleInfoModal'),
 
-  // Lists
-
   // Filter wrappers
-  filtersWrapper: $('filtersWrapper'),
   filtersToggleBtn: $('filtersToggleBtn'),
   filtersMenu: $('filtersMenu'),
   filtersCount: $('filtersCount'),
@@ -75,11 +68,6 @@ export const dom = {
   showProgressBar: $('showProgressBar'),
   profileSince: $('profileSince'),
 
-  // Navbar
-
-  // Add modal fields
-  // Stepper extras
-  // Toast & Form
   // NOTA: 'form' já é declarado acima (grupo Auth/Form) — a duplicata aqui era
   // um no-op silencioso. ESLint (no-dupe-keys) pegou isso.
 };

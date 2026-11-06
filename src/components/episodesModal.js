@@ -2,6 +2,7 @@
  * Componente EpisodesModal - Controle e acordeão do modal de episódios
  */
 
+import anime from 'animejs';
 import { callTMDB } from '../lib/api.js';
 import { escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
@@ -51,9 +52,7 @@ export function setupEpisodesModal(elements, callbacks) {
     lockScreen();
 
     const modalElem = episodesModal.querySelector('.modal');
-    if (typeof window !== 'undefined' && window.anime) {
-      window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-    }
+    anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
     trapFocus(modalElem);
 
     try {

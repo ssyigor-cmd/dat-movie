@@ -3,6 +3,7 @@
  * Dados: TMDB (tv/{id} + aggregate_credits) e Wikipédia (curiosidades)
  */
 
+import anime from 'animejs';
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { US_RATING_BR } from '../lib/discoverSearch.js';
@@ -104,7 +105,7 @@ export function formatAgeRating(rating) {
  * @param {string} nota - Ex.: "16", "L", "TV-MA".
  * @returns {string} Sufixo de classe (`l`, `10`…`18`, `na`).
  */
-export function ageTone(nota) {
+function ageTone(nota) {
   const key = String(nota || '').trim().toUpperCase();
   const br = US_RATING_BR[key] || key;
   return ['L', '10', '12', '14', '16', '18'].includes(br) ? br.toLowerCase() : 'na';
@@ -118,7 +119,7 @@ export function ageTone(nota) {
  * @param {string} status - Status cru do TMDB (ex.: "Ended").
  * @returns {string} "Encerramento" ou "Último episódio".
  */
-export function endDateLabel(status) {
+function endDateLabel(status) {
   return status === 'Ended' || status === 'Canceled' ? 'Encerramento' : 'Último episódio';
 }
 
@@ -339,9 +340,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
     titleInfoModal.classList.add('active');
     lockScreen();
     const modalElem = titleInfoModal.querySelector('.modal');
-    if (typeof window !== 'undefined' && window.anime) {
-      window.anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-    }
+    anime({ targets: modalElem, translateY: ['20px', '0'], opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
     trapFocus(modalElem);
 
     try {

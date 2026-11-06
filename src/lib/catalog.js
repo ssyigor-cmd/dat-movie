@@ -7,7 +7,7 @@ import { matchScore } from './fuzzySearch.js';
 
 export const TIER_ORDER = ['S+', 'S', 'A', 'B', 'C', 'D'];
 
-export const TIER_COLORS = {
+const TIER_COLORS = {
   'S+': 'tier-Splus',
   'S': 'tier-S',
   'A': 'tier-A',

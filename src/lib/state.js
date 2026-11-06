@@ -39,10 +39,3 @@ export function persistNavState() {
     else localStorage.removeItem(STORAGE_KEYS.ACTIVE_LIST_ID);
   } catch {}
 }
-
-export function setActiveTab(tab, listId = null) {
-  state.currentTab = tab;
-  state.currentListId = listId;
-  persistNavState();
-}
-

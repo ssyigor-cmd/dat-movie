@@ -5,12 +5,12 @@ import { pickCanonicalLogo } from './logoPicker.js';
 
 // ========== CACHE DE LOGOS (via appCache) ==========
 // Chave v2: invalida os logos em cache antes da escolha por idioma/país
-export function getLogoFromCache(tmdbId, mediaType) {
+function getLogoFromCache(tmdbId, mediaType) {
   const cacheKey = `logoV2_${tmdbId}_${mediaType}`;
   return cacheGet(cacheKey) || null;
 }
 
-export function setLogoInCache(tmdbId, mediaType, logoUrl) {
+function setLogoInCache(tmdbId, mediaType, logoUrl) {
   const cacheKey = `logoV2_${tmdbId}_${mediaType}`;
   if (logoUrl) {
     cacheSet(cacheKey, logoUrl);
@@ -45,7 +45,7 @@ function withConcurrencyLimit(task) {
  * @param {string} [lang] - Idioma da resposta.
  * @returns {Promise<Object|null>} Payload da série ou null em caso de erro.
  */
-export async function fetchTvDetailsCached(tmdbId, lang = 'pt-BR') {
+async function fetchTvDetailsCached(tmdbId, lang = 'pt-BR') {
   if (!tmdbId) return null;
   const cacheKey = `tvcache_${tmdbId}`;
   const cached = cacheGet(cacheKey);
@@ -91,7 +91,7 @@ export async function resolveItemPosterUrl(item, size = 'w500') {
  * @param {string} [size] - Tamanho da imagem ('w500').
  * @returns {Promise<string|null>} URL do logo ou null.
  */
-export async function fetchLocalizedSeriesLogo(tmdbId, size = 'w500') {
+async function fetchLocalizedSeriesLogo(tmdbId, size = 'w500') {
   if (!tmdbId) return null;
   const cacheKey = `logoLoc_${tmdbId}_${size}`;
   const cached = cacheGet(cacheKey);
@@ -121,7 +121,7 @@ export async function fetchLocalizedSeriesLogo(tmdbId, size = 'w500') {
  * @param {string} mediaType - Tipo de mídia ('tv' ou 'movie').
  * @returns {Promise<string|null>} URL do logo ou null.
  */
-export async function pickTitleLogo(tmdbId, mediaType = 'tv') {
+async function pickTitleLogo(tmdbId, mediaType = 'tv') {
   if (!tmdbId) return null;
   if (mediaType !== 'tv') return fetchLogoFromFanart(tmdbId, mediaType);
 

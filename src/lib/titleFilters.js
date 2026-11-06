@@ -9,6 +9,8 @@
  * menos importante quando a lista ficaria curta demais.
  */
 
+import { parseLocalDate } from './dates.js';
+
 /**
  * Alfabetos não latinos. Um título só é considerado "estritamente estranho" quando
  * tem letra desses alfabetos e nenhuma letra latina. Séries chinesas, coreanas,
@@ -16,6 +18,7 @@
  * alfabeto latino (ex.: "Shogun", "Round 6", "Naruto").
  * Círilico e grego ficam de fora de propósito: chegam transliterados no pt-BR.
  */
+
 export const NON_LATIN_SCRIPTS = [
   'Han', 'Hiragana', 'Katakana', 'Hangul',
   'Devanagari', 'Bengali', 'Gurmukhi', 'Gujarati', 'Oriya',
@@ -66,15 +69,6 @@ export function isStrictlyNonLatinTitle(...texts) {
 
 /** Dias de tolerância para estreia futura (anúncios legíveis ficam, data absurda não). */
 export const MAX_FUTURE_DAYS = 365;
-
-function parseLocalDate(value) {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value !== 'string') return null;
-  const parts = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (parts) return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
 
 /**
  * Data de estreia improvável (ex.: 2030, 2040) vinda do catálogo do TMDB.
@@ -132,7 +126,7 @@ export const BLOCKED_TMDB_IDS = new Set([
  * `animatronic` foram descartados porque caem em produção legítima (Five Nights
  * at Freddy's, por exemplo).
  */
-export const BLOCKED_TITLE_PATTERNS = [
+const BLOCKED_TITLE_PATTERNS = [
   // marcação de canal
   /youtube/,
   /yt original/,

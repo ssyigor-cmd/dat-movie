@@ -132,8 +132,3 @@ export function clearFieldError(input) {
     if (errorEl) errorEl.remove();
   }
 }
-
-export function clearAllFieldErrors(container) {
-  if (!container) return;
-  container.querySelectorAll('.invalid').forEach(el => clearFieldError(el));
-}

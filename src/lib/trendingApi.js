@@ -7,6 +7,7 @@
  * dado fresco. Só o botão de atualizar da home usa isso — o carregamento
  * comum continua aproveitando o cache.
  */
+import { seededRandom } from './prng.js';
 import { callTMDB } from './api.js';
 import { filterNotInCatalog as catalogFilterNotInCatalog, calcularProgresso } from './catalog.js';
 import { cacheGet, cacheSet, cacheClearPrefix } from './cache.js';
@@ -79,22 +80,15 @@ export function formatAirDate(dateStr) {
  * que cabe, não haveria de onde escolher e o botão trocaria a ordem da mesma
  * lista.
  *
- * Os degraus são os mesmos breakpoints que o CSS usa (`--home-card-w` muda em
- * 768 e 480). A tabela antiga quebrava em 640 e 1024, que não existem em
- * lugar nenhum do layout: a 700px o esqueleto pedia 14 itens com o cartão do
- * mesmo tamanho que a 769px pedia 18, e a 1000px o esqueleto encolhia com o
- * cartão ainda em 130px. Alinhar os degraus faz a troca de esqueleto por
- * cartões preservar a altura da página.
+ * Em telas largas a faixa pede 20 itens; até 1440px, 18. O pedido acompanha a
+ * largura da janela, não o tamanho do cartão — que é o mesmo em toda tela.
  *
  * @param {number} [viewportWidth] - Largura da janela (injetável para teste).
  * @returns {number} Quantidade de itens.
  */
 export function getFullWidthCount(viewportWidth) {
   const w = Number(viewportWidth) || (typeof window !== 'undefined' ? window.innerWidth : 1440);
-  if (w <= 480) return 10;
-  if (w <= 768) return 14;
-  if (w <= 1440) return 18;
-  return 20;
+  return w > 1440 ? 20 : 18;
 }
 
 /**
@@ -149,22 +143,6 @@ async function collectFiltered(endpoint, params, lang, catalogItems, needed, opt
     if (collected.length === antes) break;
   }
   return collected;
-}
-
-/**
- * PRNG determinístico (mulberry32): mesma semente, mesma ordem; semente nova,
- * outra ordem. Evita `Math.random` para manter o comportamento testável.
- * @param {number} seed - Semente inteira.
- * @returns {Function} Gerador de números em [0, 1).
- */
-function seededRandom(seed) {
-  let a = (Math.trunc(seed) || 0) >>> 0;
-  return function next() {
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }
 
 /**
@@ -774,7 +752,7 @@ export function isWithin7DaysWindow(dateStr, days = 7, nowRef = new Date()) {
   return diffDays >= -days && diffDays <= days;
 }
 
-export async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = null, opts = {}) {
+async function getNewEpisodes(catalogItems, days = 7, nowRef = new Date(), limit = null, opts = {}) {
   const lim = limit ?? getFullWidthCount();
   const candidates = (catalogItems || []).filter((i) => i.tmdb_id && i.status === 'assistindo' && (i.tipo === 'serie' || i.tipo === 'anime' || i.tipo === 'animacao' || !i.tipo));
   if (candidates.length === 0) return [];
