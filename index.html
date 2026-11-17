@@ -29,6 +29,15 @@
       }
     })();
   </script>
+  <!-- Redireciona para a versão mobile em celulares -->
+  <script>
+    (function () {
+      if (location.pathname.includes('mobile.html')) return;
+      var isMobile = window.matchMedia('(max-width: 768px)').matches ||
+        /Android|iPhone|iPad|iPod|Mobile|BlackBerry|Opera Mini|IEMobile/i.test(navigator.userAgent);
+      if (isMobile) location.replace('/mobile.html');
+    })();
+  </script>
   <script type="importmap">
   {
     "imports": {

@@ -1,0 +1,137 @@
+GUIA PARA OUTRA IA — ADIÇÃO DE TÍTULOS E FUNCIONAMENTO DOS CARDS
+
+Objetivo deste guia
+
+Explique a experiência do Dat-Movie do ponto de vista de quem usa o aplicativo. Oriente como encontrar e adicionar um título e o que cada elemento do card significa. Não fale de banco de dados, código, APIs, tabelas, campos internos ou implementação.
+
+1. COMO ADICIONAR UM TÍTULO
+
+1.1 Onde começar
+
+O usuário pode começar pela aba Pesquisar. Na página inicial, se ainda não houver títulos em “Continuar Assistindo”, o botão “Adicionar título” leva à mesma busca. Também é possível escolher um título recomendado em seções de descoberta da página inicial, como “Em Alta”, “Em Breve”, recomendações ou gêneros.
+
+A adição não acontece apenas por clicar em um resultado ou recomendação: essa ação abre primeiro uma prévia do título. O usuário confirma a inclusão usando o botão “Adicionar”. “Cancelar” fecha a prévia sem incluir o título.
+
+1.2 Encontrar o título
+
+Na aba Pesquisar, o usuário digita o nome do título. Sem filtros, é preciso informar pelo menos dois caracteres para iniciar a busca. A busca pode trazer mais resultados; “Carregar mais” mostra resultados adicionais.
+
+O painel de filtros avançados permite refinar a busca por gênero, país de origem, classificação etária, duração dos episódios, idioma original, situação, formato e intervalo de anos. Gêneros e países podem ser incluídos ou excluídos: a cada clique, a opção alterna entre neutra, incluída e excluída. “Limpar filtros” remove as escolhas. A ordenação pode ser alterada.
+
+A busca atual é voltada a séries e programas de televisão. O usuário escolhe entre os resultados apresentados; não há, nesse fluxo, um formulário para digitar qualquer título livremente e cadastrar sem escolher um resultado.
+
+1.3 Escolher o resultado correto
+
+O card do resultado mostra o pôster disponível e o nome do título. O usuário deve abrir o resultado que corresponde à série desejada, conferindo especialmente o nome e a imagem.
+
+Se o título já estiver no catálogo, não se deve criar uma segunda cópia. Ao selecionar um resultado já cadastrado, o aplicativo abre o título existente para consulta ou edição. O usuário pode receber um aviso de duplicidade caso tente adicioná-lo novamente.
+
+Se o resultado parecer ser uma continuação, temporada derivada ou parte de outra série, a prévia pode mostrar um aviso sugerindo a série principal. Quando esse aviso aparece, ofereça a opção “Abrir série principal”; o usuário também pode fechar o aviso e continuar com o resultado selecionado.
+
+1.4 O que aparece na prévia antes de adicionar
+
+A prévia usa a mesma página de título, mas suas ações são diferentes das de um título já salvo. Ela pode apresentar:
+
+- Nome, pôster e imagens disponíveis do título.
+- Temporada e episódio que o usuário quer acompanhar.
+- Status pessoal do título.
+- Tier pessoal, se quiser atribuir uma classificação.
+- Acesso à seleção de listas.
+- Um botão “Adicionar” e outro “Cancelar”.
+
+A prévia começa com a temporada 1 e episódio 0. Episódio 0 significa que o usuário ainda não começou a acompanhar um episódio; não é um episódio real. O status inicial é “Assistindo”. O tier começa sem classificação. O usuário pode alterar essas escolhas antes de confirmar.
+
+O usuário pode selecionar o status que melhor descreve a relação com o título:
+
+- “Assistindo”: está acompanhando ou pretende iniciar agora; pode aparecer em “Continuar Assistindo”.
+- “Concluído”: já terminou. Títulos concluídos não usam a imagem específica da temporada como pôster do card.
+- “Planejado”: pretende assistir mais tarde; o título aparece em “Próximos”.
+- “Pausado”: interrompeu temporariamente; aparece em “Abandonados”.
+
+Não trate “Planejado” e “Assistindo” como equivalentes: são opções distintas, com lugares diferentes na navegação.
+
+1.5 Temporada e episódio
+
+Os controles de “Temporada” e “Episódio” têm botões de mais e menos. Eles permitem escolher o ponto atual de acompanhamento, respeitando os limites conhecidos para a série. Não permita uma temporada ou um episódio abaixo do mínimo ou acima do máximo apresentado.
+
+Ao mudar de temporada, o episódio volta para 0. Isso evita que o número de episódio da temporada anterior seja interpretado como progresso da nova temporada. Se os dados do episódio estiverem disponíveis, a prévia pode mostrar o nome, a data de exibição e a sinopse do episódio selecionado. Se o usuário ainda não iniciou ou não houver informação, mostre a mensagem correspondente em vez de inventar dados.
+
+O total de temporadas e episódios depende das informações disponíveis para o título. Não prometa que esses totais estarão sempre completos.
+
+1.6 Tier e listas
+
+O tier é uma avaliação pessoal, não uma nota oficial. As opções são S+, S, A, B, C e D; “N/A” significa deixar sem tier. Se nenhum tier for escolhido, o título continua válido e pode ser adicionado normalmente.
+
+“Listas” abre a seleção de listas do usuário. As listas em que o título já está aparecem marcadas quando se abre a seleção de um título salvo. Na inclusão de um título novo, o usuário pode escolher listas antes de confirmar. As opções “Próximos” e “Lista de Desejos” não aparecem nesse seletor. “Próximos” é associado ao status “Planejado”, portanto não peça ao usuário que escolha essa lista manualmente.
+
+1.7 Confirmar ou cancelar
+
+Ao pressionar “Adicionar”, o aplicativo salva o título com as escolhas feitas: status, temporada e episódio, tier, quando houver, e listas selecionadas. O botão pode mostrar “Adicionando...” enquanto a ação está em andamento. Quando concluir, o título passa a fazer parte do catálogo.
+
+Se houver falha, não afirme que o título foi incluído. Permita tentar novamente ou voltar à busca. “Cancelar” abandona a prévia sem cadastrar o título e sem salvar essas escolhas.
+
+2. O QUE SIGNIFICA CADA ELEMENTO DO CARD
+
+2.1 Card padrão do catálogo e das listas
+
+O card compacto apresenta, conforme disponibilidade e preferências do usuário:
+
+- Pôster: identifica visualmente a série. Se não houver imagem disponível, aparece uma imagem substituta de filme. Para uma série com mais de uma temporada que ainda não esteja concluída, o pôster pode corresponder à temporada acompanhada, se existir uma imagem apropriada.
+- Nome do título: aparece sobre a parte inferior do pôster, com uma camada escura para permanecer legível. Se o nome for longo, a interface pode limitá-lo visualmente; não interprete isso como um nome diferente.
+- Selo de tier: aparece sobre o pôster apenas quando o usuário atribuiu um tier. Pode mostrar S+, S, A, B, C ou D. A ausência do selo significa que não há tier definido, não que o item esteja com erro.
+- Barra de progresso e percentual: indicam o avanço acompanhado pelo usuário em episódios. Por exemplo, 72% representa o progresso estimado com base nos episódios assistidos e na quantidade conhecida para a série. Se a série ainda está no episódio 0, ou se não há total confiável, a barra pode estar vazia ou em 0%; não invente progresso.
+
+O usuário pode escolher nas preferências se quer mostrar o progresso. Quando essa preferência estiver desligada, desaparecem tanto a barra quanto a porcentagem; isso não apaga o progresso salvo.
+
+O ano, a sinopse e o episódio atual não aparecem no card padrão. Não os invente nem trate a ausência deles como falta de cadastro.
+
+2.2 Como interagir com um card
+
+No Catálogo e nas listas, clicar no card abre a página do título, onde o usuário pode rever e editar seu acompanhamento. Também é possível ativar o card com Enter ou Espaço pelo teclado.
+
+Na busca e nas recomendações da página inicial, clicar no card abre a prévia do título. Isso ainda não confirma a adição: é necessário pressionar “Adicionar” na prévia. Se o título já estiver salvo, deve-se abrir o registro existente, não criar outro.
+
+No computador, passar o cursor sobre o card pode destacar a imagem e revelar melhor o nome. O hover é apenas uma ajuda visual; não substitui o clique nem altera o título.
+
+2.3 Diferenças entre cards de seções
+
+Os cards compartilham a mesma ideia visual de pôster e nome, mas podem exibir um dado adicional relacionado à seção:
+
+- “Continuar Assistindo”: mostra o progresso e reúne títulos com status “Assistindo”.
+- “Seus Favoritos”: reúne títulos com tier S+ ou S. A seleção é baseada no tier, mas o card dessa seção não precisa repetir o selo de tier.
+- “Episódios da Semana”: pode mostrar um identificador como “T2 · E5”, que informa a temporada e o episódio relacionado ao calendário. A data ou o dia da semana podem aparecer no cabeçalho do grupo, fora do card.
+- “Em Breve”: pode mostrar a data de estreia abaixo do nome, pois essa informação explica a presença do título na seção.
+- Busca e recomendações: mostram pôster e nome; não exibem por padrão a barra de progresso nem o selo pessoal de tier.
+- Outros trilhos de descoberta: podem acrescentar um dado próprio da seção. Esse dado extra não deve ser confundido com progresso, tier ou status pessoal.
+
+A largura pode mudar conforme o card aparece numa grade ou num trilho horizontal, mas isso não altera o significado do pôster, nome, tier ou progresso.
+
+3. O QUE O USUÁRIO ENCONTRA AO ABRIR UM TÍTULO SALVO
+
+A página aberta a partir de um card do catálogo permite acompanhar e editar o título:
+
+- Cabeçalho: oferece voltar, mostra o logo quando disponível ou o nome, pode mostrar o nome original e datas, e apresenta o tier editável.
+- Imagens: pode mostrar pôster e imagem horizontal. Quando há várias imagens horizontais, setas permitem avançar ou voltar e o contador mostra a posição. A troca automática de imagem, quando disponível, é apenas visual.
+- Temporada e episódio: mostram os valores acompanhados e seus limites conhecidos, com controles de mais e menos. Alterar a temporada redefine o episódio para 0.
+- Status: oferece Assistindo, Concluído, Planejado e Pausado. O usuário escolhe uma opção e pressiona “Salvar” para confirmar as alterações.
+- Listas: abre a seleção de coleções/listas do usuário. As escolhas são aplicadas quando o usuário salva.
+- Episódios: abre a lista de episódios organizada por temporada. A temporada atual pode vir expandida e o episódio acompanhado pode ser destacado. Se não houver dados, explique que a informação está indisponível; não fabrique episódios.
+- Detalhes: abre uma ficha informativa, que pode incluir sinopse, gêneros, classificação etária, datas, situação, origem, duração, elenco, equipe, curiosidades e links. Esses dados dependem da disponibilidade e não são todos exibidos no card.
+- Salvar: confirma as mudanças de acompanhamento, status, tier e listas.
+- Corrigir título: permite escolher um vínculo correto quando as informações associadas não correspondem ao título desejado.
+- Remover: retira o título do catálogo após confirmação do usuário. Não confundir com “Cancelar”, que só fecha uma prévia ainda não adicionada.
+
+4. REGRAS DE RESPOSTA PARA OUTRA IA
+
+- Fale do que a pessoa vê e pode fazer. Evite explicar mecanismos internos.
+- Nunca diga que clicar num resultado já adicionou o título: primeiro abre uma prévia; a inclusão exige “Adicionar”.
+- Não sugira cadastrar uma cópia se o título já estiver no catálogo. Direcione para o registro existente.
+- Diferencie o status pessoal do título do status de exibição da série. “Assistindo”, “Concluído”, “Planejado” e “Pausado” descrevem a organização do usuário.
+- Diferencie tier pessoal de nota/classificação etária. Tier é uma avaliação do usuário; a classificação etária é uma informação descritiva.
+- Explique episódio 0 como “ainda não iniciado”, não como episódio real.
+- Ao trocar de temporada, informe que o episódio volta para 0.
+- Trate informações ausentes como indisponíveis. Não invente pôster, data, sinopse, temporada, episódio, elenco ou outros dados.
+- Lembre que a barra de progresso pode estar oculta por preferência e que os cards de busca ou descoberta normalmente não têm progresso pessoal.
+- Se uma informação variar entre seções, explique a diferença sem apresentar os cards como registros diferentes.
+
+FIM DO GUIA

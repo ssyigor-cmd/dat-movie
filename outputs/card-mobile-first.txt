@@ -1,0 +1,102 @@
+CARD DE TÍTULO — CONTEÚDO EXIBIDO NO SISTEMA
+
+Este documento lista os dados e controles apresentados no card e na tela que se abre ao selecionar um título. O conteúdo abaixo foi conferido no código do Dat-Movie. Alguns dados dependem de existir um vínculo com o TMDb.
+
+======================================================================
+1. CARD ANTES DE ABRIR
+======================================================================
+
+No catálogo e nas listas, o card pode exibir:
+- Pôster ou imagem substituta quando não há pôster.
+- Nome do título.
+- Selo de tier, se o título tiver um: S+, S, A, B, C ou D.
+- Barra e percentual de progresso, por exemplo 72%. A preferência do usuário pode ocultar ambos.
+
+No card padrão não aparecem como texto o ano, a temporada e o episódio atuais, a sinopse ou a ficha técnica.
+
+Outros contextos:
+- Continuar Assistindo: pôster, nome e progresso.
+- Favoritos: pôster e nome; a seção seleciona tiers S+ e S, mas não mostra o selo no card.
+- Busca e descoberta: pôster e nome; alguns trilhos podem acrescentar informação da própria seção, como data de estreia.
+- Calendário: pôster, nome e código da temporada/episódio, por exemplo “T2 · E5”. A data e o dia da semana aparecem no cabeçalho do grupo do calendário, fora do card.
+
+======================================================================
+2. TELA QUE SE ABRE AO CLICAR EM UM TÍTULO DO CATÁLOGO
+======================================================================
+
+2.1 Cabeçalho do título
+- Logo do título, se encontrada; caso contrário, mostra o nome.
+- Nome original, quando disponível e diferente do nome cadastrado.
+- Ano de início e, quando aplicável, ano de encerramento.
+- Situação da série segundo o TMDb, como Em exibição, Finalizada, Cancelada, Em produção ou Planejada.
+- Tier atual; ao selecionar o controle, é possível escolher S+, S, A, B, C, D ou N/A (sem tier).
+- Botão para voltar.
+
+2.2 Imagens
+- Pôster do título. Para uma série com várias temporadas que não esteja concluída, pode ser usado o pôster da temporada acompanhada.
+- Imagem horizontal/backdrop, quando disponível.
+- Se houver várias imagens horizontais, aparecem controles para imagem anterior e próxima e um contador da posição, como “1 / 4”.
+
+2.3 Temporada e episódio acompanhados
+- Número da temporada atual e total de temporadas conhecido.
+- Número do episódio atual e total de episódios da temporada.
+- Botões “+” e “−” para alterar temporada e episódio.
+- Ao mudar a temporada, o episódio atual volta para zero.
+- Os limites são baseados nas informações de temporadas e episódios disponíveis; quando houver TMDb, o app consulta esses dados.
+
+2.4 Informações do episódio atual
+Quando um episódio está selecionado e os dados existem no TMDb, a tela pode mostrar:
+- Nome do episódio.
+- Data de exibição.
+- Sinopse do episódio.
+
+Se nenhum episódio foi iniciado ou a informação não está disponível, aparecem mensagens informativas em vez desses dados.
+
+2.5 Grupo “Status”
+Mostra quatro opções:
+- Assistindo.
+- Concluído.
+- Planejado.
+- Pausado.
+
+A opção correspondente ao status atual fica marcada. Ao salvar, a escolha passa a ser o status do título.
+
+2.6 Grupo “Coleções”
+Apresenta estes botões:
+- Listas: abre a seleção de listas/coleções do usuário.
+- Episódios: abre a lista de episódios.
+- Detalhes: abre a ficha de informações do título.
+
+Na janela aberta por “Listas” aparecem caixas de seleção para as listas disponíveis. As listas em que o título já está são pré-selecionadas. “Próximos” e “Lista de Desejos” são omitidas desse seletor.
+
+2.7 Grupo “Ações” para título já salvo
+- Salvar: grava alterações de progresso, status, tier e seleções de listas.
+- Corrigir título: permite corrigir o vínculo com o título correspondente no TMDb.
+- Remover: exclui o título do catálogo, após confirmação.
+
+2.8 Ações quando o título ainda é uma prévia da busca
+Se o título ainda não foi adicionado ao catálogo, o grupo de ações muda para:
+- Adicionar: inclui o título no catálogo com os valores selecionados.
+- Cancelar: fecha a prévia sem adicionar.
+
+======================================================================
+3. FICHA “DETALHES” E JANELA “EPISÓDIOS”
+======================================================================
+
+O botão “Detalhes” abre uma ficha do TMDb. O conteúdo depende dos dados disponíveis para o título e pode incluir informações descritivas, classificação e outros dados da série.
+
+O botão “Episódios” abre a lista de episódios organizada por temporada. O episódio atual acompanhado pelo usuário pode ser destacado.
+
+Essas informações pertencem às janelas abertas a partir da página do título; não são todas exibidas ao mesmo tempo no card compacto.
+
+======================================================================
+4. RESUMO DO FLUXO
+======================================================================
+
+No card: pôster + nome + tier (se definido) + progresso (quando aplicável).
+
+Ao abrir um título salvo: cabeçalho e imagens + tier editável + temporada/episódio e seus limites + informações do episódio + status + coleções/listas + episódios/detalhes + ações de salvar, corrigir ou remover.
+
+Ao abrir uma prévia de busca: informações disponíveis do título + controles de temporada/episódio, status, tier e listas + ações de adicionar ou cancelar.
+
+FIM DO DOCUMENTO
