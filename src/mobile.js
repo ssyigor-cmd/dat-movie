@@ -17,12 +17,10 @@ import {
 import {
   escapeHTML,
   formatDateBR,
-  getTierClass,
   calcularProgresso,
   totalDeEpisodiosDaSerie,
   filterItems,
   sortItems,
-  decadeOf,
   TIER_ORDER,
 } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
@@ -506,7 +504,6 @@ async function loadUserLists() {
 
 function fillProfile(user) {
   const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário';
-  const cap = name.charAt(0).toUpperCase() + name.slice(1);
   $('profileDisplayName').textContent = name;
   $('profileAvatar').textContent = name.slice(0, 2).toUpperCase();
   $('profileEmail').textContent = user.email || '';
@@ -810,7 +807,7 @@ async function loadTitlesByGenre(id, opts = {}) {
     const pool = await getTitlesByGenre(id, state.items || [], 10, { fresh: !!opts.fresh });
     const chosen = pickForSection('cat-' + id, pool, 10);
     grid.innerHTML = chosen.length ? chosen.map(t => externalCardHTML(t)).join('') : '<p class="home-hint">Nada por aqui.</p>';
-  } catch (e) {
+  } catch {
     grid.innerHTML = '<p class="home-hint">Erro ao carregar.</p>';
   }
 }
@@ -1048,7 +1045,7 @@ async function loadTitlesByYear(year) {
     grid.innerHTML = results.length
       ? results.map(externalCardHTML).join('')
       : `<p class="home-hint">Nenhum título encontrado para ${year}.</p>`;
-  } catch (e) {
+  } catch {
     grid.innerHTML = '<p class="home-hint">Não foi possível buscar.</p>';
   }
 }
@@ -1141,7 +1138,7 @@ function setStatusFilter(btn, value) {
   renderCatalog();
 }
 
-function toggleGroupByTier(e) {
+function toggleGroupByTier() {
   groupByTier = !groupByTier;
   // Mantém o chip "Agrupar" sincronizado nas duas telas.
   document.querySelectorAll('.filter-chip').forEach(c => {
