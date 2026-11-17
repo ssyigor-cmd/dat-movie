@@ -220,7 +220,7 @@ function cardHTML(item, opts = {}) {
     ? `openPreview('${opts.previewKey}')`
     : opts.preview ? 'openRoulettePreview()' : `openTitle('${item.id || 0}')`;
   return `<div class="${cls}" onclick="${onclick}">
-    <div class="card-img">${poster}${stamp}<h3 class="card-title">${safeName}</h3></div>
+    <div class="card-img">${poster}${stamp}<h3 class="card-title" title="${safeName}">${safeName}</h3></div>
     ${body ? `<div class="card-body">${body}</div>` : ''}
     ${opts.extraHtml ? `<div class="card-extra">${opts.extraHtml}</div>` : ''}
   </div>`;
@@ -1867,7 +1867,7 @@ async function saveTitleLists() {
 function closeListModal() { $('listSheet').classList.remove('open'); $('listOverlay').classList.remove('open'); }
 
 // ================================================================
-// COLEÇÕES (criar / renomear / excluir / reordenar)
+// LISTAS (criar / renomear / excluir / reordenar)
 // ================================================================
 function openCollectionsSheet() {
   renderCollectionsList();
@@ -1879,7 +1879,7 @@ function closeCollectionsSheet() {
   $('collectionsOverlay').classList.remove('open');
   editingCollectionId = null;
   $('collectionNameInput').value = '';
-  $('collectionFormTitle').textContent = 'Nova coleção';
+  $('collectionFormTitle').textContent = 'Nova lista';
   $('collectionSaveBtn').textContent = 'Adicionar';
 }
 
@@ -1923,6 +1923,7 @@ async function saveCollection() {
     await reloadUserLists();
     renderCollectionsList();
     renderColecaoOptions();
+    renderLists();
   } catch (e) {
     showToast('Erro: ' + (e.message || 'Não foi possível salvar'));
   }
@@ -1949,6 +1950,7 @@ function deleteCollection(id) {
       if (catalogListId === id) { catalogListId = null; renderCatalog(); }
       renderCollectionsList();
       renderColecaoOptions();
+      renderLists();
       showToast('Coleção excluída!');
     } catch (e) {
       showToast('Erro: ' + (e.message || 'Não foi possível excluir'));
@@ -1970,6 +1972,7 @@ async function moveCollection(id, delta) {
     const rest = (state.userLists || []).filter(l => !ids.some(x => String(x) === String(l.id)));
     state.userLists = [...ids.map(x => byId.get(String(x))).filter(Boolean), ...rest];
     renderCollectionsList();
+    renderLists();
   } catch (e) {
     console.warn('Erro ao salvar ordem das coleções:', e);
     showToast('Erro ao salvar ordem');
@@ -1988,11 +1991,57 @@ function renderColecaoOptions() {
 }
 
 function setCollectionFilter(btn, id) {
-  catalogListId = id || null;
+  const l = (state.userLists || []).find(x => String(x.id) === String(id || ''));
+  // Preserva o tipo real do id (UUID string no banco): filterItems compara com ===.
+  catalogListId = l ? l.id : (id || null);
   const box = $('colecaoOptions');
   if (box) box.querySelectorAll('.sheet-option').forEach(o => o.classList.remove('active'));
   btn?.classList.add('active');
   renderCatalog();
+}
+
+// ================================================================
+// TELA "LISTAS" (menu inferior)
+// Espelha o menu "Listas" do desktop: só coleções do usuário, com a
+// quantidade de títulos e atalho para abrir a lista no catálogo.
+// ================================================================
+function renderLists() {
+  const grid = $('listsGrid');
+  if (!grid) return;
+  const lists = (state.userLists || []).filter(isUserCollection);
+  const countFor = (list) => (state.items || [])
+    .filter(i => (i.lists || []).some(l => String(l.id) === String(list.id)))
+    .length;
+
+  $('listsSubtitle').textContent = `${lists.length} ${lists.length === 1 ? 'lista' : 'listas'} · Minhas Listas`;
+
+  const tiles = lists.map(l => {
+    const count = countFor(l);
+    return `<div class="list-tile" onclick="openListCatalog('${l.id}')">
+      <div class="list-tile-actions">
+        <button type="button" aria-label="Renomear ${escapeHTML(l.nome)}" onclick="event.stopPropagation();editCollection('${l.id}')"><i class="fas fa-pen"></i></button>
+        <button type="button" aria-label="Excluir ${escapeHTML(l.nome)}" onclick="event.stopPropagation();deleteCollection('${l.id}')"><i class="fas fa-trash"></i></button>
+      </div>
+      <div class="list-tile-icon"><i class="fas fa-list"></i></div>
+      <div class="list-tile-name">${escapeHTML(l.nome)}</div>
+      <div class="list-tile-count">${count} ${count === 1 ? 'título' : 'títulos'}</div>
+    </div>`;
+  });
+
+  tiles.push(`<div class="list-tile list-tile--new" onclick="openCollectionsSheet()">
+    <div class="list-tile-icon"><i class="fas fa-plus"></i></div>
+    <div class="list-tile-name">Nova lista</div>
+    <div class="list-tile-count">Criar</div>
+  </div>`);
+
+  grid.innerHTML = tiles.join('');
+}
+
+function openListCatalog(id) {
+  const l = (state.userLists || []).find(x => String(x.id) === String(id));
+  // Preserva o tipo real do id (UUID string no banco): filterItems compara com ===.
+  catalogListId = l ? l.id : id;
+  switchScreen('catalog');
 }
 
 function openFilterSheet() {
@@ -2177,6 +2226,7 @@ function switchScreen(name) {
   if (name === 'home') renderHome();
   if (name === 'catalog') renderCatalog();
   if (name === 'proximos') renderProximos();
+  if (name === 'lists') renderLists();
   window.scrollTo(0, 0);
 }
 
@@ -2205,7 +2255,7 @@ Object.assign(window, {
   openListModal, closeListModal, saveTitleLists,
   openCollectionsSheet, closeCollectionsSheet, renderCollectionsList,
   saveCollection, editCollection, deleteCollection, moveCollection,
-  renderColecaoOptions, setCollectionFilter,
+  renderColecaoOptions, setCollectionFilter, renderLists, openListCatalog,
   openFilterSheet, closeFilterSheet, selectSheetOption, clearFilters,
   openSortSheet, closeSortSheet, selectSortOption,
   openSearchFilterSheet, closeSearchFilterSheet,
