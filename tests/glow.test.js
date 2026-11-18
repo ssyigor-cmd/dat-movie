@@ -86,9 +86,10 @@ describe('glow: o que foi removido não era o estado', () => {
       expect(regra[1], seletor).not.toContain('box-shadow');
     }
     // O item de nav ativo trocou a cápsula pela barra: o marcador agora é o
-    // `::after` na cor do destaque. Sem ele, o item ativo não se distingue.
+    // `::after` com o filete "nascer do sol" (`--horizon`). Sem ele, o item
+    // ativo não se distingue.
     expect(css, 'barra do nav ativo').toMatch(
-      /\.nav-item\.active::after\s*\{[^}]*background:\s*var\(--accent\)/
+      /\.nav-item\.active::after\s*\{[^}]*background:\s*var\(--horizon\)/
     );
   });
 });

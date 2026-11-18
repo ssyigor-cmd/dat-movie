@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>datmovie · Mobile</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
+  <link rel="alternate icon" href="assets/favicon/favicon.ico" sizes="any" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -29,12 +30,16 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg-primary: #101112; --bg-surface: #191A1C; --bg-elevated: #222325;
-      --bg-elevated-hover: #2A2C30; --bg-secondary: #151618; --bg-hover: #26282C;
-      --bg-well: #0C0D0E; --border: transparent; --border-strong: transparent; --border-outline: #2A2C30;
+      --bg-primary: #08080b; --bg-surface: #0D0D10; --bg-elevated: #121216;
+      --bg-elevated-hover: #18181D; --bg-secondary: #09090C; --bg-hover: #141418;
+      --bg-well: #0C0D0E; --border: transparent; --border-strong: transparent; --border-outline: #16161A;
       --text-primary: #F2EDE3; --text-secondary: #AEAFB2; --text-muted: #838589;
       --accent: #E5D8BF; --accent-rgb: 229,216,191; --accent-hover: #F0E6D2;
-      --accent-ink: #101112; --accent-soft: rgba(229,216,191,0.1);
+      --accent-ink: #08080b; --accent-soft: rgba(229,216,191,0.1);
+      /* Filete nascer do sol: gradiente único brasa→meia-noite (mesmo token do desktop) */
+      --horizon: linear-gradient(90deg,
+        #8c2d10 0%, #d95f0e 18%, #fdba74 36%, #fff7ed 50%,
+        #bfdbfe 68%, #60a5fa 84%, #0f172a 100%);
       --danger: #ef4444; --warning: #fbbf24; --success: #34d399;
       --radius: 10px; --radius-sm: 6px; --radius-pill: 999px;
       --shadow: 0 4px 16px rgba(0,0,0,0.4); --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
@@ -70,12 +75,6 @@
     h1,h2,h3,h4,h5,h6 { font-family: var(--font-display); font-weight: 600; }
     .hidden { display: none !important; }
     ::-webkit-scrollbar { width: 0; height: 0; }
-    .logo-mark { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-    .logo-mark span { display: block; height: 5px; border-radius: 2px; background: var(--accent); }
-    .logo-mark span:nth-child(1) { width: 20px; }
-    .logo-mark span:nth-child(2) { width: 26px; }
-    .logo-mark span:nth-child(3) { width: 20px; }
-    .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 1rem; letter-spacing: -0.02em; }
     .tier-splus { background: var(--tier-splus); color: var(--tier-splus-ink); }
     .tier-s { background: var(--tier-s); color: var(--tier-s-ink); }
     .tier-a { background: var(--tier-a); color: var(--tier-a-ink); }
@@ -94,11 +93,6 @@
     /* LOGIN */
     .login-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; padding-bottom:0; }
     .login-logo { margin-bottom:32px; text-align:center; }
-    .login-logo .logo-mark span { height:7px; }
-    .login-logo .logo-mark span:nth-child(1) { width:28px; }
-    .login-logo .logo-mark span:nth-child(2) { width:36px; }
-    .login-logo .logo-mark span:nth-child(3) { width:28px; }
-    .login-logo .logo-text { font-size:1.4rem; margin-top:10px; }
     .login-title { font-size:1.3rem; font-weight:700; }
     .login-subtitle { font-size:0.82rem; color:var(--text-secondary); margin-top:4px; text-align:center; }
     .login-form { width:100%; max-width:320px; margin-top:28px; }
@@ -365,7 +359,7 @@
     .nav-tab i { font-size:1.15rem; }
     .nav-tab span { font-size:0.62rem; font-weight:500; }
     .nav-tab.active { color:var(--accent); }
-    .nav-tab.active::before { content:''; position:absolute; top:0; width:28px; height:3px; border-radius:var(--radius-pill); background:var(--accent); }
+    .nav-tab.active::before { content:''; position:absolute; top:0; width:28px; height:2px; border-radius:var(--radius-pill); background:var(--horizon); }
     /* SHEETS & MODALS */
     .sheet-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.3s; }
     .sheet-overlay.open { opacity:1; pointer-events:auto; }

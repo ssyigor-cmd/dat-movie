@@ -6,17 +6,26 @@
 ```
 assets/
 ├── logo/
-│   ├── logotype-dark.svg     # Horizontal: faixas + texto (tema escuro)
-│   ├── logotype-light.svg    # Horizontal: faixas + texto (tema claro)
-│   ├── stacked-dark.svg      # Vertical: faixas sobre o texto (escuro)
-│   └── stacked-light.svg     # Vertical: faixas sobre o texto (claro)
+│   ├── logotype-dark.svg     # Navbar: só o glifo (tema escuro)
+│   ├── logotype-light.svg    # Navbar: só o glifo (tema claro)
+│   ├── stacked-dark.svg      # Vertical: só o glifo, sem nome (escuro)
+│   └── stacked-light.svg     # Vertical: só o glifo, sem nome (claro)
 ├── icon/
 │   ├── icon-face.svg         # Marca isolada (tema escuro)
 │   └── icon-face-light.svg   # Marca isolada (tema claro)
 └── favicon/
     ├── favicon-32-dark.svg   # Favicon 32px (escuro)
-    └── favicon-32-light.svg  # Favicon 32px (claro)
+    ├── favicon-32-light.svg  # Favicon 32px (claro)
+    ├── favicon-16.png        # Raster 16px (gerado, ver scripts/build-favicons.mjs)
+    ├── favicon-32.png        # Raster 32px (gerado)
+    ├── favicon-48.png        # Raster 48px (gerado)
+    └── favicon.ico           # .ico multi-resolução 16/32/48 (legado; gerado)
 ```
+
+Os raster (`favicon-16/32/48.png`, `favicon.ico`) são **gerados** a partir do
+`favicon-32-dark.svg` por `scripts/build-favicons.mjs` (`npm run build:favicons`)
+e versionados no repo — eles existem só para navegadores que não
+consomem SVG em aba/atalho. Não edite à mão; rode o script.
 
 Os mesmos arquivos vivem em `public/assets/` — é de lá que o Vite serve em
 runtime. Ao trocar um ativo, copie para os dois lugares, senão o build e o
@@ -24,12 +33,14 @@ runtime. Ao trocar um ativo, copie para os dois lugares, senão o build e o
 
 ## Color Palette
 
-A paleta é quente e tem o areia como única cor de marca.
+A paleta é quente e tem o areia como única cor sólida de marca. O gradiente
+"nascer do sol" (a faixa brasa→noite) é a base da identidade, mas atua como
+**filete** — nunca como fill grande.
 
 ### Cores base
-- **Fundo (escuro)**: `#101112`
-- **Cartão / superfície (escuro)**: `#191A1C`
-- **Controle aninhado (escuro)**: `#222325`
+- **Fundo (escuro)**: `#08080b` (carvão quente)
+- **Cartão / superfície (escuro)**: `#0D0D10`
+- **Controle aninhado (escuro)**: `#121216`
 - **Acento areia**: `#E5D8BF` (marca, progresso, foco)
 - **Texto claro (escuro)**: `#F2EDE3`
 
@@ -38,6 +49,20 @@ A paleta é quente e tem o areia como única cor de marca.
 - **Superfície**: `#FFFFFF`
 - **Acento areia escurecido**: `#7A663B` (o creme cheio não se lê como texto)
 - **Texto escuro**: `#1B1915`
+
+### O filete "nascer do sol" (gradiente único)
+Gradiente linear horizontal, uma única direção: da brasa à meia-noite.
+Stops exatos (fonte: tokens `--horizon` em `style.css` e `<linearGradient>` nos
+SVG — os dois devem mudar juntos):
+
+```
+#8c2d10 0% · #d95f0e 18% · #fdba74 36% · #fff7ed 50%
+#bfdbfe 68% · #60a5fa 84% · #0f172a 100%
+```
+
+Usos: sublinhado do item ativo do menu (`.nav-item.active::after`, 2px, cantos em pílula) e
+filete na base do mark (icon, favicon, lockups). Vale nos dois temas. Nunca
+como fill, nunca em bordas, sombras ou fundos.
 
 Os valores vivem nos tokens do `style.css` (`--accent`, `--bg-primary`, …):
 o guia descreve a intenção, o token é a fonte de verdade.
@@ -98,30 +123,29 @@ a JetBrains Mono foi substituída por **IBM Plex Mono** nos mesmos pesos. O
 link carrega Inter + Sora + IBM Plex Mono, cada peso como consequência da
 folha.
 
-### Nota sobre os SVG do logo
+### Nota sobre texto nos SVG da marca
 
-Os SVG carregam `<text font-family="Sora, Inter, sans-serif">` em vez de
-contorno em `<path>`. Como o logo é carregado por `<img src>`, o SVG é
-renderizado num contexto isolado e **não enxerga a webfont da página**: ele
-usa a Sora instalada no sistema, ou cai no `sans-serif` genérico. Para a marca
-ficar idêntica em qualquer máquina, o texto precisa ser convertido em `<path>`
-na exportação. É o item em aberto desta seção.
+Nenhum SVG da marca carrega `<text>` — todos são só geometria (o glifo "d" e o
+filete). Então não há dependência de webfont nem item pendente de conversão
+para contorno. A palavra datmovie não aparece nos ativos de marca.
 
 ## Logo Usage
 
-### Full Logotype (Horizontal)
-- **Use cases**: Headers, navigation, main branding
+### Logotype (marca da navbar)
+- **Use cases**: Headers, navigation
 - **Dark theme**: `assets/logo/logotype-dark.svg`
 - **Light theme**: `assets/logo/logotype-light.svg`
-- **Dimensions**: 200x48px (viewBox)
-- **Minimum size**: 100x24px
+- **Dimensions**: 48x48px (viewBox quadrado)
+- **Minimum size**: 24x24px
+- **Só o glifo**: sem o nome — a marca na barra é apenas o "d" com o filete
 
-### Stacked Logo (Vertical)
-- **Use cases**: Splash screens, mobile headers, condensed spaces
+### Stacked Logo (marca isolada em formato quadrado)
+- **Use cases**: Splash screens, login, mobile headers, condensed spaces
 - **Dark theme**: `assets/logo/stacked-dark.svg`
 - **Light theme**: `assets/logo/stacked-light.svg`
 - **Dimensions**: 160x160px (viewBox)
 - **Minimum size**: 80x80px
+- **Só o glifo**: sem o nome — nenhum ativo de marca carrega "datmovie"
 
 ### Marca isolada (icon)
 - **Use cases**: favicon, marca sem texto
@@ -135,36 +159,44 @@ na exportação. É o item em aberto desta seção.
 ### Favicon
 - **Use cases**: Browser tabs, bookmarks
 - **Dark theme**: `assets/favicon/favicon-32-dark.svg`
+- **Light theme**: `assets/favicon/favicon-32-light.svg`
 - **Dimensions**: 32x32px
-- **Available sizes**: 16px, 32px, 48px
+- **Available sizes**: SVG (16/32/48 via escala), PNG 16/32/48, `.ico` multi-resolução
+- **Legacy**: `<link rel="alternate icon" href="assets/favicon/favicon.ico" sizes="any">`
+  ao lado do link SVG — navegadores sem suporte a SVG caem no `.ico`;
+  os demais seguem com o SVG (e com a troca clara/escura via JS)
 
 ## Icon Design
 
-The mark is **three sand bars**, left-aligned (a shelf / a list), and it
-replaced the old TV face:
+The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
+"nascer do sol" filete under it:
 
-- **Bars** (`#E5D8BF` on dark, `#7A663B` on light), rounded ends
-- **Widths 24 / 31 / 24** (top short, middle long, bottom short), height 6,
-  gap 5, corner radius 2 — proporção da marca
-- **Left-aligned, not centered**: a borda direita é irregular de propósito, é
-  o que dá o desenho de "lista/estante"
-- **Theme-independent geometry**: muda só a cor. No escuro as faixas são
-  areia; no claro, bronze escuro, para não sumir no papel
-- **Favicon / app icon**: as faixas vêm sobre uma pastilha (fundo sólido
-  `#101112` no escuro, `#F4F1EA` no claro), porque faixas transparentes
+- **Bowl**: rounded-square 27×24 (rx 8.5), `#E5D8BF` no escuro / `#7A663B` no claro
+- **Counter**: square hole 10×10 (rx 2.5), na cor do fundo (`#08080b` / `#F4F1EA`)
+- **Stem**: rounded-rect 9.5×40 (rx 4.75), mesma cor do bowl
+- **Filete**: gradiente único nascer do sol, 56×2.3 (rx 1.15) em y=74,
+  correndo de `#8c2d10` a `#0f172a`; no favicon de 32px o filete sobe para
+  ~3.6 de espessura para legibilidade
+- **Geometry is theme-independent**: muda só a cor do glifo (areia/bronze);
+  o filete é idêntico nos dois temas
+- **Favicon / app icon**: o glifo vem sobre uma pastilha (fundo sólido
+  `#08080b` no escuro, `#F4F1EA` no claro), porque glifos transparentes
   somem na aba do navegador
+- **No text in the icon**: o glifo e o filete bastam
 
 ## Theme Implementation
 
 ### Dark Theme
-- Background: `#101112`
-- Bars: `#E5D8BF` (sand)
+- Background: `#08080b` (carvão quente)
+- Glyph: `#E5D8BF` (areia)
 - Logotype/stacked text: `#F2EDE3`
+- Accent filete: gradiente nascer do sol (`--horizon`)
 
 ### Light Theme
 - Background: `#F4F1EA`
-- Bars: `#7A663B`
+- Glyph: `#7A663B`
 - Logotype/stacked text: `#1B1915`
+- Accent filete: gradiente nascer do sol (`--horizon`)
 
 ## Usage Guidelines
 
@@ -189,11 +221,14 @@ replaced the old TV face:
 - File size: ~2KB per logo
 
 ### PNG (Raster)
-- **Não usado hoje.** O app não tem ícone de app, manifest nem camada de
-  instalação; todo ativo de marca está em SVG.
-- Se algum dia precisar de raster (ex.: um e-mail), exporte na hora do SVG e
-  não versione o binário. Foi assim que nasceram os `icon-192`, `icon-512` e
-  `apple-touch-icon` que viviam aqui e saíram junto com o mobile.
+- Servem só ao favicon legado: `favicon-16/32/48.png` e `favicon.ico`,
+  gerados de `favicon-32-dark.svg` por `scripts/build-favicons.mjs` e
+  versionados porque o `.ico` não dá para gerar no build do app.
+- O app continua **desktop-only**: não há ícone de app, manifest,
+  `apple-touch-icon` nem camada de instalação — usar PNGs para isso seria
+  reintroduzir a camada PWA que foi removida de propósito.
+- Fora do favicon legado, todo ativo de marca é SVG. Se algum dia precisar de
+  outro raster (ex.: um e-mail), gere a partir do SVG e não versione.
 
 ## Web Implementation
 
@@ -223,7 +258,8 @@ replaced the old TV face:
 
 ### Favicon Implementation
 ```html
-<link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg">
+<link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
+<link rel="alternate icon" href="assets/favicon/favicon.ico" sizes="any" />
 ```
 
 ## Maintenance

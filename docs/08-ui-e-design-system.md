@@ -158,18 +158,18 @@ override em `[data-theme="light"]`.
 
 | Papel | Token | Escuro | Claro |
 |---|---|---|---|
-| Fundo | `--bg-primary` | `#101112` | `#F4F1EA` |
-| Superfície | `--bg-surface` | `#191A1C` | `#FFFFFF` |
-| Elevado | `--bg-elevated` | `#222325` | `#FFFFFF` |
-| Hover elevado | `--bg-elevated-hover` | `#2A2C30` | `#EFEBE1` |
-| Poço | `--bg-secondary` / `--bg-well` | `#151618` / `#0C0D0E` | `#ECE7DC` / `#E4DED1` |
-| Hover | `--bg-hover` | `#26282C` | `#E6E0D3` |
+| Fundo | `--bg-primary` | `#08080b` | `#F4F1EA` |
+| Superfície | `--bg-surface` | `#0D0D10` | `#FFFFFF` |
+| Elevado | `--bg-elevated` | `#121216` | `#FFFFFF` |
+| Hover elevado | `--bg-elevated-hover` | `#18181D` | `#EFEBE1` |
+| Poço | `--bg-secondary` / `--bg-well` | `#09090C` / `#0C0D0E` | `#ECE7DC` / `#E4DED1` |
+| Hover | `--bg-hover` | `#141418` | `#E6E0D3` |
 | Texto | `--text-primary` | `#F2EDE3` | `#1B1915` |
 | Texto secundário | `--text-secondary` | `#AEAFB2` | `#55524A` |
 | Texto muted | `--text-muted` | `#838589` | `#8A8478` |
 | Acento | `--accent` | `#E5D8BF` | `#7A663B` |
-| Tinta do acento | `--accent-ink` | `#101112` | `#F4F1EA` |
-| Contorno | `--border-outline` | `#2A2C30` | `#D4D0C8` |
+| Tinta do acento | `--accent-ink` | `#08080b` | `#F4F1EA` |
+| Contorno | `--border-outline` | `#16161A` | `#D4D0C8` |
 | Perigo | `--danger` | `#ef4444` | `#ef4444` |
 | Sucesso | `--success` | `#34d399` | `#34d399` |
 | Aviso | `--warning` | `#fbbf24` | `#fbbf24` |
@@ -182,6 +182,11 @@ Regras de cor:
 - **Acento único**: areia no escuro, areia escurecida no claro. Não há segunda
   cor de marca. Cores de tier são a exceção saturada e só aparecem em selos,
   grupos e opções de tier — nunca como fundo de área grande.
+- **Filete "nascer do sol"**: `--horizon` é o único gradiente do sistema
+  (horizontal, brasa `#8c2d10` → meia-noite `#0f172a`). Ele atua como filete:
+  sublinhado de 2px (cantos em pílula) do item ativo do menu (`.nav-item.active::after`) e na
+  base do mark (assets de marca). Nunca como fill, borda ou sombra — vale nos
+  dois temas.
 - **Tiers**: `S+ #FFD700`, `S #34d399`, `A #3b82f6`, `B #f99e16`, `C hsl(17 92%
   50%)`, `D #ef4444`, cada um com tinta própria (`--tier-*-ink`) para contraste.
 - **Sem halo**: o projeto rejeita `box-shadow` colorido/glow no acento. As
@@ -300,7 +305,7 @@ outras coisas:
 | Papel | Família | Token | Onde |
 |---|---|---|---|
 | Corpo, botões, rótulos, episódios | **Inter** | `--font-body` | Interface geral |
-| Títulos, cabeçalhos, wordmark | **Sora** | `--font-display` | `h1–h6`, títulos de seção, nome do título, modal |
+| Títulos, cabeçalhos | **Sora** | `--font-display` | `h1–h6`, títulos de seção, nome do título, modal |
 | Dado técnico | **IBM Plex Mono** | `--font-mono` | Ano, `T1 · 5/8`, porcentagem, data, contagem, código |
 
 O contrato é rígido: **mono não é decoração**. Ele existe para alinhar números em
@@ -383,10 +388,10 @@ mudar a área rolável nem fazer a página “pular”.
 ### 7.1 Navbar
 
 - Fixa no topo, fundo `--bg-primary`, sombra discreta.
-- Marca à esquerda (logotipo horizontal), navegação ao centro (populada por
+- Marca à esquerda (só o glifo; o nome não acompanha a marca), navegação ao centro (populada por
   `renderNavbar()`), ações à direita.
 - Abas: Home, Catálogo, Próximos, Pesquisar e listas do usuário.
-- Item ativo: fundo transparente + barra de 3px na base (não é cápsula cheia).
+- Item ativo: fundo transparente + barra de 2px (cantos em pílula) na base (não é cápsula cheia).
 - Perfil: botão com avatar/nome, dropdown com identidade, edição de nome,
   preferência de barra de progresso, tema e sair.
 

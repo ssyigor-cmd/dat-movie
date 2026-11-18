@@ -9,20 +9,20 @@
   color-scheme: dark;
 
   /* Paleta base — identidade quente da repaginação.
-     Fundo em preto quente (#101112) com superfícies subindo em dois degraus:
-     cartão em #191A1C e controle aninhado em #222325. O acento areia
+     Fundo em carvão quente (#08080b) com superfícies subindo em dois degraus:
+     cartão em #0D0D10 e controle aninhado em #121216. O acento areia
      (#E5D8BF) é a única cor de marca do app. As bordas seguem desligadas —
      o bloco se declara pelo tom, não por um fio de 1px. */
-  --bg-primary: #101112;       /* Background principal */
-  --bg-primary-rgb: 16, 17, 18;
-  --bg-surface: #191A1C;       /* Cards, painéis, inputs, botões base */
-  --bg-elevated: #222325;      /* Dropdowns, modais, controles aninhados */
-  --bg-elevated-hover: #2A2C30;
-  --bg-secondary: #151618;     /* Degrau intermediário: poços, badges */
-  --bg-hover: #26282C;         /* Estados hover */
+  --bg-primary: #08080b;       /* Background principal — carvão quente, a cor que a faixa de marca descreve */
+  --bg-primary-rgb: 8, 8, 11;
+  --bg-surface: #0D0D10;       /* Cards, painéis, inputs, botões base */
+  --bg-elevated: #121216;      /* Dropdowns, modais, controles aninhados */
+  --bg-elevated-hover: #18181D;
+  --bg-secondary: #09090C;     /* Degrau intermediário: poços, badges */
+  --bg-hover: #141418;         /* Estados hover */
   --border: transparent;           /* Bordas padrão (desligadas: blocos sem fio) */
   --border-strong: transparent;    /* Bordas de destaque/foco (desligadas) */
-  --border-outline: #2A2C30;       /* Contorno visível para blocos "outline-only" — mais claro que bg-surface */
+  --border-outline: #16161A;       /* Contorno visível para blocos "outline-only" — mais claro que bg-surface */
 
   /* Textos */
   --text-primary: #F2EDE3;     /* Texto principal, branco quente */
@@ -33,8 +33,17 @@
   --accent: #E5D8BF;
   --accent-rgb: 229, 216, 191;
   --accent-hover: #F0E6D2;
-  --accent-ink: #101112;
+  --accent-ink: #08080b;
   --accent-soft: rgba(229, 216, 191, 0.1);
+
+  /* A faixa de acento da marca: gradiente único "nascer do sol", da brasa
+     (#8c2d10) na esquerda à meia-noite (#0f172a) na direita. É a base da
+     identidade: sublinhado do item ativo do menu (.nav-item.active::after,
+     3px) e o filete na base do mark (assets/icon, assets/favicon,
+     assets/logo). Nunca como fill. */
+  --horizon: linear-gradient(90deg,
+    #8c2d10 0%, #d95f0e 18%, #fdba74 36%, #fff7ed 50%,
+    #bfdbfe 68%, #60a5fa 84%, #0f172a 100%);
 
   /* Utilitários */
   --danger: #ef4444;
@@ -270,6 +279,8 @@
   --accent-hover: #8A7444;
   --accent-ink: #F4F1EA;
   --accent-soft: rgba(122, 102, 59, 0.12);
+  /* O filete nascer do sol também vale no tema claro (decisão de marca: o
+     gradiente é a base da identidade). Definido no bloco :root principal. */
 
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
@@ -475,12 +486,12 @@ label:has(input[type="radio"]) {
   margin-right: 8px;
 }
 
-/* A marca da barra é o logotipo horizontal (faixas + "datmovie"), não só o
-   rosto: a barra tem largura de sobra e o nome é o que a identifica. A altura
-   manda e a largura acompanha a proporção do SVG. */
+/* A marca da barra é o glifo "d" com o filete nascer do sol, sem o nome:
+   a barra já é identificada pelo app em volta. O SVG é quadrado (48px),
+   a altura manda e a largura acompanha. */
 .navbar-brand-logo {
   height: 30px;
-  width: auto;
+  width: 30px;
   flex-shrink: 0;
 }
 
@@ -547,11 +558,13 @@ label:has(input[type="radio"]) {
   border-color: var(--border);
 }
 .nav-item:hover i { color: var(--accent); }
-/* O estado ativo é uma aba: fundo transparente e uma barra de 3px na base,
-   na cor do destaque. A cápsula preenchida (`--accent-soft`) de antes virava
-   mais um botão na barra e competia com o hover; a barra diz "você está aqui"
-   sem virar forma. O item ativo também levava um halo
-   (`0 2px 10px rgba(var(--accent-rgb), .15)`), o único glow do projeto. */
+/* O estado ativo é uma aba: fundo transparente e uma barra de 2px na base,
+   com cantos totalmente arredondados (raio em pílula).
+   A barra carrega o filete "nascer do sol" da marca (gradiente único
+   brasa→noite, token --horizon) em vez de areia chapada: é a única presença
+   do gradiente na barra (o mark na ponta esquerda é a outra). A cápsula
+   preenchida (`--accent-soft`) de antes virava mais um botão na barra e
+   competia com o hover; a barra diz "você está aqui" sem virar forma. */
 .nav-item.active {
   background: transparent;
   color: var(--text-primary);
@@ -563,9 +576,9 @@ label:has(input[type="radio"]) {
   left: 14px;
   right: 14px;
   bottom: -2px;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--accent);
+  height: 2px;
+  border-radius: 999px;
+  background: var(--horizon);
 }
 .nav-item.active i { color: var(--accent); }
 .nav-dropdown {
