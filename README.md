@@ -263,7 +263,6 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   ├── main.js              # Bootstrap, eventos globais e fluxo do perfil (desktop)
 │   └── mobile.js            # Lógica da experiência mobile (sistema de telas, bottom sheets)
 ├── docs/                    # Documentação funcional e técnica (ver docs/README.md)
-│   └── outputs/             # Arquivos de exploração de design/produto (não são docs)
 ├── scripts/                 # Utilitários de manutenção (favicons, migração de dados)
 ├── supabase/
 │   ├── functions/           # Edge Functions (Deno)
