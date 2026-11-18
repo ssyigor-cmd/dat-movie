@@ -1335,7 +1335,7 @@ function updateTitleMeta() {
   const meta = $('titleMeta');
   if (!meta || !currentTitle) return;
   let mh = '';
-  mh += `<button class="title-badge title-badge-btn" onclick="openTitleInfoModal()" aria-label="Detalhes" title="Detalhes"><i class="fas fa-circle-info"></i></button>`;
+  mh += `<button class="title-badge title-badge-btn" onclick="openTitleInfoModal()" aria-label="Detalhes" title="Detalhes"><i class="fas fa-circle-info" style="font-size:0.8rem"></i></button>`;
   const tc = currentTier ? tierClass(currentTier) : '';
   mh += `<button class="title-badge title-badge-btn tier" onclick="cycleTier()">${currentTier ? `<span class="tier-group-stamp ${tc}" style="width:18px;height:18px;font-size:0.5rem">${currentTier}</span>` : 'N/A'}</button>`;
   const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
