@@ -2301,9 +2301,11 @@ function switchScreen(name) {
   const el = $(name + 'Screen');
   if (el) el.classList.add('active');
   const isLogin = name === 'login';
-  $('appHeader').classList.toggle('hidden', isLogin);
   $('bottomNav').classList.toggle('hidden', isLogin);
-  document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.screen === name); });
+  // Listas vive dentro da área de Catálogo (botão na tela) — mantém o
+  // destaque em Catálogo em vez de nenhum, igual sub-navegação.
+  const tabToHighlight = name === 'lists' ? 'catalog' : name;
+  document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.screen === tabToHighlight); });
   if (name === 'home') renderHome();
   if (name === 'catalog') renderCatalog();
   if (name === 'proximos') renderProximos();

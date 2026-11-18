@@ -36,6 +36,10 @@ documento existir, o mobile não era citado em nenhum lugar da documentação.
 - **JS**: `src/mobile.js` é um módulo único que expõe as funções para o
   `mobile.html` via `Object.assign(window, { ... })` (handlers `onclick` no
   markup). Não há bundler de componentes nem framework.
+- **Sem barra superior** (removida em 18/11/2026): a marca e o botão de
+  perfil que viviam no `.top-header` saíram de lá — a identidade fica no
+  `#bootSplash` e na tela de login, e o acesso ao perfil virou a última aba
+  da nav.
 - **Telas**: sistema próprio por seção
   (`<section class="screen" id="...">`), trocadas por `switchScreen(name)`.
   Não há router nem URL por tela; não há deep link.
@@ -52,11 +56,11 @@ Telas declaradas em `mobile.html`:
 | Catálogo | `catalogScreen` | Grade com filtros, agrupamento por tier e ordenação |
 | Próximos | `proximosScreen` | Episódios da semana / Em Breve |
 | Busca | `searchScreen` | Busca local + TMDb com filtros avançados |
-| Listas | `listsScreen` | Listas do usuário, coleções |
+| Listas | `listsScreen` | Listas do usuário, coleções — **sem aba própria**: abre pelo botão "Listas" na tela de Catálogo (e pela linha "Listas" do Perfil) |
 | Detalhe | `titleScreen` | Ficha do título (ver seção 4) |
 | Perfil | `profileScreen` | Nome, tema, barra de progresso, sair |
 
-Nav inferior: Home, Catálogo, Próximos, Busca, Listas. O item ativo usa o
+Nav inferior: Home, Catálogo, Próximos, Pesquisar, Perfil. O item ativo usa o
 acento sólido (ver `tests/glow.test.js`, que trava esse contrato).
 
 ---
@@ -184,6 +188,10 @@ Histórico relevante:
   compartilham; desktop importa pelo mesmo caminho);
 - Boot: tela de login não é mais visível por padrão — `#bootSplash` cobre a
   verificação e a sessão local elimina a chamada `/auth/v1/user` na largada;
+- Barra superior removida: o ícone saiu de vez de cima; o perfil virou aba
+  da nav inferior (onde estava "Listas"); a tela de Listas ganhou um botão
+  "Listas" na própria tela de Catálogo (o item ativo da nav fica em
+  Catálogo enquanto se navega por ela);
 - Setas do backdrop reduzidas; seta de voltar removida (voltar = gesto);
 - `Corrigir título` removido do mobile; CSS morto removido;
 - Filete da logo monocromático (ver `assets/BRAND_GUIDELINES.md`).
