@@ -1,14 +1,11 @@
-<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- stacked (light, login): só o glifo "d" bronze + filete nascer do sol, sem nome -->
+﻿<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- stacked (light, login): sÃ³ o glifo "d" bronze + filete nascer do sol, sem nome -->
   <defs>
     <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#8c2d10"/>
-      <stop offset="0.18" stop-color="#d95f0e"/>
-      <stop offset="0.36" stop-color="#fdba74"/>
-      <stop offset="0.5" stop-color="#fff7ed"/>
-      <stop offset="0.68" stop-color="#bfdbfe"/>
-      <stop offset="0.84" stop-color="#60a5fa"/>
-      <stop offset="1" stop-color="#0f172a"/>
+      <stop offset="0" stop-color="#F2E9D5"/>
+      <stop offset="0.35" stop-color="#E5D8BF"/>
+      <stop offset="0.7" stop-color="#A89467"/>
+      <stop offset="1" stop-color="#6E5F3C"/>
     </linearGradient>
   </defs>
   <g transform="translate(9.5,-2.5) scale(1.6)">

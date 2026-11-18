@@ -1,4 +1,4 @@
-﻿# Dat-Movie Brand Guidelines
+# Dat-Movie Brand Guidelines
 
 ## Logo System
 
@@ -36,7 +36,7 @@ runtime. Ao trocar um ativo, copie para os dois lugares, senÃ£o o build e o
 ## Color Palette
 
 A paleta Ã© quente e tem o areia como Ãºnica cor sÃ³lida de marca. O gradiente
-"nascer do sol" (a faixa brasaâ†’noite) Ã© a base da identidade, mas atua como
+"nascer do sol" (faixa monocromo de areia ao bronze) Ã© a base da identidade, mas atua como
 **filete** â€” nunca como fill grande.
 
 ### Cores base
@@ -53,13 +53,12 @@ A paleta Ã© quente e tem o areia como Ãºnica cor sÃ³lida de marca. O gradi
 - **Texto escuro**: `#1B1915`
 
 ### O filete "nascer do sol" (gradiente Ãºnico)
-Gradiente linear horizontal, uma Ãºnica direÃ§Ã£o: da brasa Ã  meia-noite.
+Gradiente linear horizontal, uma Ãºnica direÃ§Ã£o: da areia ao bronze (rampa monocromatica).
 Stops exatos (fonte: `<linearGradient>` nos SVGs de assets â€” eles sÃ£o a fonte
 de verdade agora; o app nÃ£o tem mais token de gradiente):
 
 ```
-#8c2d10 0% Â· #d95f0e 18% Â· #fdba74 36% Â· #fff7ed 50%
-#bfdbfe 68% Â· #60a5fa 84% Â· #0f172a 100%
+#F2E9D5 0%  ->  #E5D8BF 35%  ->  #A89467 70%  ->  #6E5F3C 100%
 ```
 
 Usos: **somente no mark** â€” o filete na base dos assets (icon, favicon,
@@ -178,7 +177,7 @@ The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
 - **Counter**: square hole 10Ã—10 (rx 2.5), na cor do fundo (`#08080b` / `#F4F1EA`)
 - **Stem**: rounded-rect 9.5Ã—40 (rx 4.75), mesma cor do bowl
 - **Filete**: gradiente Ãºnico nascer do sol, 56Ã—2.3 (rx 1.15) em y=74,
-  correndo de `#8c2d10` a `#0f172a`; no favicon de 32px o filete sobe para
+  correndo de `#F2E9D5` a `#6E5F3C`; no favicon de 32px o filete sobe para
   ~3.6 de espessura para legibilidade
 - **Geometry is theme-independent**: muda sÃ³ a cor do glifo (areia/bronze);
   o filete Ã© idÃªntico nos dois temas

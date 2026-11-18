@@ -183,8 +183,7 @@ Regras de cor:
   cor de marca. Cores de tier são a exceção saturada e só aparecem em selos,
   grupos e opções de tier — nunca como fundo de área grande.
 - **Filete "nascer do sol"**: o único gradiente do sistema vive **apenas nos
-  assets de marca** (icon, favicon, lockups) — linear horizontal, brasa
-  `#8c2d10` → meia-noite `#0f172a`. Não há gradiente na interface: o item
+  assets de marca** (icon, favicon, lockups) — linear horizontal monocromatica, areia `#F2E9D5` -> bronze `#6E5F3C`. Não há gradiente na interface: o item
   ativo do menu (`.nav-item.active::after`) e as tabs usam `--accent` sólido.
   O gradiente nunca aparece como fill, borda ou sombra.
 - **Tiers**: `S+ #FFD700`, `S #34d399`, `A #3b82f6`, `B #f99e16`, `C hsl(17 92%
