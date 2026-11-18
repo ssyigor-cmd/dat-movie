@@ -76,8 +76,8 @@ orquestração direta de DOM.
   bundle não os empacota. Um refactor com bundler pode remover o import map.
 - **Sem camada de instalação**: o app é desktop-only, então não tem
   `manifest.json`, ícone de app, meta tags de iOS nem service worker. Não é
-  instalável e não funciona offline — isso é decisão, não pendência. A
-  experiência mobile é outro projeto.
+  instalável e não funciona offline - isso é decisão, não pendência. A
+  experiência mobile é o `mobile.html`, documentada em `11-mobile-web.md`.
 
 ### 2.3 Mapa de IDs
 

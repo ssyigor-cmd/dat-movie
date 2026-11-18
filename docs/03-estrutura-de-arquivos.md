@@ -5,6 +5,7 @@
 ```text
 dat-movie/
 ├── index.html                  # Shell da SPA: auth, navbar, home, grade, busca e modais
+├── mobile.html                 # Shell da experiência mobile: markup + CSS próprio (ver 11-mobile-web.md)
 ├── style.css                   # Design system e todas as regras de layout/tema
 ├── README.md                   # Visão geral, setup, deploy e estrutura
 ├── package.json                # Scripts e dependências
@@ -14,6 +15,7 @@ dat-movie/
 │
 ├── src/
 │   ├── main.js                 # Bootstrap e orquestração do app real
+│   ├── mobile.js                # Orquestração da frente mobile (ver 11-mobile-web.md)
 │   │
 │   ├── lib/                    # Domínio + infraestrutura
 │   │   ├── api.js              # callTMDB, detalhes, pôster por temporada, logos
@@ -80,8 +82,9 @@ dat-movie/
 | Arquivo | Responsabilidade | Observações |
 |---|---|---|
 | `index.html` | Estrutura semântica, IDs, formulários e modais | Fonte dos seletores de `dom.js`; inclui Font Awesome e fontes |
+| `mobile.html` | Shell da experiência mobile: markup + CSS próprio | Não importa `style.css`; ver `11-mobile-web.md` |
 | `style.css` | Tokens, temas, layout e componentes | Também é lido por testes de contrato visual |
-| `vite.config.js` | Entrada e configuração do bundler | `index.html` é o entry HTML |
+| `vite.config.js` | Entrada e configuração do bundler | Dois entries: `index.html` (desktop) e `mobile.html` |
 | `vitest.config.js` | Ambiente de teste | Testes rodam em Node, não em navegador |
 
 ### Orquestração
@@ -89,6 +92,7 @@ dat-movie/
 | Arquivo | Responsabilidade |
 |---|---|
 | `src/main.js` | Bootstrap; autenticação; CRUD Supabase; navbar e listas; filtros; render da grade; roteamento do título; eventos globais; composição dos modais |
+| `src/mobile.js` | Bootstrap da experiência mobile; telas; sheets; steppers; detalhe | Igual ao `main.js` em papel; ver `11-mobile-web.md` |
 
 `main.js` é o maior acoplador do projeto. Ele não é um “componente”: é a camada de
 aplicação inteira em um arquivo.

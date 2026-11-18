@@ -11,6 +11,7 @@
 | APIs externas | Edge Functions Deno | Proxy para TMDb e Fanart.tv |
 | Animação | Anime.js | Transições e microinterações |
 | Drag & drop | SortableJS | Reordenação de listas na navbar |
+| Mobile web | HTML estático + DOM API | mobile.html + src/mobile.js; CSS próprio, sem style.css - ver 11-mobile-web.md |
 | Testes | Vitest 4 | Unidade + contratos visuais |
 | Lint | ESLint 9 | `src`, `tests`, `scripts` |
 | Runtime de tooling | Node >= 22 | Scripts de build, teste e migração |

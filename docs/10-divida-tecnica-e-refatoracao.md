@@ -59,13 +59,15 @@ estrutura cobra um preço em três frentes:
 
 ### 2.3 Drift de documentação e schema
 
-- `integration.test.js` cita `gridDensity`, chave que **não existe** em
-  `state.js`.
+- ~~`integration.test.js` cita `gridDensity`, chave que **não existe** em
+  `state.js`.~~ **Resolvido**: o teste foi reescrito para importar o módulo real
+  `src/lib/state.js` (localStorage semeado + reimport); a chave fantasma saiu do
+  contrato.
 - `items.nota` é lido pelo modelo JS, mas não existe no DDL versionado.
 - A RLS de `items` não está versionada nas migrations; só a de
   `user_lists`/`item_lists` está.
-- `homePage.js` tem 18 caracteres `U+FFFD` em comentários (linhas ~1108–1125),
-  resquício de encoding.
+- ~~`homePage.js` tem 18 caracteres `U+FFFD` em comentários.~~ **Resolvido**:
+  comentários reescritos; não há `U+FFFD` no repositório.
 
 ---
 
@@ -107,9 +109,11 @@ Prioridade: **P0** bloqueia uma mudança estrutural ou é risco de segurança/da
   sincronização em tempo real; isso é decisão, não bug.
 - **Não** reescrever as Edge Functions sem necessidade: elas são pequenas,
   testadas e resolvem o problema de cota/segredo.
-- **Não** reintroduzir suporte mobile nem a camada de instalação (manifest de
-  PWA, ícone de app, meta tags de iOS) no app atual: ele é desktop e roda no
-  navegador. Uma experiência web/mobile separada é outro produto.
+- **Não** reintroduzir suporte mobile no app desktop (`index.html`) nem a camada
+  de instalação (manifest PWA, ícone de app, meta tags de iOS, service worker):
+  o desktop continua desktop e não é instalável. A experiência mobile existe no
+  mesmo repositório como produto separado (`mobile.html`), documentada em
+  `11-mobile-web.md` — não a misture com o desktop.
 
 ---
 
