@@ -196,10 +196,21 @@ function cardHTML(item, opts = {}) {
   const tier = item.tier || '';
   const tc = tier ? tierClass(tier) : '';
   const stamp = tier ? `<span class="card-stamp ${tc}">${tier}</span>` : '';
-  const posterUrl = (opts.continue && item._wideImg) ? item._wideImg : (item.imagem || item.posterUrl || '');
-  const poster = posterUrl
-    ? `<img src="${escapeHTML(posterUrl)}" alt="${safeName}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;card-fallback&quot;><i class=&quot;fas fa-film&quot;></i></div>'" />`
-    : '<div class="card-fallback"><i class="fas fa-film"></i></div>';
+  const isContinue = !!opts.continue;
+  const posterUrl = (isContinue && item._wideImg) ? item._wideImg : (item.imagem || item.posterUrl || '');
+  const logoUrl = isContinue ? (item._logoImg || '') : '';
+  let poster;
+  if (isContinue && posterUrl) {
+    // Backdrop desfocado com o logo centralizado (mesma direção do detalhe).
+    poster = `<img class="continue-backdrop" src="${escapeHTML(posterUrl)}" alt="${safeName}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;card-fallback&quot;><i class=&quot;fas fa-film&quot;></i></div>'" />`;
+    if (logoUrl) poster += `<div class="cont-logo"><img src="${escapeHTML(logoUrl)}" alt="${safeName}" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>`;
+  } else {
+    poster = posterUrl
+      ? `<img src="${escapeHTML(posterUrl)}" alt="${safeName}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;card-fallback&quot;><i class=&quot;fas fa-film&quot;></i></div>'" />`
+      : '<div class="card-fallback"><i class="fas fa-film"></i></div>';
+  }
+  // Com logo sobre a imagem, o nome embaixo duplicaria — mesma regra do detalhe.
+  const hideTitle = isContinue && !!logoUrl;
 
   let body = '';
   const progress = calcularProgresso(item);
@@ -218,7 +229,7 @@ function cardHTML(item, opts = {}) {
     ? `openPreview('${opts.previewKey}')`
     : opts.preview ? 'openRoulettePreview()' : `openTitle('${item.id || 0}')`;
   return `<div class="${cls}" onclick="${onclick}">
-    <div class="card-img">${poster}${stamp}<h3 class="card-title" title="${safeName}">${safeName}</h3></div>
+    <div class="card-img">${poster}${stamp}${hideTitle ? '' : `<h3 class="card-title" title="${safeName}">${safeName}</h3>`}</div>
     ${body ? `<div class="card-body">${body}</div>` : ''}
     ${opts.extraHtml ? `<div class="card-extra">${opts.extraHtml}</div>` : ''}
   </div>`;
@@ -775,20 +786,31 @@ async function loadContinueRail(items, rail, empty) {
   }
   if (empty) empty.classList.add('hidden');
   rail.classList.remove('hidden');
-  // Busca imagens wide (backdrop) do TMDB para cada título
-  await Promise.all(items.map(async (it) => {
-    if (it._wideImg) return;
-    if (!it.tmdb_id) { it._wideImg = it.imagem || ''; return; }
-    try {
-      const d = await fetchTvDetailsCached(it.tmdb_id);
-      if (d?.backdrop_path) it._wideImg = `https://image.tmdb.org/t/p/w780${d.backdrop_path}`;
-      else if (d.poster_path) it._wideImg = `https://image.tmdb.org/t/p/w500${d.poster_path}`;
-      else it._wideImg = it.imagem || '';
-    } catch {
-      it._wideImg = it.imagem || '';
+  // Última edição primeiro (paridade com a Continuar Assistindo do desktop,
+  // que ordena por dataAtualizacao || dataCriacao decrescente).
+  const ordered = [...items].sort((a, b) => new Date(b.dataAtualizacao || b.dataCriacao || 0) - new Date(a.dataAtualizacao || a.dataCriacao || 0));
+  // Busca imagens wide (backdrop) e o logo de cada título em paralelo.
+  await Promise.all(ordered.map(async (it) => {
+    if (!it._wideImg) {
+      if (!it.tmdb_id) { it._wideImg = it.imagem || ''; } else {
+        try {
+          const d = await fetchTvDetailsCached(it.tmdb_id);
+          if (d?.backdrop_path) it._wideImg = `https://image.tmdb.org/t/p/w780${d.backdrop_path}`;
+          else if (d.poster_path) it._wideImg = `https://image.tmdb.org/t/p/w500${d.poster_path}`;
+          else it._wideImg = it.imagem || '';
+        } catch {
+          it._wideImg = it.imagem || '';
+        }
+      }
+    }
+    if (it._logoImg === undefined) {
+      it._logoImg = null;
+      if (it.tmdb_id) {
+        try { it._logoImg = await fetchTitleLogo(it.tmdb_id, 'tv') || null; } catch { it._logoImg = null; }
+      }
     }
   }));
-  rail.innerHTML = items.map(t => cardHTML(t, { continue: true })).join('');
+  rail.innerHTML = ordered.map(t => cardHTML(t, { continue: true })).join('');
 }
 
 function openGenre(id) {

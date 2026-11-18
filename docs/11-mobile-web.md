@@ -147,6 +147,11 @@ regra de cor sólida do desktop.
 Histórico relevante:
 
 - Detalhe redesenhado (pôster 124px, logo 46px, selos equalizados em 24px);
+- Continuar Assistindo ordena pelos **títulos editados mais recentemente**
+  (`dataAtualizacao || dataCriacao` decrescente, paridade com o desktop) e o
+  card passa a exibir o backdrop **desfocado** (`.continue-backdrop`, blur 6px +
+  brightness) com o **logo centralizado** (`.cont-logo`); sem logo, o nome
+  segue sobre a imagem com o gradiente padrão;
 - Ano removido do detalhe (o selo foi ocupado pelo botão Detalhes — **o ano
   não aparece em lugar nenhum da ficha**, decisão em aberto desde então);
 - Setas do backdrop reduzidas; seta de voltar removida (voltar = gesto);
