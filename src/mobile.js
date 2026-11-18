@@ -1339,7 +1339,7 @@ function updateTitleMeta() {
   if (item.ano) mh += `<span class="title-badge">${item.ano}</span>`;
   const tc = currentTier ? tierClass(currentTier) : '';
   mh += `<button class="title-badge title-badge-btn tier" onclick="cycleTier()">${currentTier ? `<span class="tier-group-stamp ${tc}" style="width:18px;height:18px;font-size:0.5rem">${currentTier}</span>` : 'N/A'}</button>`;
-  const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['live', 'Planejado'], 'pausado': ['done', 'Pausado'] };
+  const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
   const [dc, sl] = sm[currentStatus] || ['live', currentStatus];
   mh += `<button class="title-badge title-badge-btn" onclick="cycleStatus()"><span class="status-dot ${dc}"></span> ${sl}</button>`;
   meta.innerHTML = mh;
@@ -1395,7 +1395,6 @@ async function openTitleFromCatalog(item, opts = {}) {
 
   const tp = $('titlePoster');
   if (tp) { tp.src = item.imagem || ''; tp.style.display = item.imagem ? 'block' : 'none'; }
-  $('titleOverview').textContent = item.overview || 'Sinopse não disponível.';
 
   // Status buttons
   document.querySelectorAll('#statusRow .status-btn').forEach(b => { b.classList.toggle('active', b.textContent.toLowerCase() === currentStatus); });
@@ -1417,8 +1416,6 @@ async function loadTitleTMDBDetails(item) {
   try {
     const details = await fetchTvDetailsCached(item.tmdb_id);
     if (!details) { updateSteppers(); syncEpisodePanel(); return; }
-    // Sinopse
-    if (details.overview) $('titleOverview').textContent = details.overview;
     // Seasons
     if (details.seasons) {
       const seasons = details.seasons.filter(s => s.season_number > 0);
@@ -1481,8 +1478,6 @@ function showBackdrop(idx) {
   img.style.display = 'block';
   $('bdPrev').style.display = bdImages.length > 1 ? 'flex' : 'none';
   $('bdNext').style.display = bdImages.length > 1 ? 'flex' : 'none';
-  const c = $('bdCounter');
-  if (bdImages.length > 1) { c.textContent = `${bdIndex + 1} / ${bdImages.length}`; c.style.display = 'block'; }
 }
 
 function navBackdrop(dir) { showBackdrop(bdIndex + dir); startBackdropAutoRotate(); }

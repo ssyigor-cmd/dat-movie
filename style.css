@@ -36,15 +36,6 @@
   --accent-ink: #08080b;
   --accent-soft: rgba(229, 216, 191, 0.1);
 
-  /* A faixa de acento da marca: gradiente único "nascer do sol", da brasa
-     (#8c2d10) na esquerda à meia-noite (#0f172a) na direita. É a base da
-     identidade: sublinhado do item ativo do menu (.nav-item.active::after,
-     3px) e o filete na base do mark (assets/icon, assets/favicon,
-     assets/logo). Nunca como fill. */
-  --horizon: linear-gradient(90deg,
-    #8c2d10 0%, #d95f0e 18%, #fdba74 36%, #fff7ed 50%,
-    #bfdbfe 68%, #60a5fa 84%, #0f172a 100%);
-
   /* Utilitários */
   --danger: #ef4444;
   --warning: #fbbf24;
@@ -559,12 +550,9 @@ label:has(input[type="radio"]) {
 }
 .nav-item:hover i { color: var(--accent); }
 /* O estado ativo é uma aba: fundo transparente e uma barra de 2px na base,
-   com cantos totalmente arredondados (raio em pílula).
-   A barra carrega o filete "nascer do sol" da marca (gradiente único
-   brasa→noite, token --horizon) em vez de areia chapada: é a única presença
-   do gradiente na barra (o mark na ponta esquerda é a outra). A cápsula
-   preenchida (`--accent-soft`) de antes virava mais um botão na barra e
-   competia com o hover; a barra diz "você está aqui" sem virar forma. */
+   com cantos totalmente arredondados (raio em pílula), na cor do destaque.
+   A cápsula preenchida (`--accent-soft`) de antes virava mais um botão na
+   barra e competia com o hover; a barra diz "você está aqui" sem virar forma. */
 .nav-item.active {
   background: transparent;
   color: var(--text-primary);
@@ -578,7 +566,7 @@ label:has(input[type="radio"]) {
   bottom: -2px;
   height: 2px;
   border-radius: 999px;
-  background: var(--horizon);
+  background: var(--accent);
 }
 .nav-item.active i { color: var(--accent); }
 .nav-dropdown {
