@@ -17,7 +17,7 @@ estrutura cobra um preço em três frentes:
    para lista, filtro ou título.
 2. **A UI é difícil de evoluir.** `main.js` concentra auth, perfil, abas, render,
    CRUD e eventos; `titlePage.js` tem muitos estilos inline; `style.css` tem
-   3571 linhas e regras duplicadas.
+   3744 linhas e regras duplicadas.
 3. **O estado é implícito.** Parte vive em `state.js`, parte no DOM (selects,
    inputs), parte em closures de componentes, parte em `localStorage`. Cada tela
    lê de um lugar diferente.
@@ -28,29 +28,34 @@ estrutura cobra um preço em três frentes:
 
 ### 2.1 Tamanho
 
+Levantamento de **18/11/2026** (o mobile foi incluído; os valores anteriores
+valiam só para o desktop):
+
 | Arquivo | Linhas | Observação |
 |---|---:|---|
-| `style.css` | 3752 | Design system + todas as telas |
-| `src/main.js` | 2217 | Bootstrap, auth, perfil, abas, render, CRUD |
-| `src/components/homePage.js` | 1414 | Template e loaders de 11 seções |
-| `src/lib/trendingApi.js` | 897 | Rede, cache, score, calendário, estatísticas |
-| `src/pages/titlePage.js` | 833 | Página do título |
-| `src/components/titleInfoModal.js` | 519 | Ficha do TMDb |
-| `src/lib/discoverSearch.js` | 486 | Busca avançada |
-| `src/components/searchPage.js` | 444 | UI da busca |
-| `src/lib/recommendScoring.js` | 426 | Score e mix |
-| **Total `src/**/*.js`** | **~10.046** | 30 módulos |
+| `style.css` | 3744 | Design system + todas as telas desktop |
+| `src/main.js` | 2216 | Bootstrap, auth, perfil, abas, render, CRUD |
+| `src/components/homePage.js` | 1411 | Template e loaders de 11 seções |
+| `src/lib/trendingApi.js` | 896 | Rede, cache, score, calendário, estatísticas |
+| `src/pages/titlePage.js` | 832 | Página do título |
+| `src/components/titleInfoModal.js` | 518 | Ficha do TMDb |
+| `src/lib/discoverSearch.js` | 485 | Busca avançada |
+| `src/components/searchPage.js` | 443 | UI da busca |
+| `src/lib/recommendScoring.js` | 425 | Score e mix |
+| `src/mobile.js` | 2225 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
+| `mobile.html` | 734 | Markup + CSS da frente mobile |
+| **Total `src/**/*.js`** | **~12.242** | 31 módulos |
 
 ### 2.2 Acoplamentos e sintomas
 
 | Métrica | Valor |
 |---|---|
-| Estilos inline em `src/` | 96 (71 em `titlePage.js`, 21 em `homePage.js`, 4 em `cards.js`, `episodesModal.js` e `main.js`) |
-| `innerHTML` em `src/` | 95 |
-| IDs no shell | 117 (todos únicos) |
+| Estilos inline em `src/` | 105 (`titlePage.js` 71, `homePage.js` 21 no desktop; `mobile.js` 9) |
+| `innerHTML` em `src/` | 159 (95 desktop + 64 em `mobile.js`) |
+| IDs no shell (desktop) | 117 (todos únicos) |
 | Chaves em `dom.js` | 51 (sem seções vazias) |
 | Suítes de teste | 29 |
-| Casos de teste | 527 |
+| Casos de teste | 530 |
 | Falhas atuais | 0 |
 | Service worker | N/A (sem camada PWA) |
 | `onAuthStateChange` | Ausente |
@@ -68,6 +73,9 @@ estrutura cobra um preço em três frentes:
   `user_lists`/`item_lists` está.
 - ~~`homePage.js` tem 18 caracteres `U+FFFD` em comentários.~~ **Resolvido**:
   comentários reescritos; não há `U+FFFD` no repositório.
+- ~~O toggle de agrupamento grava `state.groupingActive` em vez de
+  `groupingActive`; a preferência não sobrevivia ao refresh.~~ **Resolvido em
+  18/11/2026** (`main.js` usa `STORAGE_KEYS.GROUPING_ACTIVE`).
 
 ---
 
@@ -83,8 +91,8 @@ Prioridade: **P0** bloqueia uma mudança estrutural ou é risco de segurança/da
 | D03 | Estado | `state.js` + DOM + closures + `localStorage` | Comportamento depende da ordem de render; difícil testar | P0 |
 | D04 | Schema | RLS de `items` não versionada; `nota` ausente no DDL | Risco de segurança e de perda de dado | P0 |
 | D05 | Testes | 11 suítes leem o fonte de `src/` e o `style.css` por regex para segurar contratos visuais | Refactor que só muda formatação quebra teste e esconde regressão real | P2 |
-| D06 | CSS | 3745 linhas; title page no fim do arquivo | Especificidade e ordem frágeis; difícil evoluir | P1 |
-| D07 | Title page | 833 linhas; 71 `style=`; muitos `!important` | Não tematiza nem testa; difícil compor | P1 |
+| D06 | CSS | 3744 linhas; title page no fim do arquivo | Especificidade e ordem frágeis; difícil evoluir | P1 |
+| D07 | Title page | 832 linhas; 71 `style=`; muitos `!important` | Não tematiza nem testa; difícil compor | P1 |
 | D08 | DOM | IDs globais; `dom.js` incompleto; `filterMenuOptions` capturado uma vez | `ReferenceError` históricos; NodeList obsoleta | P1 |
 | D09 | Render | 95 `innerHTML`; escape manual | XSS depende de disciplina; difícil compor | P1 |
 | D10 | Auth | Sem `onAuthStateChange`; sessão só no boot/refresh | Token expirado ou logout em outra aba não refletem | P1 |
@@ -93,7 +101,7 @@ Prioridade: **P0** bloqueia uma mudança estrutural ou é risco de segurança/da
 | D13 | Cache | Cache global, não por usuário; preferências também globais | Dados de uma conta podem aparecer para outra no mesmo navegador | P2 |
 | D15 | Duplicação | `#searchFiltersPanel` e `#advFiltersPanel` são dois wrappers para o mesmo painel | Dois caminhos para a mesma função | P2 |
 | D16 | Observabilidade | Sem error boundary, métricas ou log estruturado | Falha em produção vira relato vago | P2 |
-| D17 | Encoding | 18 `U+FFFD` em `homePage.js` | Comentários ilegíveis; risco de copiar texto quebrado | P2 |
+| ~~D17~~ | ~~Encoding~~ | ~~18 `U+FFFD` em `homePage.js`~~ — **Resolvido** | Comentários reescritos | — |
 | D19 | Realtime | Nenhum canal `postgres_changes` | Mudança em outro dispositivo só aparece no refresh | P2 |
 
 > **D14 e D18 saíram do inventário.** D14: a camada PWA/instalação foi

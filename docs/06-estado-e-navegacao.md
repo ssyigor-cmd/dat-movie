@@ -33,8 +33,9 @@ export const state = {
 - `persistNavState()` grava `activeTab` e `activeListId`.
 - Preferências (`showProgressBar`, `theme`) são gravadas em `main.js`, não em
   `state.js`.
-- `groupingActive` é gravado no toggle, mas com a chave errada
-  (`state.groupingActive`) — ver dívida técnica.
+- `groupingActive` é gravado no toggle via `STORAGE_KEYS.GROUPING_ACTIVE`
+  (`main.js`), com a mesma chave que `state.js` lê na abertura — corrigido em
+  18/11/2026; antes o toggle gravava a chave errada.
 
 ### O que **não** fica no estado global
 
@@ -271,7 +272,7 @@ próxima operação que falhar.
 |---|---|---|---|
 | Barra de progresso | `showProgressBar` | mostrar | Classe `is-progress-bar-hidden` no `<body>` |
 | Tema | `theme` | `system` | `data-theme` no `<html>` |
-| Agrupamento por tier | `groupingActive` | desligado | Agrupa a grade; **bug de chave** |
+| Agrupamento por tier | `groupingActive` | desligado | Agrupa a grade |
 | Aba ativa | `activeTab` | `home` | Restaura navegação |
 | Lista ativa | `activeListId` | — | Restaura lista |
 
@@ -292,8 +293,9 @@ próxima operação que falhar.
 
 ## Armadilhas conhecidas
 
-1. **Chave de agrupamento divergente.** O toggle grava `state.groupingActive` em
-   vez de `groupingActive`; a preferência não sobrevive ao refresh.
+1. ~~**Chave de agrupamento divergente.** O toggle gravava `state.groupingActive`
+   em vez de `groupingActive`.~~ **Resolvido em 18/11/2026** (`main.js` usa
+   `STORAGE_KEYS.GROUPING_ACTIVE`); a preferência sobrevive ao refresh.
 2. **Filtros no DOM.** Como não estão no estado, qualquer refatoração de
    componente precisa extrair esses valores de forma explícita.
 3. **`popstate` com catálogo vazio.** Se o usuário voltar para um título antes de

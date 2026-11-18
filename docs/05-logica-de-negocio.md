@@ -680,7 +680,7 @@ Uso: backdrop da página do título. A rotação é interrompida ao sair da pág
 | Falha do TMDb | Seção fica vazia; erro vai ao console/toast | loaders da home |
 | Requisição antiga termina depois | `renderSeq` descarta render obsoleto | `main.js` |
 | Hash de preview `#/titulo/preview-<id>` | Não é resolvido pelo `popstate` | `main.js` |
-| Toggle de agrupamento | Grava chave errada (`state.groupingActive`) | `main.js` (bug) |
+| ~~Toggle de agrupamento~~ | ~~Grava chave errada (`state.groupingActive`)~~ **Resolvido em 18/11** (`main.js` grava `STORAGE_KEYS.GROUPING_ACTIVE`) | `main.js` |
 
 ---
 

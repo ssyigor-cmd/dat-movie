@@ -2177,7 +2177,7 @@ sortOrder.addEventListener('change', render);
 groupToggle.innerHTML = state.groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
 groupToggle.addEventListener('click', () => {
   state.groupingActive = !state.groupingActive;
-  localStorage.setItem('state.groupingActive', state.groupingActive);
+  localStorage.setItem(STORAGE_KEYS.GROUPING_ACTIVE, String(state.groupingActive));
   groupToggle.innerHTML = state.groupingActive ? '<i class="fas fa-layer-group" style="color: var(--accent);"></i>' : '<i class="fas fa-layer-group"></i>';
   render();
 });

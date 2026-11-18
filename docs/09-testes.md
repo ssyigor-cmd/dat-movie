@@ -4,7 +4,7 @@ A suíte é o principal registro executável das decisões do projeto. Ela mistu
 **testes de domínio** (funções puras) com **contratos de texto** que leem
 `style.css`, `index.html` e os fontes para impedir regressões visuais silenciosas.
 
-> **Estado em 06/11/2026:** `npm test` executa **29 arquivos** e **527 casos**.
+> **Estado em 18/11/2026:** `npm test` executa **29 arquivos** e **530 casos**.
 > Resultado: **29 arquivos passam, 0 falham**; `npm run lint` também está limpo.
 > As decisões que levaram a isso estão na seção 7.
 
@@ -76,7 +76,7 @@ Contagem de `it(` por arquivo; “tipo” indica o foco principal.
 | 13 | `glow.test.js` | 5 | Contrato | Nenhum halo no acento; sombras legítimas intactas |
 | 14 | `homeLayout.test.js` | 29 | Contrato | Tokens da home, trilho único, medida JS/CSS, sem estilo inline |
 | 15 | `imageNavigation.test.js` | 15 | Comportamento | `nextImage`, `prevImage`, dedupe, idioma, largura |
-| 16 | `integration.test.js` | 9 | Contrato/integração | Chaves de storage e contrato de entrada do proxy |
+| 16 | `integration.test.js` | 12 | Contrato/integração | Chaves de storage **do módulo real** (`state.js`) e contrato de entrada do proxy |
 | 17 | `logoPicker.test.js` | 13 | Comportamento | Escolha canônica de logo por idioma/qualidade |
 | 18 | `progressBar.test.js` | 9 | Contrato | Preferência da barra: markup, persistência, menu |
 | 19 | `recommendScoring.test.js` | 51 | Comportamento | Bayes, popularidade, recência, sinais, mix 70/30, filtros |
@@ -91,7 +91,7 @@ Contagem de `it(` por arquivo; “tipo” indica o foco principal.
 | 28 | `typography.test.js` | 7 | Contrato | Famílias, pesos reais, reserva do mono |
 | 29 | `upcoming.test.js` | 9 | Contrato | Posição, carregamento, TMDb e corpo do card de “Em Breve” |
 
-**Total:** 527 casos.
+**Total:** 530 casos.
 
 ### 3.1 O que cada bloco cobre, em resumo
 
@@ -175,10 +175,20 @@ Importa `_shared/auth.ts` e cobre:
 
 ### 5.3 `integration.test.js`
 
-Verifica as chaves de `localStorage` e o contrato de entrada do proxy. **Atenção:**
-o bloco chamado “state.js — contratos e integração” **não importa**
-`src/lib/state.js`; ele redefine `STORAGE_KEYS` localmente e testa o próprio
-mock. É um teste tautológico, não uma garantia sobre o módulo real.
+Importa a **allow-list real** de `supabase/functions/_shared/allowedEndpoint.ts`
+(contrato de entrada do proxy) e o **módulo real** `src/lib/state.js` — a
+versão anterior mantinha uma cópia local de `STORAGE_KEYS` (incluindo a chave
+fantasma `gridDensity`, que nunca existiu no app) e testava só essa cópia.
+A suíte atual semeia o `localStorage` mockado e reimporta o módulo com
+`vi.resetModules()`:
+
+- as chaves em uso (`activeTab`, `activeListId`, `groupingActive`,
+  `showProgressBar`, `theme`) e a ausência documentada de `GRID_DENSITY`;
+- `persistNavState` grava `activeTab`/`activeListId` e remove `activeListId`
+  quando `null`;
+- leitura inicial com o store semeado (`activeTab` inválido cai em `home`,
+  `groupingActive` só é verdadeiro com a string `"true"`, `showProgressBar`
+  ausente conta como mostrar, `theme` desconhecido volta a `system`).
 
 ---
 
@@ -219,7 +229,7 @@ mock. É um teste tautológico, não uma garantia sobre o módulo real.
 | `api.js` | Indireta (mockada); sem teste de contrato HTTP real |
 | `auth.js` | Nenhuma |
 | `lists.js` | Nenhuma |
-| `state.js` | Nenhuma (o teste homônimo não o importa) |
+| `state.js` | Baixa (contrato de chaves e persistência via módulo real, em `integration.test.js`) |
 | `dom.js` | Nenhuma |
 | `main.js` | Baixa |
 | `titlePage.js` | Nenhuma |
@@ -235,9 +245,9 @@ porcentagem como substituto dos contratos de decisão.
 
 ---
 
-## 7. Estado: suíte verde (06/11/2026)
+## 7. Estado: suíte verde (18/11/2026)
 
-`npm test` fecha com **29 suítes, 527 casos e 0 falhas**; `npm run lint` também
+`npm test` fecha com **29 suítes, 530 casos e 0 falhas**; `npm run lint` também
 está limpo. O que era vermelho e como cada caso foi decidido:
 
 | Suíte | Caso | Resolução |
@@ -245,6 +255,7 @@ está limpo. O que era vermelho e como cada caso foi decidido:
 | `catalog.test.js` | "limita o resultado a 100% no máximo" | Expectativa desatualizada. O caso usava item **sem mapa**, que é exatamente o caminho do guard "total não confiável". Passou a exercitar o teto com mapa (15 contra 10 no mapa → 100), e o guard ganhou caso próprio (`→ 0`), conforme `05-logica-de-negocio.md` |
 | `catalog.test.js` | "ignora total por temporada que não fecha com o que foi assistido" | Contradizia o caso vizinho "não acumula temporadas anteriores sem seasonEpisodesMap", que fixa 3/40 → 8. Alinhada a 2/9 → 22 e renomeada para dizer o que mede |
 | `freshRefresh.test.js` | "getTitlesByYear não recebe fresh: fica com o cache de 1h" | Falso negativo de CRLF: o assert procurava `poolSizeFor(lim)\n` e o checkout no Windows tem `\r\n`. A leitura do fonte agora normaliza o EOL |
+| `integration.test.js` | (18/11) o bloco “state.js” não importava o módulo | Reescrito: semeia `localStorage`, reimporta `src/lib/state.js` e testa o contrato real; 9 → 12 casos |
 
 > `trending.test.js` ("cai para os episódios recentes…") já estava resolvido
 > antes deste levantamento.

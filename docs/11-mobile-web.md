@@ -113,8 +113,9 @@ regra de cor sólida do desktop.
 - O **único gradiente** do projeto segue existindo só como filete da logo
   (rampa monocromática areia → bronze, `#F2E9D5 0%` → `#E5D8BF 35%` →
   `#A89467 70%` → `#6E5F3C 100%` nos SVGs). **Não há gradiente na UI.**
-- O item ativo da nav usa `--accent` sólido (2px pill) — trava testada por
-  `tests/glow.test.js`.
+- O item ativo da nav usa `--accent` sólido (2px pill, `.nav-tab.active::before`).
+  **Nenhuma suíte trava esse contrato** — `tests/glow.test.js` lê só o
+  `style.css` desktop; o mobile é verificado por revisão visual.
 - Estados de status usam as mesmas cores semânticas do resto do app
   (`--success`, `--accent`, `--tier-a`, `--warning`).
 

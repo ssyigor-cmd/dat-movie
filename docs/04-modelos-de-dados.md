@@ -274,7 +274,7 @@ user.created_at
 |---|---|---|---|
 | `activeTab` | Aba atual (`home`, `all`, `planejado`, `pesquisa`, `list`) | `state.persistNavState` | Validada na leitura |
 | `activeListId` | Id da lista aberta | `state.persistNavState` | Removida quando não há lista |
-| `groupingActive` | `"true"` / `"false"` | `state` na leitura | **Bug:** o toggle grava `state.groupingActive` (chave divergente) |
+| `groupingActive` | `"true"` / `"false"` | `main.js` | ~~Divergente: o toggle gravava `state.groupingActive`~~ **Resolvido em 18/11**: grava `STORAGE_KEYS.GROUPING_ACTIVE` |
 | `showProgressBar` | `"true"` / `"false"` | `main.js` | Ausência = mostrar |
 | `theme` | `system` / `dark` / `light` | `main.js` | Ausência = `system` |
 | `datmovie_cache_v1` | `{ data: { [key]: { value, expiresAt } }, ts }` | `cache.js` | Restaurado se `ts` < 7 dias |

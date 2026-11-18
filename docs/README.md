@@ -45,7 +45,7 @@ Leitura sugerida:
 ## Convenções
 
 - **Idioma:** português do Brasil, o mesmo do produto e das mensagens de UI.
-- **App:** SPA desktop em JavaScript puro + Vite, entry em `src/main.js`, montada por `index.html`. Existe também a frente mobile (entry `src/mobile.js`, montada por `mobile.html`), documentada em [11 — Mobile web](11-mobile-web.md). O desktop é o que usa Supabase e TMDb.
+- **App:** SPA desktop em JavaScript puro + Vite, entry em `src/main.js`, montada por `index.html`. Existe também a frente mobile (entry `src/mobile.js`, montada por `mobile.html`), documentada em [11 — Mobile web](11-mobile-web.md). Ambas usam Supabase e TMDb com as mesmas credenciais e as mesmas Edge Functions.
 - **Termos de código:** nomes de funções, tabelas e chaves são mantidos como estão
   no código, inclusive quando misturam português e inglês.
 - **“Fonte da verdade”:** o schema do banco vive em `supabase/migrations/`; as

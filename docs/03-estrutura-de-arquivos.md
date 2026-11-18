@@ -62,7 +62,7 @@ dat-movie/
 ├── scripts/
 │   └── migrate-data.js         # Migração administrativa para o sistema de listas
 │
-├── tests/                      # 29 suítes Vitest (unidade + contrato visual)
+├── tests/                      # 29 suítes Vitest, 530 casos (unidade + contrato visual)
 │
 ├── assets/                     # Marca: favicons, ícones, logotipos + guia
 ├── public/                     # Espelho servido pelo Vite (assets)

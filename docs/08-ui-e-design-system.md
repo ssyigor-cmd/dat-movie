@@ -447,9 +447,9 @@ Regras:
 - Grade `auto-fill` com gap de 12px e mínimo de 160px.
 - Cabeçalhos de grupo por tier ocupam a linha inteira, com borda esquerda na cor
   do tier e contagem em mono.
-- `groupToggle` liga/desliga o agrupamento; a preferência deveria persistir em
-  `localStorage.groupingActive`, mas grava na chave errada
-  (`state.groupingActive`) — ver `10-divida-tecnica-e-refatoracao.md`.
+- `groupToggle` liga/desliga o agrupamento; a preferência persiste em
+  `localStorage.groupingActive` via `STORAGE_KEYS.GROUPING_ACTIVE` (corrigido
+  em 18/11/2026 — antes gravava a chave errada).
 
 ### 7.5 Home
 
