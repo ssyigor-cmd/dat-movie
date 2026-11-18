@@ -56,7 +56,7 @@ Telas declaradas em `mobile.html`:
 | Catálogo | `catalogScreen` | Grade com filtros, agrupamento por tier e ordenação |
 | Próximos | `proximosScreen` | Episódios da semana / Em Breve |
 | Busca | `searchScreen` | Busca local + TMDb com filtros avançados |
-| Listas | `listsScreen` | Listas do usuário, coleções — **sem aba própria**: abre pelo botão "Listas" na tela de Catálogo (e pela linha "Listas" do Perfil) |
+| Listas | `listsScreen` | Listas do usuário, coleções — **sem aba própria**: abre pela linha "Listas" do Perfil |
 | Detalhe | `titleScreen` | Ficha do título (ver seção 4) |
 | Perfil | `profileScreen` | Nome, tema, barra de progresso, sair |
 
@@ -189,9 +189,12 @@ Histórico relevante:
 - Boot: tela de login não é mais visível por padrão — `#bootSplash` cobre a
   verificação e a sessão local elimina a chamada `/auth/v1/user` na largada;
 - Barra superior removida: o ícone saiu de vez de cima; o perfil virou aba
-  da nav inferior (onde estava "Listas"); a tela de Listas ganhou um botão
-  "Listas" na própria tela de Catálogo (o item ativo da nav fica em
-  Catálogo enquanto se navega por ela);
+  da nav inferior (onde estava "Listas"); a tela de Listas passou a abrir
+  pela linha "Listas" do Perfil (o botão provisório na tela de Catálogo foi
+  removido no mesmo dia — "ele já existe no perfil"); o item ativo da nav
+  fica em Catálogo enquanto se navega pela tela de Listas;
+- Botões de Filtros/Ordenar/Agrupar (Catálogo, Próximos e Pesquisar)
+  alinhados à direita da linha (`.filter-chips--right`);
 - Setas do backdrop reduzidas; seta de voltar removida (voltar = gesto);
 - `Corrigir título` removido do mobile; CSS morto removido;
 - Filete da logo monocromático (ver `assets/BRAND_GUIDELINES.md`).
