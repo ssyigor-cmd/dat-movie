@@ -562,7 +562,6 @@ function renderHome() {
   const name = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const cap = name ? name.charAt(0).toUpperCase() + name.slice(1) : '';
   $('greetingText').textContent = cap ? `Bom te ver, ${cap}` : 'Bom te ver';
-  $('greetingSubtitle').textContent = `Você tem ${items.length} títulos no catálogo`;
 
   // Continuar assistindo
   loadContinueRail(items.filter(i => i.status === 'assistindo'), $('continueRail'), $('continueEmpty'));
