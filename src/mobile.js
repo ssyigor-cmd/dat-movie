@@ -1386,7 +1386,7 @@ async function openTitleFromCatalog(item, opts = {}) {
   if (actions) {
     if (actionsSectionHTML === null) actionsSectionHTML = actions.innerHTML;
     actions.innerHTML = item._isPreview
-      ? '<div class="title-section-label">Adicionar</div><button class="action-btn" onclick="addRouletteTitle()"><i class="fas fa-plus"></i> Adicionar</button><button class="action-btn" onclick="goBackFromTitle()"><i class="fas fa-times"></i> Cancelar</button>'
+      ? '<div class="twin-label">Adicionar</div><button class="badge-action" onclick="addRouletteTitle()"><i class="fas fa-plus"></i>Adicionar</button><button class="badge-action" onclick="goBackFromTitle()"><i class="fas fa-times"></i>Cancelar</button>'
       : actionsSectionHTML;
   }
 

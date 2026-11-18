@@ -343,11 +343,15 @@
     .status-btn { padding:8px 14px; border-radius:var(--radius-pill); border:none; background:var(--bg-surface); color:var(--text-secondary); font-size:0.78rem; font-weight:500; cursor:pointer; }
     .status-btn:active { background:var(--bg-hover); }
     .status-btn.active { background:var(--accent); color:var(--accent-ink); }
-    .chip-row { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip-row > .title-section-label { width:100%; margin-bottom:0; }
-    .action-btn { display:inline-flex; align-items:center; gap:8px; background:var(--bg-surface); border:none; border-radius:var(--radius-pill); color:var(--text-primary); font-size:0.78rem; font-weight:600; cursor:pointer; padding:9px 15px; }
-    .action-btn:active { background:var(--bg-hover); }
-    .action-btn.is-danger { color:var(--danger); }
+    /* Dois blocos lado a lado (Listas | Ações) com botões no mesmo design
+       dos badges de ano/tier/status do cabeçalho (mono, radius-sm, surface). */
+    .twin-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .twin-block { background:var(--bg-secondary); border-radius:var(--radius); padding:10px; display:flex; flex-direction:column; gap:6px; }
+    .twin-label { font-family:var(--font-mono); font-size:0.6rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); padding:0 2px 2px; }
+    .badge-action { display:flex; align-items:center; gap:7px; width:100%; border:none; border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--text-secondary); font-family:var(--font-mono); font-size:0.66rem; font-weight:600; text-align:left; padding:10px 9px; cursor:pointer; transition:var(--transition); }
+    .badge-action:active { background:var(--bg-hover); }
+    .badge-action i { font-size:0.72rem; width:14px; text-align:center; }
+    .badge-action.is-danger { color:var(--danger); }
     .parent-hint { margin:12px 16px 0; padding:12px 14px; background:var(--accent-soft); border-radius:var(--radius); display:flex; align-items:center; gap:10px; font-size:0.78rem; }
     .parent-hint i { color:var(--accent); }
     .parent-hint-btn { margin-left:auto; padding:6px 12px; background:var(--accent); color:var(--accent-ink); border:none; border-radius:var(--radius-sm); font-size:0.72rem; font-weight:600; cursor:pointer; }
@@ -629,8 +633,18 @@
         <div class="stepper-box"><span class="stepper-label-sm">Episódio</span><div class="stepper-display"><span class="cur" id="epDisplay">07</span><span class="sep">/</span><span class="max" id="epMax">09</span></div><div class="stepper-controls"><button class="stepper-btn" data-target="ep" data-step="-1" onclick="applyStep(this)" onmousedown="startHold(this)" onmouseup="stopHold()" onmouseleave="stopHold()"><i class="fas fa-minus"></i></button><button class="stepper-btn" data-target="ep" data-step="1" onclick="applyStep(this)" onmousedown="startHold(this)" onmouseup="stopHold()" onmouseleave="stopHold()"><i class="fas fa-plus"></i></button></div></div>
       </div></div>
       <div class="title-section"><div class="title-section-label">Episódio</div><div class="ep-synopsis-box"><div class="ep-syn-head"><span class="ep-syn-title" id="epTitle">Selecione temporada e episódio</span><span class="ep-syn-date" id="epDate"></span></div><p class="ep-syn-text" id="epSynopsis">Selecione temporada e episódio para ver a sinopse.</p><div class="ep-loading hidden" id="epLoading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div></div>
-      <div class="title-section chip-row"><div class="title-section-label">Listas</div><button class="action-btn" onclick="openListModal()"><i class="fas fa-layer-group"></i> Selecionar listas</button><button class="action-btn" onclick="openEpisodesModal()"><i class="fas fa-film"></i> Episódios</button><button class="action-btn" onclick="openTitleInfoModal()"><i class="fas fa-circle-info"></i> Detalhes</button></div>
-      <div class="title-section chip-row" id="actionsSection"><div class="title-section-label">Ações</div><button class="action-btn" onclick="saveTitle()"><i class="fas fa-save"></i> Salvar</button><button class="action-btn" onclick="openRelinkModal()"><i class="fas fa-link"></i> Corrigir título</button><button class="action-btn is-danger" onclick="confirmDelete()"><i class="fas fa-trash"></i> Remover</button></div>
+      <div class="title-section twin-row">
+        <div class="twin-block"><div class="twin-label">Listas</div>
+          <button class="badge-action" onclick="openListModal()"><i class="fas fa-layer-group"></i>Selecionar listas</button>
+          <button class="badge-action" onclick="openEpisodesModal()"><i class="fas fa-film"></i>Episódios</button>
+          <button class="badge-action" onclick="openTitleInfoModal()"><i class="fas fa-circle-info"></i>Detalhes</button>
+        </div>
+        <div class="twin-block" id="actionsSection"><div class="twin-label">Ações</div>
+          <button class="badge-action" onclick="saveTitle()"><i class="fas fa-save"></i>Salvar</button>
+          <button class="badge-action" onclick="openRelinkModal()"><i class="fas fa-link"></i>Corrigir título</button>
+          <button class="badge-action is-danger" onclick="confirmDelete()"><i class="fas fa-trash"></i>Remover</button>
+        </div>
+      </div>
     </div>
   </section>
 
