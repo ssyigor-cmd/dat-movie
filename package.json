@@ -1,6 +1,13 @@
 {
   "name": "dat-movie",
   "version": "1.0.0",
+  "description": "Catálogo pessoal de mídia (desktop + mobile web): listas, tiers, episódios, TMDb e Supabase.",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ssyigor-cmd/dat-movie.git"
+  },
   "engines": {
     "node": ">=22"
   },

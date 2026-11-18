@@ -28,6 +28,10 @@ decisões já tomadas, para que a evolução do app não perca esse contexto.
 | [10 — Dívida técnica](10-divida-tecnica-e-refatoracao.md) | O que atrapalha a evolução do app? |
 | [11 — Mobile web](11-mobile-web.md) | A frente mobile: como é montada, anatomia da tela de detalhe, identidade compartilhada e dívida própria? |
 
+`outputs/` guarda arquivos de exploração (notas de análise, estudos de
+iconeografia) que não são documentação — são insumo de design e ficam aqui
+para não poluir a raiz do repositório.
+
 Leitura sugerida:
 
 1. **Produto e regras:** 01 → 05.
