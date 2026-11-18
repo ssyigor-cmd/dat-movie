@@ -111,14 +111,13 @@
     .login-switch button { background:none; border:none; color:var(--accent); font-weight:600; cursor:pointer; font-family:var(--font-body); font-size:0.8rem; }
     /* SCREENS */
     .screen { display:none; } .screen.active { display:block; }
-    /* Folga para a marca fixa no canto superior esquerdo (.app-corner-mark):
-       login (centralizado, marca oculta) e detalhe (backdrop full-bleed) isentos */
-    .screen:not(#loginScreen):not(#titleScreen) { padding-top: 28px; }
     /* HOME */
     .home-greeting { padding:20px 16px 0; }
     .home-greeting h2 { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; line-height:1.2; }
-    /* Marca pequena, fixa no canto superior esquerdo de toda página do app */
-    .app-corner-mark { position:fixed; top:calc(8px + var(--safe-top)); left:12px; z-index:55; width:22px; height:22px; pointer-events:none; }
+    /* Marca pequena na linha do título (canto superior direito da linha):
+       título à esquerda, marca à direita, dentro da área do app */
+    .page-title-line { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .page-mark { width:22px; height:22px; flex-shrink:0; }
     .home-section { margin-top:var(--space-section); }
     .home-section-head { padding:0 16px; margin-bottom:var(--space-block); display:flex; align-items:center; justify-content:space-between; }
     .home-section-title { font-family:var(--font-display); font-size:0.95rem; font-weight:600; display:flex; align-items:center; gap:8px; }
@@ -463,9 +462,6 @@
   <!-- BOOT SPLASH — único visível até o boot decidir entre sessão e login -->
   <div id="bootSplash" class="boot-splash" aria-hidden="true"><img src="/assets/logo/stacked-dark.svg" alt="" class="auth-logo-img" style="height:72px;opacity:0.9" /><i class="fas fa-spinner fa-spin"></i></div>
 
-  <!-- MARCA FIXA — canto superior esquerdo em todas as telas do app (oculta no login) -->
-  <img id="cornerMark" class="app-corner-mark hidden" src="/assets/icon/icon-face.svg" alt="" aria-hidden="true" />
-
   <!-- LOGIN SCREEN -->
   <div id="loginScreen" class="login-screen screen">
     <div class="login-logo"><img src="/assets/logo/stacked-dark.svg" alt="datmovie" class="auth-logo-img" style="height:60px" /></div>
@@ -507,7 +503,7 @@
 
   <!-- HOME SCREEN -->
   <section id="homeScreen" class="screen">
-    <div class="home-greeting"><h2 id="greetingText">Bom te ver</h2></div>
+    <div class="home-greeting page-title-line"><h2 id="greetingText">Bom te ver</h2><img class="page-mark" src="/assets/icon/icon-face.svg" alt="" aria-hidden="true" /></div>
     <div class="home-section" id="continueSection">
       <div class="home-section-head"><span class="home-section-title"><i class="fas fa-play"></i> Continuar Assistindo</span></div>
       <div class="h-scroll" id="continueRail"></div>
@@ -545,7 +541,7 @@
   </section>
   <!-- CATALOG SCREEN -->
   <section id="catalogScreen" class="screen">
-    <div class="catalog-header"><h2 id="catalogListName">Catálogo</h2><p id="catalogSubtitle">12 títulos · Total</p></div>
+    <div class="catalog-header"><div class="page-title-line"><h2 id="catalogListName">Catálogo</h2><img class="page-mark" src="/assets/icon/icon-face.svg" alt="" aria-hidden="true" /></div><p id="catalogSubtitle">12 títulos · Total</p></div>
     <div class="filter-chips filter-chips--right">
       <button class="filter-chip" onclick="openFilterSheet()"><i class="fas fa-sliders"></i> Filtros</button>
       <button class="filter-chip" onclick="openSortSheet()"><i class="fas fa-arrow-down-wide-short"></i> Ordenar</button>
@@ -556,7 +552,7 @@
 
   <!-- PROXIMOS SCREEN -->
   <section id="proximosScreen" class="screen">
-    <div class="catalog-header"><h2>Próximos</h2><p id="proximosSubtitle">0 títulos · Próximos</p></div>
+    <div class="catalog-header"><div class="page-title-line"><h2>Próximos</h2><img class="page-mark" src="/assets/icon/icon-face.svg" alt="" aria-hidden="true" /></div><p id="proximosSubtitle">0 títulos · Próximos</p></div>
     <div class="filter-chips filter-chips--right">
       <button class="filter-chip" onclick="openSortSheet()"><i class="fas fa-arrow-down-wide-short"></i> Ordenar</button>
       <button class="filter-chip" onclick="toggleGroupByTier(event)"><i class="fas fa-layer-group"></i> Agrupar</button>
@@ -566,7 +562,7 @@
 
   <!-- LISTS SCREEN (equivalente ao menu "Listas" do desktop) -->
   <section id="listsScreen" class="screen">
-    <div class="catalog-header"><h2>Listas</h2><p id="listsSubtitle">0 listas · Minhas Listas</p></div>
+    <div class="catalog-header"><div class="page-title-line"><h2>Listas</h2><img class="page-mark" src="/assets/icon/icon-face.svg" alt="" aria-hidden="true" /></div><p id="listsSubtitle">0 listas · Minhas Listas</p></div>
     <div class="filter-chips">
       <button class="filter-chip" onclick="openCollectionsSheet()"><i class="fas fa-plus"></i> Nova lista</button>
       <button class="filter-chip" onclick="openCollectionsSheet()"><i class="fas fa-arrows-alt"></i> Organizar</button>
@@ -714,7 +710,7 @@
   <div class="toast" id="toast"></div>
   <style>
     [data-theme="light"] .auth-logo-img { content: url('/assets/logo/stacked-light.svg'); }
-    [data-theme="light"] .app-corner-mark { content: url('/assets/icon/icon-face-light.svg'); }
+    [data-theme="light"] .page-mark { content: url('/assets/icon/icon-face-light.svg'); }
   </style>
   <style>
     .title-badge-btn { border:none; cursor:pointer; font:inherit; font-family:var(--font-mono); font-size:0.65rem; font-weight:600; padding:3px 10px; min-height:24px; border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--text-secondary); display:inline-flex; align-items:center; gap:6px; }
