@@ -11,6 +11,7 @@
   <a href="#-instalação-e-execução-local">Instalação</a> •
   <a href="#-configuração-do-supabase">Supabase</a> •
   <a href="#-estrutura-de-diretórios">Estrutura</a> •
+  <a href="#-mobile-web">Mobile</a> •
   <a href="#-deploy">Deploy</a> •
   <a href="#-licença">Licença</a>
 </p>
@@ -24,7 +25,7 @@
   <img src="https://img.shields.io/badge/Vitest-3E8E41?style=for-the-badge&logo=vitest&logoColor=white" alt="Vitest Badge" />
 </p>
 
-**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA) de desktop. A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de persistência por usuário no Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster.
+**Dat-Movie** é um catálogo pessoal de mídia desenvolvido como uma Single Page Application (SPA). A aplicação oferece listas personalizáveis com drag-and-drop, gerenciamento de episódios com destaque do episódio atual, filtragem por Tiers de qualidade e status, além de persistência por usuário no Supabase. Integra-se com a API do TMDb para busca de títulos, metadados ricos e imagens de backdrop/poster. O repositório reúne duas frentes de UI sobre o mesmo catálogo: a SPA de desktop (`index.html` + `src/main.js`) e a experiência mobile (`mobile.html` + `src/mobile.js`), ambas construídas pelo mesmo build do Vite.
 
 ---
 
@@ -123,7 +124,8 @@ Para rodar a aplicação localmente, certifique-se de possuir:
 
 6. **Build de Produção:**
    ```bash
-   npm run build
+   npm run build              # gera dist/ com index.html E mobile.html
+   npm run build:favicons     # regera favicons e apple-touch-icon a partir dos SVGs de assets/
    ```
 
 > **Testes de contrato visual rodam sem navegador.** Eles leem `style.css`,
@@ -258,7 +260,10 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   │   └── ...              # autoRotate, dates, fuzzySearch, prng, recommendScoring, titleRelations
 │   ├── pages/
 │   │   └── titlePage.js     # Página do título (ficha, episódios, backdrop)
-│   └── main.js              # Bootstrap, eventos globais e fluxo do perfil
+│   ├── main.js              # Bootstrap, eventos globais e fluxo do perfil (desktop)
+│   └── mobile.js            # Lógica da experiência mobile (sistema de telas, bottom sheets)
+├── docs/                    # Documentação funcional e técnica (ver docs/README.md)
+├── scripts/                 # Utilitários de manutenção (favicons, migração de dados)
 ├── supabase/
 │   ├── functions/           # Edge Functions (Deno)
 │   └── migrations/          # Schema do banco — fonte da verdade do DDL e das RLS
@@ -274,11 +279,23 @@ quebra o build em vez de passar em silêncio. Não copie o padrão para dentro d
 │   ├── glow.test.js         # Nenhum halo; anel de foco e sombra intactos
 │   ├── progressBar.test.js  # Alvo e persistência da preferência de exibição
 │   └── ...                  # 29 suítes no total
-├── index.html               # Arquivo HTML base da SPA
+├── index.html               # Arquivo HTML base da SPA (desktop)
+├── mobile.html              # Arquivo HTML base da experiência mobile (build do Vite junto com o desktop)
 ├── package.json             # Dependências e scripts
-├── style.css                # Folha de estilos unificada
+├── style.css                # Folha de estilos unificada (desktop)
 └── README.md                # Este arquivo
 ```
+
+---
+
+## 📱 Mobile (web)
+
+Além da SPA desktop, o repositório traz uma experiência mobile separada, pensada para iPhone/Safari:
+
+- **Entry**: `mobile.html` + `src/mobile.js` (sistema próprio de telas e bottom sheets), construída pelo mesmo `npm run build` — o `vite.config.js` tem `index.html` e `mobile.html` como entradas.
+- **Ícones**: `assets/icon/apple-touch-icon.png` (180px, iOS gera a máscara) e favicons gerados dos SVGs por `npm run build:favicons`.
+- **Não é PWA**: sem service worker e sem atalho de instalação; a experiência é servida como site.
+- **Back**: por gesto (swipe da borda no iOS); a tela de detalhe não usa botão de voltar.
 
 ---
 
@@ -297,7 +314,7 @@ Ao configurar o projeto na plataforma escolhida:
 
 ## 📄 Licença
 
-Este projeto está licenciado sob os termos da licença **MIT**. Veja o arquivo da licença para mais detalhes.
+Este projeto está licenciado sob os termos da licença **MIT**.
 
 ---
 

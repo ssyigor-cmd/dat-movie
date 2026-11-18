@@ -1104,14 +1104,14 @@ function bindGenreBack(section) {
 }
 
 /**
- * Carrega e renderiza o Calend�rio da Semana.
+ * Carrega e renderiza o Calendário da Semana.
  *
- * Esta se��o substituiu "Novos Epis�dios", que era a mesma informa��o em linha
+ * Esta seção substituiu "Novos Episódios", que era a mesma informação em linha
  * plana: as duas chamavam `getNewEpisodes` com a mesma janela de 7 dias sobre os
- * mesmos t�tulos `assistindo`. O calend�rio agrupa por data, o que d� o mesmo
- * conte�do com mais contexto, ent�o a lista plana foi removida. O que ela tinha
- * de bom foi preservado aqui: bot�o de atualizar, card clic�vel e still do
- * epis�dio quando o t�tulo n�o tem p�ster.
+ * mesmos títulos `assistindo`. O calendário agrupa por data, o que dá o mesmo
+ * conteúdo com mais contexto, então a lista plana foi removida. O que ela tinha
+ * de bom foi preservado aqui: botão de atualizar, card clicável e still do
+ * episódio quando o título não tem pôster.
  */
 export async function loadAndRenderCalendar(container, items, onCardClick, opts = {}) {
   const section = container.querySelector('#homeCalendarSection');
@@ -1121,7 +1121,7 @@ export async function loadAndRenderCalendar(container, items, onCardClick, opts 
   if (!section || !grid || !skel) return;
   setupSectionRefresh(section, () => {
     loadAndRenderCalendar(container, items, onCardClick, { fresh: true });
-  }, 'Atualizar calend�rio');
+  }, 'Atualizar Calendário');
   section.style.display = '';
   grid.style.display = 'none';
   skel.style.display = '';

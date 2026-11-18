@@ -1746,56 +1746,6 @@ async function openTitleInfoModal() {
 function closeTitleInfoModal() { $('titleInfoModal').classList.remove('open'); }
 
 // ================================================================
-// RELINK
-// ================================================================
-function openRelinkModal() { $('relinkSheet').classList.add('open'); $('relinkOverlay').classList.add('open'); }
-function closeRelinkModal() { $('relinkSheet').classList.remove('open'); $('relinkOverlay').classList.remove('open'); }
-async function handleRelinkSearch(val) {
-  const results = $('relinkResults');
-  if (val.length < 2) { results.innerHTML = ''; return; }
-  try {
-    const data = await callTMDB('search/tv', { query: val, language: 'pt-BR' }, 'pt-BR');
-    results.innerHTML = (data.results || []).slice(0, 8).map(r => `
-      <div class="relink-result" onclick="relinkTitle(${r.id})">
-        ${r.poster_path ? `<img src="https://image.tmdb.org/t/p/w92${r.poster_path}" style="width:40px;height:60px;border-radius:6px;object-fit:cover" />` : '<div style="width:40px;height:60px;background:var(--bg-secondary);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-muted)"><i class="fas fa-film"></i></div>'}
-        <div style="flex:1"><div class="relink-result-name">${escapeHTML(r.name)}</div><div class="relink-result-year">${(r.first_air_date || '').slice(0, 4) || '—'}</div></div>
-      </div>`).join('');
-  } catch { results.innerHTML = '<p style="color:var(--text-muted)">Erro na busca.</p>'; }
-}
-
-async function relinkTitle(tmdbId) {
-  if (!currentTitle) return;
-  try {
-    // Mesmo fluxo do desktop (applyRelink): nome/imagem/ano e totais vão
-    // juntos com o tmdb_id corrigido.
-    const details = await fetchTvDetailsCached(tmdbId, 'pt-BR', { fresh: true });
-    const map = seasonMapFromDetails(details);
-    const nome = details?.name || currentTitle.nome;
-    const ano = (details?.first_air_date || details?.release_date || '').slice(0, 4) || currentTitle.ano || null;
-    const imagem = details?.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : currentTitle.imagem;
-    const totalEpisodios = Number(details?.number_of_episodes) || currentTitle.totalEpisodios || 1;
-    const seasonEpisodesMap = Object.keys(map).length ? map : (currentTitle.seasonEpisodesMap || {});
-    const { data, error } = await supabase.from('items').update({
-      nome, tmdb_id: tmdbId, imagem, ano,
-      total_episodios: totalEpisodios,
-      season_episodes_map: seasonEpisodesMap,
-    }).eq('id', currentTitle.id).select();
-    if (error) throw error;
-    const saved = data?.[0];
-    Object.assign(currentTitle, saved || {}, {
-      totalEpisodios: saved?.total_episodios ?? totalEpisodios,
-      seasonEpisodesMap: saved?.season_episodes_map || seasonEpisodesMap,
-      dataAtualizacao: saved?.data_atualizacao ?? currentTitle.dataAtualizacao,
-    });
-    const idx = state.items.findIndex(i => String(i.id) === String(currentTitle.id));
-    if (idx !== -1) Object.assign(state.items[idx], currentTitle);
-    showToast('Título corrigido!');
-    closeRelinkModal();
-    openTitleFromCatalog(currentTitle);
-  } catch (e) { showToast('Erro: ' + e.message); }
-}
-
-// ================================================================
 // CONFIRM
 // ================================================================
 let confirmCallback = null;
@@ -2241,7 +2191,6 @@ Object.assign(window, {
   setStatus, setTier, saveTitle, goBackFromTitle, confirmDelete, cycleTier, cycleStatus,
   openEpisodesModal, toggleSeason, closeEpisodesModal,
   openTitleInfoModal, closeTitleInfoModal,
-  openRelinkModal, closeRelinkModal, handleRelinkSearch, relinkTitle,
   openConfirm, executeConfirm, closeConfirm,
   openListModal, closeListModal, saveTitleLists,
   openCollectionsSheet, closeCollectionsSheet, renderCollectionsList,

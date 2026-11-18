@@ -38,9 +38,7 @@ Leitura sugerida:
 ## Convenções
 
 - **Idioma:** português do Brasil, o mesmo do produto e das mensagens de UI.
-- **Caminhos:** relativos à raiz do repositório (`C:\Projetos\dat-movie`).
-- **App:** SPA desktop em JavaScript puro + Vite, entry em `src/main.js`, montada
-  por `index.html`. É o que usa Supabase e TMDb.
+- **App:** SPA desktop em JavaScript puro + Vite, entry em `src/main.js`, montada por `index.html`. Existe também a frente mobile (entry `src/mobile.js`, montada por `mobile.html`), ainda não coberta por esta pasta. O desktop é o que usa Supabase e TMDb.
 - **Termos de código:** nomes de funções, tabelas e chaves são mantidos como estão
   no código, inclusive quando misturam português e inglês.
 - **“Fonte da verdade”:** o schema do banco vive em `supabase/migrations/`; as

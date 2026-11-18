@@ -78,13 +78,6 @@
     .tier-b { background: var(--tier-b); color: var(--tier-b-ink); }
     .tier-c { background: var(--tier-c); color: var(--tier-c-ink); }
     .tier-d { background: var(--tier-d); color: var(--tier-d-ink); }
-    .age-badge { font-family: var(--font-mono); font-weight: 700; font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; }
-    .age-l { background: var(--success); color: #06331F; }
-    .age-10 { background: #3b82f6; color: #fff; }
-    .age-12 { background: var(--warning); color: #452900; }
-    .age-14 { background: #f97316; color: #fff; }
-    .age-16 { background: var(--danger); color: #fff; }
-    .age-18 { background: #1a1a1a; color: #fff; }
   </style>
   <style>
     /* LOGIN */
@@ -133,7 +126,6 @@
     .home-refresh-btn:active { color:var(--accent); }
     .home-refresh-btn.is-loading i { animation:spin 0.8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
-    .see-all { font-family:var(--font-body); font-size:0.72rem; font-weight:500; color:var(--text-muted); background:none; border:none; cursor:pointer; }
     .h-scroll { display:flex; gap:var(--space-item); overflow-x:auto; scroll-snap-type:x mandatory; padding:0 16px; padding-bottom:4px; scroll-padding-left:16px; -webkit-overflow-scrolling:touch; }
     .h-scroll > * { scroll-snap-align:start; flex-shrink:0; }
     /* CARD */
@@ -221,10 +213,6 @@
     .genre-card:active { background:var(--bg-hover); }
     .genre-card-icon { font-size:1.3rem; color:var(--accent); }
     .genre-card-name { font-size:0.72rem; font-weight:500; }
-    .stats-row { display:flex; gap:12px; padding:0 16px; overflow-x:auto; }
-    .stat-card { flex-shrink:0; min-width:100px; background:var(--bg-surface); border-radius:var(--radius); padding:14px; text-align:center; }
-    .stat-number { font-family:var(--font-mono); font-size:1.4rem; font-weight:700; color:var(--accent); }
-    .stat-label { font-size:0.68rem; color:var(--text-muted); margin-top:2px; }
     .back-to-top { display:flex; justify-content:center; padding:24px 16px; }
     .back-to-top button { padding:10px 20px; background:var(--bg-surface); border:none; border-radius:var(--radius-pill); color:var(--text-secondary); font-size:0.78rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
     .cal-card { width:140px; background:var(--bg-surface); border-radius:var(--radius); overflow:hidden; cursor:pointer; }
@@ -308,19 +296,12 @@
     .status-dot.done { background:var(--accent); }
     .status-dot.info { background:var(--tier-a); }
     .status-dot.warn { background:var(--warning); }
-    .status-dot.canceled { background:var(--danger); }
     .title-body { padding:16px; }
     .title-section { margin-top:20px; }
     .title-section-label { font-family:var(--font-display); font-size:0.85rem; font-weight:600; margin-bottom:8px; }
-    .tier-dropdown-options { display:flex; flex-wrap:wrap; gap:8px; }
     .tier-opt { padding:8px 14px; border-radius:var(--radius-pill); border:none; background:var(--bg-surface); color:var(--text-primary); font-size:0.78rem; cursor:pointer; font-weight:600; }
     .tier-opt:active { background:var(--bg-hover); }
     .tier-opt.active { background:var(--accent); color:var(--accent-ink); }
-    .title-btn { flex:1; height:44px; border:none; border-radius:var(--radius); font-family:var(--font-body); font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
-    .title-btn-primary { background:var(--accent); color:var(--accent-ink); }
-    .title-btn-primary:active { background:var(--accent-hover); }
-    .title-btn-secondary { background:var(--bg-surface); color:var(--text-primary); }
-    .title-btn-secondary:active { background:var(--bg-hover); }
     .stepper-row { display:flex; gap:10px; }
     .stepper-box { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; background:var(--bg-elevated); border-radius:var(--radius); }
     .stepper-label-sm { font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
@@ -338,7 +319,6 @@
     .ep-syn-date { font-size:0.68rem; color:var(--text-muted); white-space:nowrap; font-family:var(--font-mono); }
     .ep-syn-text { font-size:0.78rem; line-height:1.45; color:var(--text-secondary); margin-top:6px; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
     .ep-loading { font-size:0.62rem; color:var(--text-muted); }
-    .status-row { display:flex; gap:8px; flex-wrap:wrap; }
     .status-btn { padding:8px 14px; border-radius:var(--radius-pill); border:none; background:var(--bg-surface); color:var(--text-secondary); font-size:0.78rem; font-weight:500; cursor:pointer; }
     .status-btn:active { background:var(--bg-hover); }
     .status-btn.active { background:var(--accent); color:var(--accent-ink); }
@@ -425,21 +405,10 @@
     .ti-cell-label { font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; }
     .ti-cell-value { font-size:0.82rem; color:var(--text-primary); display:flex; align-items:center; gap:6px; }
     .ti-pill { display:inline-block; padding:2px 8px; background:var(--bg-surface); border-radius:var(--radius-sm); font-size:0.72rem; margin-right:4px; }
-    .ti-flag { width:20px; height:14px; border-radius:2px; }
     .ti-cast { display:flex; gap:12px; overflow-x:auto; padding-bottom:4px; }
     .ti-cast-card { flex-shrink:0; width:72px; text-align:center; }
     .ti-cast-ph { width:72px; height:72px; border-radius:var(--radius); background:var(--bg-surface); display:flex; align-items:center; justify-content:center; color:var(--text-muted); }
     .ti-cast-name { font-size:0.7rem; font-weight:600; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .ti-list { list-style:none; }
-    .ti-list li { font-size:0.78rem; color:var(--text-secondary); line-height:1.5; margin-bottom:8px; padding-left:16px; position:relative; }
-    .ti-list li::before { content:'•'; position:absolute; left:0; color:var(--accent); }
-    /* RELINK */
-    .relink-search { display:flex; align-items:center; gap:10px; background:var(--bg-surface); border-radius:var(--radius); padding:0 14px; height:44px; margin-bottom:16px; }
-    .relink-search input { flex:1; background:none; border:none; outline:none; color:var(--text-primary); font-size:0.85rem; }
-    .relink-result { display:flex; gap:12px; padding:12px; background:var(--bg-surface); border-radius:var(--radius); margin-bottom:8px; cursor:pointer; }
-    .relink-result:active { background:var(--bg-hover); }
-    .relink-result-name { font-size:0.82rem; font-weight:600; }
-    .relink-result-year { font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono); }
     /* LIST MODAL */
     .list-checkbox { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; }
     .list-checkbox:active { background:var(--bg-hover); }
@@ -713,10 +682,6 @@
 
   <!-- TITLE INFO MODAL -->
   <div class="fs-modal" id="titleInfoModal"><div class="fs-modal-header"><button class="fs-modal-close" onclick="closeTitleInfoModal()"><i class="fas fa-times"></i></button><span class="fs-modal-title"><i class="fas fa-circle-info"></i> Detalhes</span></div><div class="fs-modal-body"><div class="search-loading" id="titleInfoLoading"><i class="fas fa-spinner fa-spin"></i><p>Carregando detalhes...</p></div><div id="titleInfoContent" style="display:none"></div></div></div>
-
-  <!-- RELINK SHEET -->
-  <div class="sheet-overlay" id="relinkOverlay" onclick="closeRelinkModal()"></div>
-  <div class="bottom-sheet" id="relinkSheet"><div class="sheet-handle"></div><div class="sheet-title"><i class="fas fa-link"></i> Corrigir título</div><div class="sheet-section"><p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">Vincule o item ao título certo do TMDB. Seu progresso, status, tier e listas são mantidos.</p><div class="relink-search"><i class="fas fa-search" style="color:var(--text-muted)"></i><input type="text" id="relinkSearch" placeholder="Buscar no TMDB..." oninput="handleRelinkSearch(this.value)" /></div><div id="relinkResults"></div></div></div>
 
   <!-- CONFIRM SHEET -->
   <div class="sheet-overlay" id="confirmOverlay" onclick="closeConfirm()"></div>
