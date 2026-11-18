@@ -8,7 +8,8 @@ export const STORAGE_KEYS = {
   ACTIVE_LIST_ID: 'activeListId',
   GROUPING_ACTIVE: 'groupingActive',
   SHOW_PROGRESS_BAR: 'showProgressBar',
-  THEME: 'theme'
+  THEME: 'theme',
+  HOME_LAYOUT: 'homeLayout',
 };
 
 export const state = {

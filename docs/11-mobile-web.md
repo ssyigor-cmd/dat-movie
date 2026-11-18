@@ -45,7 +45,22 @@ documento existir, o mobile não era citado em nenhum lugar da documentação.
   (`<section class="screen" id="...">`), trocadas por `switchScreen(name)`.
   Não há router nem URL por tela; não há deep link.
 - **Bottom sheets**: padrão do mobile — filtros, ordenação, listas, coleções,
-  episódios e confirmação abrem como folha inferior com `.sheet-overlay`.
+  episódios, confirmação e **personalização da Home** abrem como folha
+  inferior com `.sheet-overlay`.
+- **Home personalizável**: a linha "Personalizar tela inicial" do Perfil abre
+  `#homeLayoutSheet`, onde cada um dos 14 blocos da Home (Continuar
+  Assistindo, Roleta, 4 rails de afinidade, Episódios da Semana, Descubra por
+  afinidade, Em Breve, Abandonados, Destaques do ano, Em Alta, Favoritos,
+  Explorar por gênero) tem um toggle de visibilidade e botões ▲/▼ de ordem.
+  A saudação e "Voltar ao topo" são fixos. `applyHomeLayout()` roda no começo
+  de `renderHome()`: reordena os blocos no DOM e marca os ocultos com
+  `.hidden` (`display:none !important`, necessário porque os loaders escrevem
+  `style.display=''` quando há dados). Loaders de blocos ocultos são
+  ignorados, e ao reexibir um bloco o inline `display:none` é limpo.
+  Preferência salva em `localStorage` na chave `homeLayout_<user.id>`
+  (válida para aquele usuário naquele aparelho), com "Restaurar padrão"
+  reaplicando a ordem do markup; ids desconhecidos no JSON salvo são
+  descartados e blocos faltantes são acrescentados no fim.
 - **Back**: por gesto (swipe da borda no iOS). A tela de detalhe **não tem
   botão de voltar** por decisão de produto.
 
@@ -59,7 +74,7 @@ Telas declaradas em `mobile.html`:
 | Busca | `searchScreen` | Busca local + TMDb com filtros avançados |
 | Listas | `listsScreen` | Listas do usuário, coleções — **sem aba própria**: abre pela linha "Listas" do Perfil |
 | Detalhe | `titleScreen` | Ficha do título (ver seção 4) |
-| Perfil | `profileScreen` | Nome, tema, barra de progresso, sair |
+| Perfil | `profileScreen` | Nome, tema, barra de progresso, personalização da tela inicial, sair |
 
 Nav inferior: Home, Catálogo, Próximos, Pesquisar, Perfil. O item ativo usa o
 acento sólido (ver `tests/glow.test.js`, que trava esse contrato).
@@ -175,6 +190,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Home configurável: a linha "Configurações" (que só dizia "Em breve") virou
+  "Personalizar tela inicial", com folha de mostrar/ocultar + reordenar os
+  14 blocos; persistência por usuário em `homeLayout_<user.id>`;
 - Detalhe redesenhado (pôster 124px, logo 46px, selos equalizados em 24px);
 - Continuar Assistindo ordena pelos **títulos editados mais recentemente**
   (`dataAtualizacao || dataCriacao` decrescente, paridade com o desktop) e o

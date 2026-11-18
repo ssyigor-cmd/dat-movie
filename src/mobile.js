@@ -556,36 +556,108 @@ function toggleProgressBar(btn) {
 // ================================================================
 // HOME
 // ================================================================
+// Blocos da Home que o usuário pode ocultar e reordenar. A ordem aqui
+// é o padrão — a mesma do markup em #homeScreen (saudação e "Voltar ao
+// topo" ficam fixos, fora da lista).
+const HOME_SECTIONS = [
+  { id: 'continueSection', label: 'Continuar Assistindo' },
+  { id: 'roulettePanel', label: 'Roleta de títulos' },
+  { id: 'rail0', label: 'Recomendações 1' },
+  { id: 'calendarSection', label: 'Episódios da Semana' },
+  { id: 'affinityPanel', label: 'Descubra por afinidade' },
+  { id: 'upcomingSection', label: 'Em Breve' },
+  { id: 'rail3', label: 'Recomendações 4' },
+  { id: 'abandonedSection', label: 'Abandonados' },
+  { id: 'rail1', label: 'Recomendações 2' },
+  { id: 'yearSection', label: 'Destaques do ano' },
+  { id: 'rail2', label: 'Recomendações 3' },
+  { id: 'trendingSection', label: 'Em Alta' },
+  { id: 'favoritesSection', label: 'Seus Favoritos' },
+  { id: 'genreSection', label: 'Explorar por gênero' },
+];
+const HOME_SECTION_IDS = HOME_SECTIONS.map(s => s.id);
+
+function homeLayoutKey() {
+  // Escopo por usuário: trocar de conta no mesmo aparelho não herda o layout.
+  return `${STORAGE_KEYS.HOME_LAYOUT}_${state.currentUser?.id || 'anon'}`;
+}
+
+function getHomeLayout() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(homeLayoutKey()) || 'null'); } catch {}
+  if (!saved || typeof saved !== 'object') {
+    return { order: [...HOME_SECTION_IDS], hidden: [] };
+  }
+  const savedOrder = Array.isArray(saved.order) ? saved.order.filter(id => HOME_SECTION_IDS.includes(id)) : [];
+  const order = [...new Set([...savedOrder, ...HOME_SECTION_IDS])];
+  const hidden = Array.isArray(saved.hidden)
+    ? [...new Set(saved.hidden.filter(id => HOME_SECTION_IDS.includes(id)))]
+    : [];
+  return { order, hidden };
+}
+
+function saveHomeLayout(layout) {
+  try { localStorage.setItem(homeLayoutKey(), JSON.stringify(layout)); } catch {}
+}
+
+function isHomeSectionHidden(id) {
+  return getHomeLayout().hidden.includes(id);
+}
+
+// Reordena os blocos no DOM e aplica a ocultação. O uso de .hidden
+// (!important) é essencial: vários loaders escrevem style.display=''
+// quando há dados e não podem reexibir um bloco que o usuário ocultou.
+function applyHomeLayout() {
+  const home = $('homeScreen');
+  const greeting = home?.querySelector('.home-greeting');
+  if (!greeting) return;
+  const { order, hidden } = getHomeLayout();
+  let cursor = greeting;
+  for (const id of order) {
+    const el = $(id);
+    if (!el) continue;
+    el.classList.toggle('hidden', hidden.includes(id));
+    home.insertBefore(el, cursor.nextSibling);
+    cursor = el;
+  }
+}
+
 function renderHome() {
   const items = state.items || [];
   const user = state.currentUser;
   const name = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const cap = name ? name.charAt(0).toUpperCase() + name.slice(1) : '';
   $('greetingText').textContent = cap ? `Bom te ver, ${cap}` : 'Bom te ver';
+  applyHomeLayout();
+  const show = id => !isHomeSectionHidden(id);
 
   // Continuar assistindo
-  loadContinueRail(items.filter(i => i.status === 'assistindo'), $('continueRail'), $('continueEmpty'));
+  if (show('continueSection')) loadContinueRail(items.filter(i => i.status === 'assistindo'), $('continueRail'), $('continueEmpty'));
 
   // Seções externas (não bloqueiam a tela)
-  loadTrending();
-  loadUpcoming();
-  loadAffinityRails();
+  if (show('trendingSection')) loadTrending();
+  if (show('upcomingSection')) loadUpcoming();
+  if (['rail0', 'rail1', 'rail2', 'rail3'].some(show)) loadAffinityRails();
 
   // Favoritos — getFavorites do desktop (S+ antes de S, depois atualização)
-  const favs = getFavorites(items, 10);
-  $('favoritesRail').innerHTML = favs.map(t => cardHTML(t)).join('');
-  $('favoritesSection').style.display = favs.length ? '' : 'none';
+  if (show('favoritesSection')) {
+    const favs = getFavorites(items, 10);
+    $('favoritesRail').innerHTML = favs.map(t => cardHTML(t)).join('');
+    $('favoritesSection').style.display = favs.length ? '' : 'none';
+  }
 
   // Gêneros derivados do que o usuário assiste
-  renderGenres();
+  if (show('genreSection')) renderGenres();
 
   // Calendário — getCalendarWeek real
-  loadCalendar(items);
+  if (show('calendarSection')) loadCalendar(items);
 
   // Abandonados — getAbandoned do desktop (mais recentes primeiro)
-  const abandoned = getAbandoned(items, 10);
-  $('abandonedRail').innerHTML = abandoned.map(t => cardHTML(t)).join('');
-  $('abandonedSection').style.display = abandoned.length ? '' : 'none';
+  if (show('abandonedSection')) {
+    const abandoned = getAbandoned(items, 10);
+    $('abandonedRail').innerHTML = abandoned.map(t => cardHTML(t)).join('');
+    $('abandonedSection').style.display = abandoned.length ? '' : 'none';
+  }
 }
 
 async function loadTrending(opts = {}) {
@@ -2315,6 +2387,78 @@ function switchScreen(name) {
 }
 
 // ================================================================
+// HOME LAYOUT (configuração na tela de Perfil)
+// ================================================================
+function renderHomeLayoutSheet() {
+  const list = $('homeLayoutList');
+  if (!list) return;
+  const { order, hidden } = getHomeLayout();
+  const labels = Object.fromEntries(HOME_SECTIONS.map(s => [s.id, s.label]));
+  list.innerHTML = order.map((id, i) => {
+    const isHidden = hidden.includes(id);
+    return `<div class="collection-row home-layout-row${isHidden ? ' is-hidden' : ''}">
+      <span class="collection-name">${escapeHTML(labels[id] || id)}</span>
+      <div class="collection-actions">
+        <button onclick="moveHomeSection('${id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="Mover para cima"><i class="fas fa-arrow-up"></i></button>
+        <button onclick="moveHomeSection('${id}',1)" ${i === order.length - 1 ? 'disabled' : ''} aria-label="Mover para baixo"><i class="fas fa-arrow-down"></i></button>
+        <button class="toggle${isHidden ? '' : ' on'}" onclick="toggleHomeSection('${id}')" aria-label="${isHidden ? 'Mostrar' : 'Ocultar'}"></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openHomeLayoutSheet() {
+  renderHomeLayoutSheet();
+  $('homeLayoutOverlay')?.classList.add('open');
+  $('homeLayoutSheet')?.classList.add('open');
+}
+
+function closeHomeLayoutSheet() {
+  $('homeLayoutOverlay')?.classList.remove('open');
+  $('homeLayoutSheet')?.classList.remove('open');
+}
+
+function toggleHomeSection(id) {
+  const layout = getHomeLayout();
+  const pos = layout.hidden.indexOf(id);
+  const el = $(id);
+  if (pos >= 0) {
+    layout.hidden.splice(pos, 1);
+    // Reexibir: loaders anteriores podem ter deixado display:none.
+    if (el) { el.classList.remove('hidden'); el.style.display = ''; }
+  } else {
+    layout.hidden.push(id);
+    el?.classList.add('hidden');
+  }
+  saveHomeLayout(layout);
+  renderHomeLayoutSheet();
+  renderHome();
+}
+
+function moveHomeSection(id, dir) {
+  const layout = getHomeLayout();
+  const i = layout.order.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= layout.order.length) return;
+  [layout.order[i], layout.order[j]] = [layout.order[j], layout.order[i]];
+  saveHomeLayout(layout);
+  applyHomeLayout();
+  renderHomeLayoutSheet();
+}
+
+function resetHomeLayout() {
+  try { localStorage.removeItem(homeLayoutKey()); } catch {}
+  for (const id of HOME_SECTION_IDS) {
+    const el = $(id);
+    if (el) { el.classList.remove('hidden'); el.style.display = ''; }
+  }
+  applyHomeLayout();
+  renderHomeLayoutSheet();
+  renderHome();
+  showToast('Tela inicial restaurada');
+}
+
+// ================================================================
 // EXPORT PARA window (necessário para onclick inline)
 // ================================================================
 Object.assign(window, {
@@ -2343,6 +2487,8 @@ Object.assign(window, {
   openSortSheet, closeSortSheet, selectSortOption,
   openSearchFilterSheet, closeSearchFilterSheet,
   toggleNameEdit, saveName, setTheme, logout, toggleProgressBar,
+  openHomeLayoutSheet, closeHomeLayoutSheet, toggleHomeSection,
+  moveHomeSection, resetHomeLayout,
 });
 
 // ================================================================
