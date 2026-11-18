@@ -37,9 +37,9 @@ documento existir, o mobile não era citado em nenhum lugar da documentação.
   `mobile.html` via `Object.assign(window, { ... })` (handlers `onclick` no
   markup). Não há bundler de componentes nem framework.
 - **Sem barra superior** (removida em 18/11/2026): a marca e o botão de
-  perfil que viviam no `.top-header` saíram de lá — a identidade fica no
-  `#bootSplash` e na tela de login, e o acesso ao perfil virou a última aba
-  da nav.
+  perfil que viviam no `.top-header` saíram de lá — o acesso ao perfil virou
+  a última aba da nav, e a identidade fica no `#bootSplash`, na tela de
+  login e numa pequena marca fixa no canto superior esquerdo (`.app-corner-mark`).
 - **Telas**: sistema próprio por seção
   (`<section class="screen" id="...">`), trocadas por `switchScreen(name)`.
   Não há router nem URL por tela; não há deep link.
@@ -195,6 +195,11 @@ Histórico relevante:
   fica em Catálogo enquanto se navega pela tela de Listas;
 - Botões de Filtros/Ordenar/Agrupar (Catálogo, Próximos e Pesquisar)
   alinhados à direita da linha (`.filter-chips--right`);
+- Marca pequena fixa no canto superior esquerdo em todas as telas do app
+  (`.app-corner-mark`, `icon-face.svg`, 22px, `z-index:55` — acima das
+  telas, abaixo do splash de boot (60) e das folhas/modais (200/250));
+  oculta apenas no login; no tema claro usa `icon-face-light.svg`
+  (`content: url(...)` no `<style>` final, mesmo padrão da logo do auth);
 - Setas do backdrop reduzidas; seta de voltar removida (voltar = gesto);
 - `Corrigir título` removido do mobile; CSS morto removido;
 - Filete da logo monocromático (ver `assets/BRAND_GUIDELINES.md`).

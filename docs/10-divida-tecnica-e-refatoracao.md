@@ -43,9 +43,9 @@ valiam só para o desktop):
 | `src/lib/contentRating.js` | 49 | `US_RATING_BR` + `pickContentRating` (extraído de `titleInfoModal.js`/`discoverSearch.js` em 18/11) |
 | `src/components/searchPage.js` | 443 | UI da busca |
 | `src/lib/recommendScoring.js` | 425 | Score e mix |
-| `src/mobile.js` | 2372 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
-| `mobile.html` | 731 | Markup + CSS da frente mobile |
-| **Total `src/**/*.js`** | **~12.398** | 32 módulos |
+| `src/mobile.js` | 2374 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
+| `mobile.html` | 737 | Markup + CSS da frente mobile |
+| **Total `src/**/*.js`** | **~12.399** | 32 módulos |
 
 ### 2.2 Acoplamentos e sintomas
 
