@@ -766,7 +766,7 @@ async function loadCalendar(items, opts = {}) {
     const isUpcoming = week[0]?.[2] === true;
     const hint = $('calendarHint');
     if (hint) hint.textContent = isUpcoming ? 'Próximos episódios' : 'Episódios que saíram esta semana';
-    const dows = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+    const dows = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const monthsAbbr = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     const html = [];
     for (const [date, eps] of week) {
@@ -782,7 +782,7 @@ async function loadCalendar(items, opts = {}) {
       const title = e.item?.nome || '';
       const posterUrl = e.item?.imagem || (ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : '');
       const imgHtml = posterUrl ? `<div class="cal-poster"><img src="${escapeHTML(posterUrl)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'" /></div>` : '';
-      html.push(`<div class="cal-card" onclick="openTitle('${e.item?.id}')"><div class="cal-date"><div class="cal-dnum">${dayNum}</div><div class="cal-dday">${dow} ${monthAbbr}</div></div>${imgHtml}<div class="cal-body"><div class="cal-title">${escapeHTML(title)}</div><div class="cal-ep">${epNum}</div></div></div>`);
+      html.push(`<div class="cal-card" onclick="openTitle('${e.item?.id}')"><div class="cal-date"><div class="cal-dnum">${dayNum}<span class="cal-dmonth">/${monthAbbr}</span></div><div class="cal-dday">${dow}</div></div>${imgHtml}<div class="cal-body"><div class="cal-title">${escapeHTML(title)}</div><div class="cal-ep">${epNum}</div></div></div>`);
       }
     }
     if (html.length === 0) { section.style.display = 'none'; return; }

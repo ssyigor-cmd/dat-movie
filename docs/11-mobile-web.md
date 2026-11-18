@@ -197,8 +197,9 @@ Histórico relevante:
 - Botões de Filtros/Ordenar/Agrupar (Catálogo, Próximos e Pesquisar)
   alinhados à direita da linha (`.filter-chips--right`);
 - Home · Episódios da Semana: a faixa de data (`.cal-date`) passou
-  para o **topo** do card; o mês, que aparecia como número em
-  `.cal-dday`, virou a **abreviação** (JAN…DEZ);
+  para o **topo** do card; o mês aparece abreviado (JAN…DEZ) na mesma
+  linha do dia, com `/NOV` em corpo menor (`.cal-dmonth`), e o dia da
+  semana (`.cal-dday`) passou a ser escrito por extenso (Segunda…);
 - Marca pequena na linha do título, no fim da linha (canto superior
   direito da linha): `.page-mark` (`icon-face.svg`, 22px) ao lado do
   `h2` com `justify-content:space-between` — título à esquerda, marca à
