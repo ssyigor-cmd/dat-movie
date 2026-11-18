@@ -44,7 +44,7 @@ valiam só para o desktop):
 | `src/components/searchPage.js` | 443 | UI da busca |
 | `src/lib/recommendScoring.js` | 425 | Score e mix |
 | `src/mobile.js` | 2374 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
-| `mobile.html` | 737 | Markup + CSS da frente mobile |
+| `mobile.html` | 740 | Markup + CSS da frente mobile |
 | **Total `src/**/*.js`** | **~12.399** | 32 módulos |
 
 ### 2.2 Acoplamentos e sintomas

@@ -111,6 +111,9 @@
     .login-switch button { background:none; border:none; color:var(--accent); font-weight:600; cursor:pointer; font-family:var(--font-body); font-size:0.8rem; }
     /* SCREENS */
     .screen { display:none; } .screen.active { display:block; }
+    /* Folga para a marca fixa no canto superior esquerdo (.app-corner-mark):
+       login (centralizado, marca oculta) e detalhe (backdrop full-bleed) isentos */
+    .screen:not(#loginScreen):not(#titleScreen) { padding-top: 28px; }
     /* HOME */
     .home-greeting { padding:20px 16px 0; }
     .home-greeting h2 { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; line-height:1.2; }
