@@ -1334,9 +1334,8 @@ const STATUS_CYCLE = ['assistindo', 'concluido', 'planejado', 'pausado'];
 function updateTitleMeta() {
   const meta = $('titleMeta');
   if (!meta || !currentTitle) return;
-  const item = currentTitle;
   let mh = '';
-  if (item.ano) mh += `<span class="title-badge">${item.ano}</span>`;
+  mh += `<button class="title-badge title-badge-btn" onclick="openTitleInfoModal()"><i class="fas fa-circle-info"></i> Detalhes</button>`;
   const tc = currentTier ? tierClass(currentTier) : '';
   mh += `<button class="title-badge title-badge-btn tier" onclick="cycleTier()">${currentTier ? `<span class="tier-group-stamp ${tc}" style="width:18px;height:18px;font-size:0.5rem">${currentTier}</span>` : 'N/A'}</button>`;
   const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
