@@ -23,6 +23,7 @@ dat-movie/
 │   │   ├── autoRotate.js       # Timer de rotação de imagens com pausa
 │   │   ├── cache.js            # LRU com TTL + persistência em localStorage
 │   │   ├── catalog.js          # Progresso, filtros, ordenação, dedupe, escape
+│   │   ├── contentRating.js    # `US_RATING_BR` + `pickContentRating` (equivalência de classificação)
 │   │   ├── dates.js            # `parseLocalDate`: data ISO no fuso local
 │   │   ├── discoverSearch.js   # Filtros avançados e busca discover/tv
 │   │   ├── dom.js              # Mapa central de elementos do DOM
@@ -106,7 +107,8 @@ aplicação inteira em um arquivo.
 | `titleFilters.js` | Bloqueios, idioma, alfabeto, data absurda, arte, título exibido | `dates` |
 | `titleRelations.js` | Título-base, continuações, ordenação de resultados, pai | — |
 | `recommendScoring.js` | Score bayesiano/popularidade/recência e mix de seleção | `titleFilters`, `dates`, `prng` |
-| `discoverSearch.js` | Opções de filtro, `buildDiscoverParams`, `searchTitles` | `api`, `cache`, `trendingApi`, `titleFilters`, `fuzzySearch`, `titleRelations` |
+| `discoverSearch.js` | Opções de filtro, `buildDiscoverParams`, `searchTitles` | `api`, `cache`, `trendingApi`, `titleFilters`, `fuzzySearch`, `titleRelations`, `contentRating` |
+| `contentRating.js` | `US_RATING_BR` (equivalência US→BR) e `pickContentRating` (escolha de nota com prioridade BR) | — |
 | `seasonArt.js` | Decide e resolve arte por temporada | — |
 | `logoPicker.js` | Escolhe logo canônico por idioma/país/votação | — |
 | `imageNavigation.js` | Índice anterior/próximo, dedupe, idioma, largura | — |

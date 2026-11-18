@@ -6,7 +6,7 @@
 import anime from 'animejs';
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { escapeHTML, formatDateBR } from '../lib/catalog.js';
-import { US_RATING_BR } from '../lib/discoverSearch.js';
+import { US_RATING_BR, pickContentRating } from '../lib/contentRating.js';
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
 const STATUS_PT = {
@@ -65,27 +65,6 @@ export const LANG_PT = {
   cs: 'Tcheco', th: 'Tailandês', id: 'Indonésio', ms: 'Malaio',
   he: 'Hebraico', el: 'Grego', ro: 'Romeno', hu: 'Húngaro', uk: 'Ucraniano'
 };
-
-/**
- * Escolhe a classificação etária a exibir.
- *
- * O `content_ratings` traz uma lista por país. O app é pt-BR, então a nota
- * brasileira vem primeiro ("16", "14", "L"); sem ela, cai para a americana
- * ("TV-MA") — a mesma faixa usada nos filtros da Pesquisar. Entradas sem
- * `rating` (que significam "não classificada") são ignoradas.
- * @param {Object} contentRatings - Bloco `content_ratings` do TMDB.
- * @param {string[]} [preferidos] - Países em ordem de prioridade.
- * @returns {Object|null} `{ iso_3166_1, rating, descriptors }` ou null.
- */
-export function pickContentRating(contentRatings, preferidos = ['BR', 'US']) {
-  const results = Array.isArray(contentRatings?.results) ? contentRatings.results : [];
-  const comNota = results.filter(r => r && r.rating);
-  for (const code of preferidos) {
-    const hit = comNota.find(r => r.iso_3166_1 === code);
-    if (hit) return hit;
-  }
-  return comNota[0] || null;
-}
 
 /** Texto da classificação: nota + país de referência (ex.: "16 · BR"). */
 export function formatAgeRating(rating) {

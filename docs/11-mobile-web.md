@@ -144,6 +144,30 @@ regra de cor sólida do desktop.
   este documento é a única cobertura do mobile.
 - Ícone novo ≠ ícone visto: vide seção 1 sobre o atalho do iOS.
 
+Notas sobre a sheet "Filtros" do catálogo:
+
+- Status, Lista e as seções **Tier**, **Época** e **Faixa etária** filtram de
+  verdade. Tier usa `item.tier` (local, via `filterItems`);
+  Época e Faixa etária resolvem ano e classificação pelos detalhes TMDB
+  (`tv/{id}?append_to_response=content_ratings`) quando o item não tem a
+  coluna `ano` — lote aquecido com concorrência 5, TTL de 30 dias no cache
+  `tmdbfull_<id>` (o mesmo do desktop), filtro aplicado em memória após o
+  aquecimento. Título sem `tmdb_id` aparece apenas em "Sem classificação" e
+  fica fora de épocas fechadas.
+- **Limpar filtros** restaura Status, Lista, Tier, Época e Faixa ao padrão
+  (antes só limpava a lista e a aparência dos botões; o Status nunca era
+  limpo, e os outros três não filtravam nada).
+- Os botões aplicam o filtro na hora; o botão "Aplicar" apenas fecha a sheet.
+
+Notas sobre o boot/login:
+
+- O markup não traz mais a tela de login como visível por padrão: quem cobre
+  o carregamento é o `#bootSplash`, que sai em `switchScreen()`.
+- A sessão é lida do storage local (`getSession()`) e o usuário dela é
+  reutilizado — sem chamada `/auth/v1/user` na largada. Sem sessão válida, cai
+  no login. Erros inesperados no boot também caem no login em vez de travar
+  no splash.
+
 Histórico relevante:
 
 - Detalhe redesenhado (pôster 124px, logo 46px, selos equalizados em 24px);
@@ -154,6 +178,12 @@ Histórico relevante:
   segue sobre a imagem com o gradiente padrão;
 - Ano removido do detalhe (o selo foi ocupado pelo botão Detalhes — **o ano
   não aparece em lugar nenhum da ficha**, decisão em aberto desde então);
+- Sheet "Filtros" do catálogo: Tier/Época/Faixa etária eram UI morta (só
+  alternavam classe) e passaram a filtrar de verdade; `contentRating.js`
+  concentra `pickContentRating` + `US_RATING_BR` (mobile e desktop
+  compartilham; desktop importa pelo mesmo caminho);
+- Boot: tela de login não é mais visível por padrão — `#bootSplash` cobre a
+  verificação e a sessão local elimina a chamada `/auth/v1/user` na largada;
 - Setas do backdrop reduzidas; seta de voltar removida (voltar = gesto);
 - `Corrigir título` removido do mobile; CSS morto removido;
 - Filete da logo monocromático (ver `assets/BRAND_GUIDELINES.md`).

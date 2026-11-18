@@ -6,8 +6,7 @@
 import { supabase } from './lib/supabase.js';
 import { escapeHTML, getTierClass, filterItems, sortItems, TIER_ORDER, decadeOf } from './lib/catalog.js';
 import { callTMDB } from './lib/api.js';
-import { pickContentRating } from './components/titleInfoModal.js';
-import { US_RATING_BR } from './lib/discoverSearch.js';
+import { US_RATING_BR, pickContentRating } from './lib/contentRating.js';
 import { getCurrentSession, getCurrentUser, loginWithPassword, signUpWithPassword, updateDisplayName } from './lib/auth.js';
 import { fetchUserLists, createList, renameList, deleteList, addItemToList, removeItemFromList, updateListsOrder } from './lib/lists.js';
 import { showToast as uiShowToast, showErrorToast as uiShowErrorToast, lockScreen, unlockScreen, setFieldError, clearFieldError } from './components/uiHelpers.js';

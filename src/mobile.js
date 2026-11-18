@@ -22,8 +22,10 @@ import {
   filterItems,
   sortItems,
   TIER_ORDER,
+  decadeOf,
 } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
+import { US_RATING_BR, pickContentRating } from './lib/contentRating.js';
 import {
   getCalendarWeek, getTrendingToSuggest, CATEGORIES,
   normalizeTrendingItem, filterNotInCatalog,
@@ -54,6 +56,15 @@ let seasonMax = 1, epMaxByTemp = {};
 let bdImages = [], bdIndex = 0, bdAutoTimer = null;
 let catalogFilter = 'todos';
 let sortMode = 'data-desc';
+// Filtros do sheet do catálogo (desktop: filterTier/filterAge/filterYear).
+// Tier é local (item.tier); época e faixa resolvem via TMDB quando o item
+// não tem o dado localmente — mesmo desenho do desktop (render()).
+let catalogTierFilter = 'todos';
+let catalogYearFilter = 'todos';
+let catalogAgeFilter = 'todos';
+// Guarda anti-corrida dos filtros enriquecidos (ano/faixa): uma troca de
+// filtro no meio da busca invalida o lote anterior.
+let catalogEnrichSeq = 0;
 let groupByTier = false;
 let rouletteHistory = [];
 let roulettePreview = null;
@@ -325,6 +336,7 @@ async function handleAuth() {
   $('loginSubmitBtn').textContent = 'Entrando...';
 
   try {
+    let authUser = null;
     if (isSignup) {
       const result = await signUpWithPassword(email, pwd, name);
       // Com confirmação de email ligada, `session` vem nulo: não entra ainda.
@@ -337,12 +349,14 @@ async function handleAuth() {
       }
       msg.className = 'auth-message success';
       msg.textContent = 'Conta criada!';
+      authUser = result.session?.user || result.user || null;
     } else {
-      await loginWithPassword(email, pwd);
+      const data = await loginWithPassword(email, pwd);
       msg.className = 'auth-message success';
       msg.textContent = 'Bem-vindo de volta!';
+      authUser = data?.user || data?.session?.user || null;
     }
-    await initApp();
+    await initApp(authUser);
   } catch (e) {
     const text = e.message || 'Erro ao autenticar';
     const already = /already registered|already exists/i.test(text);
@@ -411,13 +425,14 @@ function checkPasswordStrength() {
 // ================================================================
 // INIT APP (após login)
 // ================================================================
-async function initApp() {
+async function initApp(user = null) {
   // boot() e handleAuth() podem chegar juntos: uma única inicialização.
   if (initAppInflight) return initAppInflight;
   const promise = (async () => {
-    const user = await getCurrentUser();
-    if (!user) { switchScreen('login'); return; }
-    state.currentUser = user;
+    // Sessão local primeiro; só vai à rede se o chamador não trouxe o usuário.
+    const currentUser = user || state.currentUser || (await getCurrentSession())?.user || await getCurrentUser();
+    if (!currentUser) { switchScreen('login'); return; }
+    state.currentUser = currentUser;
 
     // Carregar itens e listas do Supabase. loadItems() já carrega as listas
     // (igual ao desktop) e deduplica chamadas concorrentes.
@@ -429,7 +444,7 @@ async function initApp() {
     }
 
     // Preencher perfil
-    fillProfile(user);
+    fillProfile(currentUser);
 
     // Fechar o dropdown de afinidade ao tocar fora (igual ao desktop)
     if (!initApp._affinityClickBound) {
@@ -466,7 +481,8 @@ async function loadItems() {
   // (e as listas) duas vezes seguidas.
   if (itemsInflight) return itemsInflight;
   const promise = (async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    // state.currentUser já veio da sessão no boot/login — sem getUser() de novo
+    const user = state.currentUser || (await getCurrentSession())?.user || null;
     if (!user) return;
     const { data, error } = await supabase
       .from('items')
@@ -916,7 +932,7 @@ function openRoulettePreview() {
 async function addRouletteTitle() {
   if (!currentTitle?._isPreview) return;
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = state.currentUser;
     if (!user) throw new Error('Usuário não logado.');
     // Busca os totais antes do insert para não gravar o DEFAULT
     // total_episodios = 1 / season_episodes_map = {} do preview.
@@ -1075,7 +1091,65 @@ async function loadTitlesByYear(year) {
 // ================================================================
 // CATALOG
 // ================================================================
-function renderCatalog() {
+// ================================================================
+// FILTROS DO CATÁLOGO — ano e faixa via TMDB (mesmo desenho do desktop,
+// render() em main.js): itens antigos sem a coluna `ano` resolvem pela
+// data do TMDB em vez de sumir. O callTMDB com append_to_response traz
+// content_ratings junto — um lote aquece ano E faixa de uma vez, com o
+// mesmo cache `tmdbfull_<id>` (TTL 30 dias) que o desktop usa.
+// ================================================================
+const DETAILS_FILTERS_TTL = 30 * 24 * 60 * 60 * 1000;
+
+async function detailsForFilters(item) {
+  if (!item?.tmdb_id) return null;
+  const key = `tmdbfull_${item.tmdb_id}`;
+  const cached = cacheGet(key);
+  if (cached !== undefined) return cached;
+  try {
+    const details = await callTMDB(`tv/${item.tmdb_id}`, { append_to_response: 'content_ratings' }, 'pt-BR');
+    cacheSet(key, details || null, DETAILS_FILTERS_TTL);
+    return details || null;
+  } catch {
+    return null;
+  }
+}
+
+function yearFromDetailsFilters(details) {
+  const y = Number(String(details?.first_air_date || details?.release_date || '').slice(0, 4));
+  return Number.isFinite(y) && y > 0 ? y : null;
+}
+
+// Código BR da faixa ('L','10'..'18' ou '' sem nota). Sem tmdb_id não há
+// como saber — o item só aparece no filtro "Sem classificação".
+function ageCodeFilters(item, details) {
+  if (!item?.tmdb_id) return '';
+  const picked = pickContentRating(details?.content_ratings);
+  return picked ? (US_RATING_BR[String(picked.rating).trim().toUpperCase()] || picked.rating) : '';
+}
+
+function ageMatchFilters(code, ageFilter) {
+  if (ageFilter === 'sem') return !code;
+  return code === ageFilter;
+}
+
+/** Aquecimento com teto de concorrência de 5, avisando o progresso. */
+async function warmDetailsFilters(items, onProgress) {
+  const map = new Map();
+  const pool = 5;
+  let i = 0, done = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      map.set(items[idx], await detailsForFilters(items[idx]));
+      done++;
+      if (onProgress) onProgress(done, items.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(pool, items.length) }, worker));
+  return map;
+}
+
+async function renderCatalog() {
   const items = state.items || [];
   // "planejado" tem tela própria no menu inferior (filterItems exclui esses
   // itens quando currentTab === 'all', exatamente como no desktop).
@@ -1085,9 +1159,33 @@ function renderCatalog() {
     currentTab: catalogListId ? 'list' : 'all',
     currentListId: catalogListId || null,
     statusFilter: statusMap[catalogFilter] || 'todos',
+    tierFilter: catalogTierFilter,
+    // Ano e faixa ficam de fora do filtro síncrono: item antigo sem a
+    // coluna `ano` resolve pela data do TMDB (mesma regra do desktop).
+    yearFilter: 'todos',
   });
   // Sort usando sortItems real
   filtered = sortItems(filtered, sortMode);
+
+  const needYear = catalogYearFilter !== 'todos';
+  const needAge = catalogAgeFilter !== 'todos';
+  if (needYear || needAge) {
+    const marca = ++catalogEnrichSeq;
+    const alvos = filtered.filter(i => i.tmdb_id);
+    const gridEl = $('catalogGrid');
+    gridEl.className = '';
+    gridEl.innerHTML = `<div class="search-loading"><i class="fas fa-spinner fa-spin"></i><p>Buscando dados... <span id="enrichCount"></span></p></div>`;
+    const det = await warmDetailsFilters(alvos, (done, total) => {
+      const el = document.getElementById('enrichCount');
+      if (el) el.textContent = `${done}/${total}`;
+    });
+    if (marca !== catalogEnrichSeq) return;
+    if (needYear) filtered = filtered.filter(item => decadeOf(item.ano ?? yearFromDetailsFilters(det.get(item))) === catalogYearFilter);
+    if (needAge) {
+      const faixas = filtered.map(item => ageCodeFilters(item, det.get(item)));
+      filtered = filtered.filter((item, i) => ageMatchFilters(faixas[i], catalogAgeFilter));
+    }
+  }
 
   const listName = (state.userLists || []).find(l => String(l.id) === String(catalogListId))?.nome;
   $('catalogSubtitle').textContent = `${filtered.length} título(s) · ${listName || 'Total'}`;
@@ -2008,16 +2106,33 @@ function openListCatalog(id) {
 }
 
 function openFilterSheet() {
-  renderColecaoOptions();
+  syncCatalogSheet();
   $('filterSheet').classList.add('open');
   $('filterOverlay').classList.add('open');
 }
 function closeFilterSheet() { $('filterSheet').classList.remove('open'); $('filterOverlay').classList.remove('open'); }
-function selectSheetOption(btn) { btn.parentElement.querySelectorAll('.sheet-option').forEach(o => o.classList.remove('active')); btn.classList.add('active'); }
+function setSheetFilter(boxId, value) {
+  document.querySelectorAll(`#${boxId} .sheet-option`).forEach(o => o.classList.toggle('active', o.dataset.value === value));
+}
+function setTierFilter(btn, value) { catalogTierFilter = value; btn?.classList.add('active'); setSheetFilter('tierOptions', value); renderCatalog(); }
+function setYearFilter(btn, value) { catalogYearFilter = value; btn?.classList.add('active'); setSheetFilter('yearOptions', value); renderCatalog(); }
+function setAgeFilter(btn, value) { catalogAgeFilter = value; btn?.classList.add('active'); setSheetFilter('ageOptions', value); renderCatalog(); }
+// Reflete o estado real dos filtros nos botões do sheet — openFilterSheet e
+// clearFilters usam isso em vez de confiar na ordem dos botões no markup.
+function syncCatalogSheet() {
+  setSheetFilter('statusOptions', catalogFilter);
+  setSheetFilter('tierOptions', catalogTierFilter);
+  setSheetFilter('yearOptions', catalogYearFilter);
+  setSheetFilter('ageOptions', catalogAgeFilter);
+  renderColecaoOptions();
+}
 function clearFilters() {
   catalogListId = null;
-  document.querySelectorAll('#filterSheet .sheet-option.active').forEach(b => { b.classList.remove('active'); b.parentElement.querySelector('.sheet-option').classList.add('active'); });
-  renderColecaoOptions();
+  catalogFilter = 'todos';
+  catalogTierFilter = 'todos';
+  catalogYearFilter = 'todos';
+  catalogAgeFilter = 'todos';
+  syncCatalogSheet();
   renderCatalog();
 }
 function openSortSheet() { $('sortSheet').classList.add('open'); $('sortOverlay').classList.add('open'); }
@@ -2175,6 +2290,9 @@ function logout() {
 // ================================================================
 function switchScreen(name) {
   currentScreen = name;
+  // O boot decidiu (sessão válida -> home; senão -> login): o splash sai.
+  const splash = $('bootSplash');
+  if (splash) splash.classList.add('hidden');
   // Saiu da tela de detalhe: limpa o hash da entrada atual do histórico.
   if (name !== 'title' && location.hash.startsWith('#/titulo/')) {
     history.replaceState(null, '', location.pathname + location.search);
@@ -2218,7 +2336,7 @@ Object.assign(window, {
   openCollectionsSheet, closeCollectionsSheet, renderCollectionsList,
   saveCollection, editCollection, deleteCollection, moveCollection,
   renderColecaoOptions, setCollectionFilter, renderLists, openListCatalog,
-  openFilterSheet, closeFilterSheet, selectSheetOption, clearFilters,
+  openFilterSheet, closeFilterSheet, setTierFilter, setYearFilter, setAgeFilter, clearFilters,
   openSortSheet, closeSortSheet, selectSortOption,
   openSearchFilterSheet, closeSearchFilterSheet,
   toggleNameEdit, saveName, setTheme, logout, toggleProgressBar,
@@ -2235,11 +2353,17 @@ async function boot() {
   document.body.classList.toggle('is-progress-bar-hidden', !state.showProgressBar);
   applyTheme();
 
-  // Check existing session
-  const session = await getCurrentSession();
-  if (session) {
-    await initApp();
-  } else {
+  // Check existing session. `session.user` vem do storage local e pode
+  // vir com o token renovado de graça; nada de getUser() na largada.
+  try {
+    const session = await getCurrentSession();
+    if (session?.user) {
+      await initApp(session.user);
+    } else {
+      switchScreen('login');
+    }
+  } catch (e) {
+    console.error('Falha no boot:', e);
     switchScreen('login');
   }
 }

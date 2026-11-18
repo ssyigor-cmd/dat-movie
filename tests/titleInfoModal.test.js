@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { flagEmoji, flagUrl, LANG_PT, STATUS_ICON, STATUS_TONE, pickContentRating, formatAgeRating } from '../src/components/titleInfoModal.js';
+import { flagEmoji, flagUrl, LANG_PT, STATUS_ICON, STATUS_TONE, formatAgeRating } from '../src/components/titleInfoModal.js';
+import { pickContentRating } from '../src/lib/contentRating.js';
 
 describe('flagEmoji', () => {
   it('converte ISO 3166-1 alpha-2 no par de simbolos regionais', () => {

@@ -88,26 +88,7 @@ export const COUNTRY_OPTIONS = [
   { code: 'ZA', name: 'África do Sul' }
 ];
 
-/**
- * Classificações de idade do sistema americano de TV.
- *
- * O `discover/tv` não documenta mais `certification` (pode ser ignorado em
- * silêncio), mas é a única via barata — o TMDB só expõe `content_ratings` fora
- * da allow-list. O país é fixado em `US` porque é onde o TMDB tem a cobertura
- * mais completa de classificação para TV.
- *
- * O `value` é o código US (é o que a API entende); o nome é brasileiro.
- * `US_RATING_BR` é a equivalência código US → código BR, usada pelo selo dos
- * Detalhes para exibir tudo no padrão brasileiro.
- */
-export const US_RATING_BR = {
-  'TV-Y': 'L',
-  'TV-Y7': '10',
-  'TV-G': 'L',
-  'TV-PG': '12',
-  'TV-14': '14',
-  'TV-MA': '16'
-};
+export { US_RATING_BR } from './contentRating.js';
 
 export const AGE_RATING_OPTIONS = [
   // "Livre" une os dois códigos US (infantil + geral) num valor só de OU.

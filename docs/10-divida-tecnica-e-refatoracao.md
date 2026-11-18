@@ -34,24 +34,25 @@ valiam só para o desktop):
 | Arquivo | Linhas | Observação |
 |---|---:|---|
 | `style.css` | 3744 | Design system + todas as telas desktop |
-| `src/main.js` | 2216 | Bootstrap, auth, perfil, abas, render, CRUD |
+| `src/main.js` | 2215 | Bootstrap, auth, perfil, abas, render, CRUD |
 | `src/components/homePage.js` | 1411 | Template e loaders de 11 seções |
 | `src/lib/trendingApi.js` | 896 | Rede, cache, score, calendário, estatísticas |
 | `src/pages/titlePage.js` | 832 | Página do título |
-| `src/components/titleInfoModal.js` | 518 | Ficha do TMDb |
-| `src/lib/discoverSearch.js` | 485 | Busca avançada |
+| `src/components/titleInfoModal.js` | 497 | Ficha do TMDb |
+| `src/lib/discoverSearch.js` | 466 | Busca avançada |
+| `src/lib/contentRating.js` | 49 | `US_RATING_BR` + `pickContentRating` (extraído de `titleInfoModal.js`/`discoverSearch.js` em 18/11) |
 | `src/components/searchPage.js` | 443 | UI da busca |
 | `src/lib/recommendScoring.js` | 425 | Score e mix |
-| `src/mobile.js` | 2225 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
-| `mobile.html` | 734 | Markup + CSS da frente mobile |
-| **Total `src/**/*.js`** | **~12.242** | 31 módulos |
+| `src/mobile.js` | 2371 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
+| `mobile.html` | 747 | Markup + CSS da frente mobile |
+| **Total `src/**/*.js`** | **~12.396** | 32 módulos |
 
 ### 2.2 Acoplamentos e sintomas
 
 | Métrica | Valor |
 |---|---|
 | Estilos inline em `src/` | 105 (`titlePage.js` 71, `homePage.js` 21 no desktop; `mobile.js` 9) |
-| `innerHTML` em `src/` | 159 (95 desktop + 64 em `mobile.js`) |
+| `innerHTML` em `src/` | 161 (95 desktop + 66 em `mobile.js`) |
 | IDs no shell (desktop) | 117 (todos únicos) |
 | Chaves em `dom.js` | 51 (sem seções vazias) |
 | Suítes de teste | 29 |
