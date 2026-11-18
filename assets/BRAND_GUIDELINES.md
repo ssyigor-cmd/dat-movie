@@ -12,7 +12,9 @@ assets/
 │   └── stacked-light.svg     # Vertical: só o glifo, sem nome (claro)
 ├── icon/
 │   ├── icon-face.svg         # Marca isolada (tema escuro)
-│   └── icon-face-light.svg   # Marca isolada (tema claro)
+│   ├── icon-face-light.svg   # Marca isolada (tema claro)
+│   ├── apple-touch-icon.svg  # Fonte do ícone de atalho iOS (opaco, sem cantos)
+│   └── apple-touch-icon.png  # Ícone de atalho iOS 180x180 (gerado)
 └── favicon/
     ├── favicon-32-dark.svg   # Favicon 32px (escuro)
     ├── favicon-32-light.svg  # Favicon 32px (claro)
@@ -221,13 +223,16 @@ The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
 - File size: ~2KB per logo
 
 ### PNG (Raster)
-- Servem só ao favicon legado: `favicon-16/32/48.png` e `favicon.ico`,
-  gerados de `favicon-32-dark.svg` por `scripts/build-favicons.mjs` e
-  versionados porque o `.ico` não dá para gerar no build do app.
-- O app continua **desktop-only**: não há ícone de app, manifest,
-  `apple-touch-icon` nem camada de instalação — usar PNGs para isso seria
-  reintroduzir a camada PWA que foi removida de propósito.
-- Fora do favicon legado, todo ativo de marca é SVG. Se algum dia precisar de
+- Servem ao favicon legado (`favicon-16/32/48.png`, `favicon.ico`) e ao
+  ícone de atalho do iOS/iPadOS — gerados por `scripts/build-favicons.mjs`
+  e versionados.
+- **apple-touch-icon** (`assets/icon/apple-touch-icon.png`, 180x180):
+  fundo carvão **opaco**, quadrado e sem cantos arredondados — o iOS aplica
+  a máscara dele próprio. Usado quando o usuário faz "Adicionar à Tela de
+  Início" a partir do Safari. Declarado com
+  `<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" sizes="180x180">`.
+- Continua **sem** manifest/Web App layer — só o ícone do atalho.
+- Fora desses casos, todo ativo de marca é SVG. Se algum dia precisar de
   outro raster (ex.: um e-mail), gere a partir do SVG e não versione.
 
 ## Web Implementation
@@ -260,6 +265,7 @@ The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
 ```html
 <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
 <link rel="alternate icon" href="assets/favicon/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" sizes="180x180" />
 ```
 
 ## Maintenance
