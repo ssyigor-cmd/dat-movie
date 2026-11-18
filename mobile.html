@@ -292,7 +292,6 @@
     .title-backdrop { position:relative; aspect-ratio:16/10; background:var(--bg-secondary); overflow:hidden; }
     .title-backdrop img { width:100%; height:100%; object-fit:cover; }
     .title-backdrop::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,var(--bg-primary) 5%,transparent 60%); }
-    .back-btn { position:absolute; top:calc(12px+var(--safe-top)); left:8px; width:var(--tap); height:var(--tap); display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:#fff; font-size:1.35rem; z-index:3; text-shadow:0 1px 4px rgba(0,0,0,0.65); }
     .bd-nav-btn { position:absolute; top:50%; transform:translateY(-50%); width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.32); border:none; border-radius:var(--radius-pill); color:rgba(255,255,255,0.75); font-size:0.68rem; z-index:3; backdrop-filter:blur(6px); opacity:0.6; transition:opacity 0.2s, background 0.2s; }
     .bd-nav-btn:hover, .bd-nav-btn:focus-visible { opacity:1; background:rgba(0,0,0,0.55); }
     .bd-prev { left:8px; } .bd-next { right:8px; }
@@ -614,7 +613,6 @@
   <!-- TITLE DETAIL SCREEN -->
   <section id="titleScreen" class="screen title-detail">
     <div class="title-backdrop">
-      <button class="back-btn" onclick="goBackFromTitle()" aria-label="Voltar"><i class="fas fa-arrow-left-long"></i></button>
       <img id="titleBackdrop" src="" alt="" style="display:none" />
       <button class="bd-nav-btn bd-prev" id="bdPrev" style="display:none" onclick="navBackdrop(-1)"><i class="fas fa-chevron-left"></i></button>
       <button class="bd-nav-btn bd-next" id="bdNext" style="display:none" onclick="navBackdrop(1)"><i class="fas fa-chevron-right"></i></button>
