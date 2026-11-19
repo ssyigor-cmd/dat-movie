@@ -44,6 +44,7 @@ import {
 } from './lib/lists.js';
 import { state, STORAGE_KEYS } from './lib/state.js';
 import { cacheGet, cacheSet, cacheClear } from './lib/cache.js';
+import { getViewHistory, recordView, removeView, clearViewHistory } from './lib/viewHistory.js';
 
 // ================================================================
 // ESTADO MOBILE
@@ -248,6 +249,114 @@ function cardHTML(item, opts = {}) {
 }
 
 // ================================================================
+// HISTÓRICO DE VISUALIZAÇÕES (acesso pela tela de Perfil)
+// Todo card aberto vira um registro, inclusive sugestões externas — que são
+// justamente as que somem depois de atualizar a home. Guardamos o raw mínimo
+// para reabrir o título mesmo quando ele nunca foi adicionado ao catálogo.
+// ================================================================
+function viewHistoryUser() { return state.currentUser?.id || 'anon'; }
+
+function viewKeyFor(item, raw) {
+  if (!item._isPreview && item.id != null && String(item.id)) return `item:${item.id}`;
+  const tmdbId = raw?.id ?? item.tmdb_id;
+  if (tmdbId != null && String(tmdbId)) return `tmdb:${tmdbId}`;
+  return `name:${String(item.nome || raw?.title || '').trim()}`;
+}
+
+function historyEntryFrom(item, raw) {
+  const tmdbId = raw?.id ?? item.tmdb_id ?? null;
+  const nome = String(raw?.title || raw?.nome || item.nome || item.name || '').trim();
+  const imagem = String(raw?.posterUrl || raw?.imagem || item.imagem || '').trim();
+  const ano = String(raw?.date || raw?.ano || item.ano || '').slice(0, 4) || null;
+  return {
+    key: viewKeyFor(item, raw),
+    itemId: item._isPreview ? null : (item.id != null ? String(item.id) : null),
+    tmdbId: tmdbId != null && String(tmdbId) ? String(tmdbId) : null,
+    nome,
+    imagem,
+    ano,
+    tipo: item.tipo || 'serie',
+    raw: tmdbId != null && String(tmdbId)
+      ? { id: tmdbId, title: nome, posterUrl: imagem, date: raw?.date || ano || '' }
+      : null,
+    viewedAt: new Date().toISOString(),
+  };
+}
+
+function recordTitleView(item, raw = null) {
+  if (!item) return;
+  try { recordView(viewHistoryUser(), historyEntryFrom(item, raw)); } catch {}
+}
+
+function formatHistoryWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderHistory() {
+  const list = $('historyList');
+  if (!list) return;
+  const entries = getViewHistory(viewHistoryUser());
+  const subtitle = $('historySubtitle');
+  if (subtitle) {
+    subtitle.textContent = `${entries.length} ${entries.length === 1 ? 'título' : 'títulos'} · Mais recentes primeiro`;
+  }
+  const empty = $('historyEmpty');
+  if (!entries.length) {
+    list.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+  empty?.classList.add('hidden');
+  list.innerHTML = entries.map((e, i) => {
+    const poster = e.imagem
+      ? `<img src="${escapeHTML(e.imagem)}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<i class=&quot;fas fa-film&quot;></i>'" />`
+      : '<i class="fas fa-film"></i>';
+    // Fora do catálogo (ou removido dele) o registro ainda abre pelo TMDB.
+    const isExternal = !e.itemId || !state.items.some(it => String(it.id) === String(e.itemId));
+    const tag = isExternal ? '<span class="history-tag">Sugestão</span>' : '';
+    return `<div class="history-item" onclick="openHistoryEntry(${i})">
+      <div class="history-thumb">${poster}</div>
+      <div class="history-info"><div class="history-title">${escapeHTML(e.nome || 'Sem título')}</div><div class="history-meta"><span>${escapeHTML(formatHistoryWhen(e.viewedAt))}</span>${tag}</div></div>
+      <button class="history-remove" aria-label="Remover do histórico" onclick="event.stopPropagation();removeHistoryEntry(${i})"><i class="fas fa-xmark"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function openHistoryEntry(idx) {
+  const entry = getViewHistory(viewHistoryUser())[idx];
+  if (!entry) return;
+  const inCatalog = entry.itemId
+    ? state.items.find(i => String(i.id) === String(entry.itemId))
+    : null;
+  if (inCatalog) { openTitleFromCatalog(inCatalog, { pushHistory: true }); return; }
+  if (entry.raw && (entry.raw.id || entry.tmdbId)) {
+    openExternalPreview({ ...entry.raw, id: entry.raw.id || entry.tmdbId }, { pushHistory: true });
+    return;
+  }
+  showToast('Este título não está mais disponível');
+}
+
+function removeHistoryEntry(idx) {
+  const entry = getViewHistory(viewHistoryUser())[idx];
+  if (!entry) return;
+  removeView(viewHistoryUser(), entry.key);
+  renderHistory();
+  showToast('Removido do histórico');
+}
+
+function clearHistory() {
+  const total = getViewHistory(viewHistoryUser()).length;
+  if (!total) { showToast('O histórico já está vazio'); return; }
+  openConfirm('Limpar histórico', `Remover os ${total} ${total === 1 ? 'título' : 'títulos'} do histórico?`, () => {
+    clearViewHistory(viewHistoryUser());
+    renderHistory();
+    showToast('Histórico limpo');
+  });
+}
+
+// ================================================================
 // PREVIEW DE TÍTULOS EXTERNOS (roleta, afinidade, destaques do ano)
 // Segue o padrão do desktop: abre a tela de detalhe com Adicionar/Cancelar.
 // ================================================================
@@ -293,7 +402,7 @@ function openExternalPreview(raw, opts = {}) {
     tmdb_id: raw.id,
     ano: (raw.date || raw.ano || '').slice(0, 4) || null,
     lists: []
-  }, { pushHistory: opts.pushHistory !== false, previewRaw: raw });
+  }, { pushHistory: opts.pushHistory !== false, previewRaw: raw, fromPopstate: opts.fromPopstate });
 }
 
 // ================================================================
@@ -1049,6 +1158,13 @@ async function addRouletteTitle() {
       lists: []
     };
     state.items.unshift(fullItem);
+    // A sugestão virou item do catálogo: troca a chave do histórico, senão
+    // reabri-la mostraria de novo o botão "Adicionar" (já que o título agora
+    // existe e o insert daria duplicidade).
+    try {
+      removeView(viewHistoryUser(), `tmdb:${currentTitle.tmdb_id}`);
+      recordTitleView(fullItem);
+    } catch {}
     stopBackdropAutoRotate();
     // Recarrega de verdade para limpar qualquer estado stale após o insert
     // (evita erros na tela). O toast sobrevive ao reload via sessionStorage
@@ -1572,8 +1688,10 @@ function cycleStatus() {
 }
 
 async function openTitleFromCatalog(item, opts = {}) {
-  // Guarda a tela de origem e registra o título no histórico (igual ao desktop).
+  // Guarda a tela de origem e registra o card aberto no histórico (inclusive
+  // sugestões externas). Voltar pelo navegador não conta como nova abertura.
   if (currentScreen !== 'title') titleOriginScreen = currentScreen;
+  if (!opts.fromPopstate) recordTitleView(item, opts.previewRaw);
   if (opts.pushHistory) {
     const hashId = item._isPreview ? `ext-${item.tmdb_id}` : item.id;
     history.pushState(
@@ -1824,10 +1942,10 @@ function hideTitlePage() {
 window.addEventListener('popstate', (e) => {
   if (location.hash.startsWith('#/titulo/')) {
     const st = e.state || {};
-    if (st.previewRaw) { openExternalPreview(st.previewRaw, { pushHistory: false }); return; }
+    if (st.previewRaw) { openExternalPreview(st.previewRaw, { pushHistory: false, fromPopstate: true }); return; }
     const id = location.hash.replace('#/titulo/', '');
     const item = state.items.find(i => String(i.id) === String(id));
-    if (item) { openTitleFromCatalog(item, { pushHistory: false }); return; }
+    if (item) { openTitleFromCatalog(item, { pushHistory: false, fromPopstate: true }); return; }
   }
   hideTitlePage();
 });
@@ -2508,14 +2626,15 @@ function switchScreen(name) {
   if (el) el.classList.add('active');
   const isLogin = name === 'login';
   $('bottomNav').classList.toggle('hidden', isLogin);
-  // Listas é sub-navegação da área de Catálogo (abre pelo Perfil) — mantém
-  // o destaque em Catálogo em vez de nenhum, igual sub-navegação.
-  const tabToHighlight = name === 'lists' ? 'catalog' : name;
+  // Listas e Histórico são sub-navegação (abrem pelo Perfil/Catálogo) — mantém
+  // o destaque na aba de origem em vez de nenhuma, igual sub-navegação.
+  const tabToHighlight = name === 'lists' ? 'catalog' : name === 'history' ? 'profile' : name;
   document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.screen === tabToHighlight); });
   if (name === 'home') renderHome();
   if (name === 'catalog') renderCatalog();
   if (name === 'proximos') renderProximos();
   if (name === 'lists') renderLists();
+  if (name === 'history') renderHistory();
   window.scrollTo(0, 0);
 }
 
@@ -2622,6 +2741,7 @@ Object.assign(window, {
   toggleNameEdit, saveName, setTheme, logout, toggleProgressBar,
   openHomeLayoutSheet, closeHomeLayoutSheet, toggleHomeSection,
   moveHomeSection, resetHomeLayout,
+  renderHistory, openHistoryEntry, removeHistoryEntry, clearHistory,
 });
 
 // ================================================================
