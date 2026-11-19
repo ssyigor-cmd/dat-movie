@@ -121,8 +121,11 @@ O ponto mais denso do mobile. Anatomia atual:
   - logo **abaixo da sinopse do episódio**: `#detailActionsRow` com
     **Detalhes · Listas · Episódios** (um do lado do outro);
   - **no fim da página**: `#actionsSection` com **Salvar · Remover** (um
-    do lado do outro). O antigo bloco "Listas" (`.twin-row`/`.twin-block`)
-    foi eliminado;
+    do lado do outro), dentro de `.actions-box` — caixa `bg-elevated`,
+    `radius` e `padding:12px`, sob o rótulo "Ações", **mesmo padrão
+    visual dos blocos Progresso e Episódio**. No preview a caixa fica e
+    só os botões internos viram Adicionar/Cancelar;
+  - O antigo bloco "Listas" (`.twin-row`/`.twin-block`) foi eliminado;
 - O modo **sorteio/preview** troca Salvar/Remover por Adicionar /
   Cancelar (usa os mesmos `.badge-action`) e esconde `#detailActionsRow`,
   já que Detalhes/Listas/Episódios exigem um item salvo;
@@ -208,6 +211,8 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Bloco de ações (Salvar/Remover) alinhado ao design dos blocos
+  Progresso/Episódio: rótulo "Ações" + caixa elevada arredondada;
 - Detalhe reestruturado: bloco "Listas" eliminado; "Detalhes" saiu dos
   selos do cabeçalho; Detalhes/Listas/Episódios agora formam uma linha
   abaixo da sinopse do episódio e Salvar/Remover ficam no fim da página;
