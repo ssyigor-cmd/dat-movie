@@ -1933,7 +1933,7 @@ async function openTitleInfoModal() {
     const heroImg = details.backdrop_path
       ? `<img class="ti-hero-img" src="https://image.tmdb.org/t/p/w780${escapeHTML(details.backdrop_path)}" alt="" />`
       : '';
-    const heroMeta = [details.type, details.first_air_date ? `desde ${formatDateBR(details.first_air_date)}` : ''].filter(Boolean).join(' · ');
+    const heroMeta = details.first_air_date ? `desde ${formatDateBR(details.first_air_date)}` : '';
     let html = `<div class="ti-hero">${heroImg}<div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-align-left"></i> Sinopse</div><div class="ti-card"><p class="ti-text">${escapeHTML(details.overview || 'Sinopse não disponível.')}</p></div></div>`;
     // Links
@@ -1953,7 +1953,6 @@ async function openTitleInfoModal() {
     html += `<div class="ti-cell"><span class="ti-cell-label">Estreia</span><span class="ti-cell-value">${details.first_air_date ? formatDateBR(details.first_air_date) : '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Último episódio</span><span class="ti-cell-value">${details.last_air_date ? formatDateBR(details.last_air_date) : '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Duração</span><span class="ti-cell-value">${runtime || '—'}</span></div>`;
-    html += `<div class="ti-cell"><span class="ti-cell-label">Tipo</span><span class="ti-cell-value">${escapeHTML(details.type || '—')}</span></div>`;
     html += `</div></div></div>`;
     // Elenco
     const cast = (credits?.cast || []).filter(c => c.name).slice(0, 12);

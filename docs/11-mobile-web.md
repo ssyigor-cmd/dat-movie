@@ -151,7 +151,7 @@ O ponto mais denso do mobile. Anatomia atual:
 a mesma gramática visual do restante do app — rótulos Sora 0.85rem/600 com
 ícone em `--accent`, conteúdo em cartões `--bg-elevated` com `--radius` e
 `padding:14px` (`.ti-card`). Hero com backdrop da TMDB (w780), nome em
-Sora 1.2rem e linha de meta em mono; Sinopse, Sites (grid 2 colunas de
+Sora 1.2rem e linha de mono só com a estreia; Sinopse, Sites (grid 2 colunas de
 links mono), Detalhes (grid de células `--bg-surface` com rótulos
 uppercase e valores mono) e Elenco (carrossel com `.ti-cast-photo`/
 `.ti-cast-role`, antes sem CSS). Sem gradiente na UI.
@@ -224,6 +224,8 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Modal Detalhes: removido o campo "Tipo" (Scripted etc.) da grade e da
+  linha do hero, considerado inútil;
 - Modal Detalhes padronizado: cartões elevados por seção, hero com
   backdrop, links em grid mono, células de dados e estilos de elenco
   (inclusive `.ti-cast-role`, que não existia);
