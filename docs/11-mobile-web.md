@@ -121,10 +121,10 @@ O ponto mais denso do mobile. Anatomia atual:
   - logo **abaixo da sinopse do episódio**: `#detailActionsRow` com
     **Detalhes · Listas · Episódios** (um do lado do outro);
   - **no fim da página**: `#actionsSection` com **Salvar · Remover** (um
-    do lado do outro), dentro de `.actions-box` — caixa `bg-elevated`,
-    `radius` e `padding:12px`, sob o rótulo "Ações", **mesmo padrão
-    visual dos blocos Progresso e Episódio**. No preview a caixa fica e
-    só os botões internos viram Adicionar/Cancelar;
+    do lado do outro). Sem rótulo e sem caixa: só a **cor** e a **fonte**
+    seguem os blocos Progresso/Episódio — `font-display` (Sora) 0.85rem/600,
+    fundo `--bg-elevated` e texto `--text-primary` (`Remover` mantém
+    `--danger`). No preview a aparência é a mesma, com Adicionar/Cancelar;
   - O antigo bloco "Listas" (`.twin-row`/`.twin-block`) foi eliminado;
 - O modo **sorteio/preview** troca Salvar/Remover por Adicionar /
   Cancelar (usa os mesmos `.badge-action`) e esconde `#detailActionsRow`,
@@ -211,8 +211,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
-- Bloco de ações (Salvar/Remover) alinhado ao design dos blocos
-  Progresso/Episódio: rótulo "Ações" + caixa elevada arredondada;
+- Botões Salvar/Remover: sem rótulo "Ações" e sem caixa; apenas fonte
+  (Sora 0.85rem/600) e cores (`bg-elevated`/`text-primary`, `--danger`
+  em Remover) iguais às dos blocos Progresso/Episódio;
 - Detalhe reestruturado: bloco "Listas" eliminado; "Detalhes" saiu dos
   selos do cabeçalho; Detalhes/Listas/Episódios agora formam uma linha
   abaixo da sinopse do episódio e Salvar/Remover ficam no fim da página;
