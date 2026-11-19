@@ -409,6 +409,7 @@
     .ti-hero-body { padding:14px; }
     .ti-name { font-family:var(--font-display); font-size:1.2rem; font-weight:700; }
     .ti-hero-meta { font-family:var(--font-mono); font-size:0.68rem; color:var(--text-muted); margin-top:4px; }
+    .ti-original { font-size:0.75rem; color:var(--text-muted); font-style:italic; margin-top:2px; }
     .ti-section { margin-bottom:20px; }
     .ti-section-title { font-family:var(--font-display); font-size:0.85rem; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
     .ti-section-title i { color:var(--accent); font-size:0.8rem; }
@@ -423,12 +424,26 @@
     .ti-cell-label { font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; }
     .ti-cell-value { font-family:var(--font-mono); font-size:0.78rem; color:var(--text-primary); display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
     .ti-pill { display:inline-block; padding:3px 8px; background:var(--bg-hover); border-radius:var(--radius-sm); font-size:0.68rem; }
+    /* Selo etário: cores oficiais BR, fixas nos dois temas (a cor é a info) */
+    .ti-age { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:28px; padding:0 8px; border-radius:var(--radius-sm); font-size:0.74rem; font-weight:700; line-height:1; color:#fff; }
+    .ti-age--l { background:#00a651; }
+    .ti-age--10 { background:#0091da; }
+    .ti-age--12 { background:#eab308; color:#231a00; }
+    .ti-age--14 { background:#f5821f; }
+    .ti-age--16 { background:#e30613; }
+    .ti-age--18 { background:#101010; border:1px solid var(--border-strong); }
+    .ti-age--na { background:var(--bg-surface); border:1px solid var(--border-outline); color:var(--text-muted); }
+    /* Bandeiras de origem (mesma regra do desktop: imagem com fallback emoji) */
+    .ti-flag { width:22px; height:16px; margin:2px; vertical-align:middle; border-radius:3px; box-shadow:0 0 0 1px var(--border-outline); object-fit:cover; }
+    .ti-flag--emoji { width:auto; height:auto; font-size:1rem; box-shadow:none; background:none; }
     .ti-cast { display:flex; gap:12px; overflow-x:auto; padding-bottom:4px; }
     .ti-cast-card { flex-shrink:0; width:72px; text-align:center; }
     .ti-cast-photo { width:72px; height:72px; border-radius:var(--radius); object-fit:cover; display:block; }
     .ti-cast-ph { width:72px; height:72px; border-radius:var(--radius); background:var(--bg-surface); display:flex; align-items:center; justify-content:center; color:var(--text-muted); }
     .ti-cast-name { font-size:0.7rem; font-weight:600; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ti-cast-role { font-size:0.62rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ti-team-logo { object-fit:contain; padding:8px; background:#EDEDED; }
+    .ti-team-sep { flex:0 0 auto; align-self:stretch; width:1px; background:var(--border-outline); margin:10px 2px; }
     /* LIST MODAL */
     .list-checkbox { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; }
     .list-checkbox:active { background:var(--bg-hover); }

@@ -7,6 +7,9 @@ import anime from 'animejs';
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { US_RATING_BR, pickContentRating } from '../lib/contentRating.js';
+import { flagEmoji, flagUrl } from '../lib/flags.js';
+// Reexportadas porque a suíte de testes as importa daqui.
+export { flagEmoji, flagUrl };
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
 
 const STATUS_PT = {
@@ -127,42 +130,6 @@ function pills(items) {
   const list = (items || []).map((s) => String(s).trim()).filter(Boolean);
   if (!list.length) return '';
   return `<span class="ti-pills">${list.map((g) => `<span class="ti-pill">${escapeHTML(g)}</span>`).join('')}</span>`;
-}
-
-/**
- * Converte ISO 3166-1 alpha-2 no emoji da bandeira.
- *
- * O TMDB entrega o país como `origin_country: ['US']` ou em
- * `production_countries: [{ iso_3166_1: 'US' }]`. Cada letra vira o símbolo
- * regional correspondente (U+1F1E6 é 'A'..'Z'), e o par de símbolos é a
- * bandeira. Entrada que não são duas letras ASCII viram string vazia, para não
- * despejar lixo visual quando o campo vier inesperado.
- * @param {string} iso2
- * @returns {string}
- */
-export function flagEmoji(iso2) {
-  const code = String(iso2 || '').trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return '';
-  return String.fromCodePoint(...[...code].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
-}
-
-/**
- * URL da bandeira em imagem.
- *
- * O emoji de bandeira não serve: no Windows ele não é renderizado como
- * bandeira, e sim como o par de letras dentro de um quadrado ("US", "JP"), que
- * é pior que não ter nada. O flagcdn serve o SVG do país, que é vetorial e
- * aceita tema escuro sem ficar com borda branca.
- *
- * O código vai validado por `flagEmoji` antes, então a URL nunca carrega nada
- * vindo do dado do TMDB sem checagem.
- * @param {string} iso2
- * @returns {string} URL, ou string vazia se o código não for válido.
- */
-export function flagUrl(iso2) {
-  const code = String(iso2 || '').trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return '';
-  return `https://flagcdn.com/${code.toLowerCase()}.svg`;
 }
 
 /**

@@ -24,6 +24,7 @@ dat-movie/
 │   │   ├── cache.js            # LRU com TTL + persistência em localStorage
 │   │   ├── catalog.js          # Progresso, filtros, ordenação, dedupe, escape
 │   │   ├── contentRating.js    # `US_RATING_BR` + `pickContentRating` (equivalência de classificação)
+│   │   ├── flags.js            # `flagEmoji` + `flagUrl` (ISO→bandeira, desktop e mobile)
 │   │   ├── dates.js            # `parseLocalDate`: data ISO no fuso local
 │   │   ├── discoverSearch.js   # Filtros avançados e busca discover/tv
 │   │   ├── dom.js              # Mapa central de elementos do DOM
@@ -109,6 +110,7 @@ aplicação inteira em um arquivo.
 | `recommendScoring.js` | Score bayesiano/popularidade/recência e mix de seleção | `titleFilters`, `dates`, `prng` |
 | `discoverSearch.js` | Opções de filtro, `buildDiscoverParams`, `searchTitles` | `api`, `cache`, `trendingApi`, `titleFilters`, `fuzzySearch`, `titleRelations`, `contentRating` |
 | `contentRating.js` | `US_RATING_BR` (equivalência US→BR) e `pickContentRating` (escolha de nota com prioridade BR) | — |
+| `flags.js` | `flagEmoji` / `flagUrl` a partir de ISO-2 — importado pelo modal do desktop e pelo do mobile | — |
 | `seasonArt.js` | Decide e resolve arte por temporada | — |
 | `logoPicker.js` | Escolhe logo canônico por idioma/país/votação | — |
 | `imageNavigation.js` | Índice anterior/próximo, dedupe, idioma, largura | — |

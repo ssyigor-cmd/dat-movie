@@ -151,10 +151,15 @@ O ponto mais denso do mobile. Anatomia atual:
 a mesma gramática visual do restante do app — rótulos Sora 0.85rem/600 com
 ícone em `--accent`, conteúdo em cartões `--bg-elevated` com `--radius` e
 `padding:14px` (`.ti-card`). Hero com backdrop da TMDB (w780), nome em
-Sora 1.2rem e linha de mono só com a estreia; Sinopse, Sites (grid 2 colunas de
-links mono), Detalhes (grid de células `--bg-surface` com rótulos
-uppercase e valores mono) e Elenco (carrossel com `.ti-cast-photo`/
-`.ti-cast-role`, antes sem CSS). Sem gradiente na UI.
+Sora 1.2rem, **nome original** (quando diferente) e linha de mono só com
+a estreia; Sinopse, Sites (grid 2 colunas de links mono), Detalhes (grid
+de células `--bg-surface` com rótulos uppercase e valores mono, incluindo
+**Faixa etária** com selo BR e **Origem** com bandeiras), Elenco (carrossel
+com `.ti-cast-photo`/`.ti-cast-role`) e **Equipe** (Criação, Direção,
+Emissora e Produtora no mesmo trilho, separadores `.ti-team-sep`). O selo
+etário usa as cores oficiais BR fixas nos dois temas; as bandeiras vêm de
+`src/lib/flags.js` (mesmo helper do desktop, com fallback para emoji se
+o SVG do flagcdn não carregar). Sem gradiente na UI.
 
 Selos/tipografia: títulos em Sora (`--font-display`), dados técnicos em
 IBM Plex Mono (`--font-mono`), corpo em Inter. O mobile respeita a mesma
@@ -224,6 +229,10 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Modal Detalhes ganhou paridade parcial com o desktop: faixa etária
+  (selo BR), origem (bandeiras), equipe (criação/direção/emissora/produtora)
+  e nome original; helper de bandeiras extraído para `src/lib/flags.js`
+  (reexportado pelo componente do desktop para os testes existentes);
 - Modal Detalhes: removido o campo "Tipo" (Scripted etc.) da grade e da
   linha do hero, considerado inútil;
 - Modal Detalhes padronizado: cartões elevados por seção, hero com

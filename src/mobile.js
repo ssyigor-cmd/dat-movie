@@ -26,6 +26,7 @@ import {
 } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
 import { US_RATING_BR, pickContentRating } from './lib/contentRating.js';
+import { flagEmoji, flagUrl } from './lib/flags.js';
 import {
   getCalendarWeek, getTrendingToSuggest, CATEGORIES,
   normalizeTrendingItem, filterNotInCatalog,
@@ -1915,6 +1916,57 @@ function closeEpisodesModal() { $('episodesModal').classList.remove('open'); }
 // ================================================================
 // TITLE INFO MODAL
 // ================================================================
+// ================================================================
+// TITLE INFO MODAL — selo etário e bandeiras (regras do desktop)
+// ================================================================
+function tiAgeTone(nota) {
+  const key = String(nota || '').trim().toUpperCase();
+  const br = US_RATING_BR[key] || key;
+  return ['L', '10', '12', '14', '16', '18'].includes(br) ? br.toLowerCase() : 'na';
+}
+
+function tiAgeBadge(rating) {
+  if (!rating?.rating) return '';
+  const key = String(rating.rating).trim().toUpperCase();
+  const exibida = US_RATING_BR[key] || rating.rating;
+  const titulo = `${rating.rating}${rating.iso_3166_1 ? ` · ${rating.iso_3166_1}` : ''}`;
+  return `<span class="ti-age ti-age--${tiAgeTone(rating.rating)}" title="${escapeHTML(titulo)}">${escapeHTML(exibida)}</span>`;
+}
+
+function tiFlagTag(iso, alt) {
+  const url = flagUrl(iso);
+  if (!url) return '';
+  return `<img class="ti-flag" src="${escapeHTML(url)}" data-fallback="${flagEmoji(iso)}" alt="${escapeHTML(alt || '')}" loading="lazy" width="20" height="14" />`;
+}
+
+function tiOrigins(details) {
+  const vistos = new Set();
+  const flags = [];
+  const add = (isoRaw, alt) => {
+    const iso = String(isoRaw || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(iso) || vistos.has(iso)) return;
+    vistos.add(iso);
+    flags.push(tiFlagTag(iso, alt));
+  };
+  (details.production_countries || []).forEach(c => add(c?.iso_3166_1, c?.name));
+  (details.origin_country || []).forEach(iso => add(iso, iso));
+  return flags.join('');
+}
+
+// Mesma estratégia do desktop: nada de onerror inline, troca ligada depois.
+function applyTiFlagFallbacks(root) {
+  root?.querySelectorAll('img.ti-flag').forEach(img => {
+    if (img.dataset.fallbackBound) return;
+    img.dataset.fallbackBound = '1';
+    img.addEventListener('error', () => {
+      const emoji = document.createElement('span');
+      emoji.className = 'ti-flag ti-flag--emoji';
+      emoji.textContent = img.dataset.fallback || '';
+      img.replaceWith(emoji);
+    }, { once: true });
+  });
+}
+
 async function openTitleInfoModal() {
   if (!currentTitle) return;
   $('titleInfoLoading').classList.remove('hidden');
@@ -1934,7 +1986,9 @@ async function openTitleInfoModal() {
       ? `<img class="ti-hero-img" src="https://image.tmdb.org/t/p/w780${escapeHTML(details.backdrop_path)}" alt="" />`
       : '';
     const heroMeta = details.first_air_date ? `desde ${formatDateBR(details.first_air_date)}` : '';
-    let html = `<div class="ti-hero">${heroImg}<div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
+    const heroOriginal = details.original_name && details.original_name !== details.name
+      ? `<div class="ti-original">${escapeHTML(details.original_name)}</div>` : '';
+    let html = `<div class="ti-hero">${heroImg}<div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroOriginal}${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-align-left"></i> Sinopse</div><div class="ti-card"><p class="ti-text">${escapeHTML(details.overview || 'Sinopse não disponível.')}</p></div></div>`;
     // Links
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-link"></i> Sites</div><div class="ti-card"><div class="ti-links">`;
@@ -1950,8 +2004,11 @@ async function openTitleInfoModal() {
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-list"></i> Detalhes</div><div class="ti-card"><div class="ti-grid">`;
     html += `<div class="ti-cell ti-cell--wide"><span class="ti-cell-label">Gênero</span><span class="ti-cell-value">${genres.map(g => `<span class="ti-pill">${escapeHTML(g)}</span>`).join('')}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Status</span><span class="ti-cell-value">${escapeHTML(statusMap[details.status] || details.status || '—')}</span></div>`;
+    const age = pickContentRating(details.content_ratings);
+    html += `<div class="ti-cell"><span class="ti-cell-label">Faixa etária</span><span class="ti-cell-value">${tiAgeBadge(age) || '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Estreia</span><span class="ti-cell-value">${details.first_air_date ? formatDateBR(details.first_air_date) : '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Último episódio</span><span class="ti-cell-value">${details.last_air_date ? formatDateBR(details.last_air_date) : '—'}</span></div>`;
+    html += `<div class="ti-cell"><span class="ti-cell-label">Origem</span><span class="ti-cell-value">${tiOrigins(details) || '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Duração</span><span class="ti-cell-value">${runtime || '—'}</span></div>`;
     html += `</div></div></div>`;
     // Elenco
@@ -1965,7 +2022,41 @@ async function openTitleInfoModal() {
       });
       html += `</div></div></div>`;
     }
+    // Equipe: criação, direção, emissora e produtora no mesmo trilho do elenco.
+    const creatorCards = (details.created_by || []).filter(c => c?.name).slice(0, 4);
+    const directorCards = [];
+    for (const m of (credits?.crew || [])) {
+      if (!/director/i.test(m?.job || '') || !m?.name) continue;
+      if (directorCards.some(d => d.name === m.name)) continue;
+      directorCards.push(m);
+      if (directorCards.length >= 4) break;
+    }
+    const networkCards = (details.networks || []).filter(n => n?.name).slice(0, 4);
+    const companyCards = (details.production_companies || []).filter(n => n?.name).slice(0, 6);
+    const personCard = (p, funcao) => {
+      const photo = p.profile_path
+        ? `<img class="ti-cast-photo" src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />`
+        : `<span class="ti-cast-ph"><i class="fas fa-user"></i></span>`;
+      return `<div class="ti-cast-card">${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div><div class="ti-cast-role">${funcao}</div></div>`;
+    };
+    const orgCard = (o, funcao) => {
+      const logo = o.logo_path
+        ? `<img class="ti-cast-photo ti-team-logo" src="https://image.tmdb.org/t/p/w185${o.logo_path}" alt="${escapeHTML(o.name)}" loading="lazy" />`
+        : `<span class="ti-cast-ph"><i class="fas fa-building"></i></span>`;
+      return `<div class="ti-cast-card">${logo}<div class="ti-cast-name">${escapeHTML(o.name)}</div><div class="ti-cast-role">${funcao}</div></div>`;
+    };
+    const grupos = [
+      creatorCards.map(p => personCard(p, 'Criação')),
+      directorCards.map(p => personCard(p, 'Direção')),
+      networkCards.map(o => orgCard(o, 'Emissora')),
+      companyCards.map(o => orgCard(o, 'Produtora')),
+    ].filter(g => g.length);
+    const equipeHtml = grupos.map(g => g.join('')).join('<div class="ti-team-sep" aria-hidden="true"></div>');
+    if (equipeHtml) {
+      html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-clapperboard"></i> Equipe</div><div class="ti-card"><div class="ti-cast">${equipeHtml}</div></div></div>`;
+    }
     $('titleInfoContent').innerHTML = html;
+    applyTiFlagFallbacks($('titleInfoContent'));
     $('titleInfoLoading').classList.add('hidden');
     $('titleInfoContent').style.display = 'block';
   } catch (e) {
