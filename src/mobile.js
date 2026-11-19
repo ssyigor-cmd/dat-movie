@@ -1544,7 +1544,6 @@ function updateTitleMeta() {
   const meta = $('titleMeta');
   if (!meta || !currentTitle) return;
   let mh = '';
-  mh += `<button class="title-badge title-badge-btn" onclick="openTitleInfoModal()" aria-label="Detalhes" title="Detalhes"><i class="fas fa-circle-info" style="font-size:1.1rem"></i></button>`;
   const tc = currentTier ? tierClass(currentTier) : '';
   mh += `<button class="title-badge title-badge-btn tier" onclick="cycleTier()">${currentTier ? `<span class="tier-group-stamp ${tc}" style="width:18px;height:18px;font-size:0.5rem">${currentTier}</span>` : 'N/A'}</button>`;
   const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
@@ -1589,14 +1588,16 @@ async function openTitleFromCatalog(item, opts = {}) {
 
   $('titleName').textContent = item.nome;
 
-  // Preview (título novo sorteado): troca as ações por Adicionar/Cancelar
+  // Preview (título novo sorteado): troca Salvar/Remover por Adicionar/Cancelar
+  // e esconde a linha Detalhes/Listas/Episódios (ainda não há item no catálogo).
   const actions = $('actionsSection');
   if (actions) {
     if (actionsSectionHTML === null) actionsSectionHTML = actions.innerHTML;
     actions.innerHTML = item._isPreview
-      ? '<div class="twin-label">Adicionar</div><button class="badge-action" onclick="addRouletteTitle()"><i class="fas fa-plus"></i>Adicionar</button><button class="badge-action" onclick="goBackFromTitle()"><i class="fas fa-times"></i>Cancelar</button>'
+      ? '<button class="badge-action" onclick="addRouletteTitle()"><i class="fas fa-plus"></i>Adicionar</button><button class="badge-action" onclick="goBackFromTitle()"><i class="fas fa-times"></i>Cancelar</button>'
       : actionsSectionHTML;
   }
+  $('detailActionsRow')?.classList.toggle('hidden', !!item._isPreview);
 
   // Meta badges
   updateTitleMeta();

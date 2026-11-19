@@ -105,11 +105,9 @@ O ponto mais denso do mobile. Anatomia atual:
 - Pôster 124px sobrepondo o backdrop; bloco de info à direita com o logo do
   título (ou nome como fallback) e os selos.
 - **Selos do cabeçalho** (mesma caixa: altura mínima 24px, gap 6px,
-  `.title-badge-btn`):
-  - *Detalhes*: só o ícone `fa-circle-info` (1.1rem), abre o modal de
-    informações do título — ocupa o slot onde era o ano;
-  - *Tier*: selo de 18×18 com a letra;
-  - *Status*: ponto de 9px + rótulo (assistindo/concluído/planejado/pausado).
+  `.title-badge-btn`): *Tier* (selo 18×18 com a letra) e *Status* (ponto
+  de 9px + rótulo: assistindo/concluído/planejado/pausado). O antigo
+  selo *Detalhes* saiu daqui e virou botão com texto;
 - **Progresso**: steppers Temporada/Episódio. Toque curto = 1 passo;
   **clique e segurar** = 1 passo aos 300ms e repetição a cada 100ms
   (`startHold`/`stopHold`). Os botões usam **pointer events**
@@ -118,12 +116,16 @@ O ponto mais denso do mobile. Anatomia atual:
   `holdFired` evitam o passo duplo no clique emitido ao soltar, e
   `touch-action:manipulation` + `user-select:none` evitam zoom/seleção
   nativa. Os limites vêm da TMDB (`seasonMax`, `epMaxByTemp`).
-- **Blocos Listas | Ações** (`.twin-row` → `.twin-block`): dois blocos lado a
-  lado abaixo da sinopse, botões `.badge-action` (mono, `radius-sm`,
-  `bg-surface`, `--text-secondary`). Listas: Selecionar listas, Episódios.
-  Ações: Salvar, Remover.
-- O modo **sorteio/preview** troca o bloco Ações pelos botões Adicionar /
-  Cancelar (usa os mesmos `.badge-action`).
+- **Botões de ação** (`.badge-action`: mono, `radius-sm`, `bg-surface`,
+  `--text-secondary`), todos em linha (flex, `flex:1`):
+  - logo **abaixo da sinopse do episódio**: `#detailActionsRow` com
+    **Detalhes · Listas · Episódios** (um do lado do outro);
+  - **no fim da página**: `#actionsSection` com **Salvar · Remover** (um
+    do lado do outro). O antigo bloco "Listas" (`.twin-row`/`.twin-block`)
+    foi eliminado;
+- O modo **sorteio/preview** troca Salvar/Remover por Adicionar /
+  Cancelar (usa os mesmos `.badge-action`) e esconde `#detailActionsRow`,
+  já que Detalhes/Listas/Episódios exigem um item salvo;
 - O insert do preview (`addRouletteTitle()`) grava **o que foi escolhido
   na tela** — `temporada`/`episodio` dos steppers (`curTemp`/`curEp`), `tier`
   (`currentTier`) e `status` (`currentStatus`). Antes eram constantes
@@ -206,6 +208,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Detalhe reestruturado: bloco "Listas" eliminado; "Detalhes" saiu dos
+  selos do cabeçalho; Detalhes/Listas/Episódios agora formam uma linha
+  abaixo da sinopse do episódio e Salvar/Remover ficam no fim da página;
 - Corrigido o insert de novo título: tier, temporada/episódio e status
   escolhidos no preview passam a ser gravados no banco (antes o insert
   usava valores fixos e descartava a escolha do usuário);
