@@ -108,7 +108,9 @@ O ponto mais denso do mobile. Anatomia atual:
   `.title-badge-btn`): *Tier* (selo 18×18 com a letra) e *Status* (ponto
   de 9px + rótulo: assistindo/concluído/planejado/pausado). O antigo
   selo *Detalhes* saiu daqui e virou botão com texto;
-- **Progresso**: steppers Temporada/Episódio. Toque curto = 1 passo;
+- **Progresso** (`#progressSection`): steppers Temporada/Episódio, com
+  `margin-top:12px` (as outras seções do detalhe usam 20px) para reduzir
+  o espaço acima do bloco. Toque curto = 1 passo;
   **clique e segurar** = 1 passo aos 300ms e repetição a cada 100ms
   (`startHold`/`stopHold`). Os botões usam **pointer events**
   (`pointerdown/up/cancel/leave`) para funcionar no toque do iPhone — antes
@@ -213,6 +215,8 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Detalhe: reduzido o espaço acima do bloco Progresso (`margin-top:12px`,
+  contra 20px das demais seções);
 - Preview de títulos pesquisados voltou a mostrar Detalhes/Listas/Episódios;
   ao tentar trocar listas antes de salvar, aparece aviso em vez de
   fechar a folha silenciosamente;

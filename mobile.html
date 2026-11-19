@@ -308,6 +308,7 @@
     .status-dot.warn { background:var(--warning); }
     .title-body { padding:16px; }
     .title-section { margin-top:20px; }
+    #progressSection { margin-top:12px; }
     .title-section-label { font-family:var(--font-display); font-size:0.85rem; font-weight:600; margin-bottom:8px; }
     .tier-opt { padding:8px 14px; border-radius:var(--radius-pill); border:none; background:var(--bg-surface); color:var(--text-primary); font-size:0.78rem; cursor:pointer; font-weight:600; }
     .tier-opt:active { background:var(--bg-hover); }
@@ -601,7 +602,7 @@
       
       
       
-      <div class="title-section"><div class="title-section-label">Progresso</div><div class="stepper-row">
+      <div class="title-section" id="progressSection"><div class="title-section-label">Progresso</div><div class="stepper-row">
         <div class="stepper-box"><span class="stepper-label-sm">Temporada</span><div class="stepper-display"><span class="cur" id="tempDisplay">01</span><span class="sep">/</span><span class="max" id="tempMax">01</span></div><div class="stepper-controls"><button class="stepper-btn" data-target="temp" data-step="-1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-minus"></i></button><button class="stepper-btn" data-target="temp" data-step="1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-plus"></i></button></div></div>
         <div class="stepper-box"><span class="stepper-label-sm">Episódio</span><div class="stepper-display"><span class="cur" id="epDisplay">07</span><span class="sep">/</span><span class="max" id="epMax">09</span></div><div class="stepper-controls"><button class="stepper-btn" data-target="ep" data-step="-1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-minus"></i></button><button class="stepper-btn" data-target="ep" data-step="1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-plus"></i></button></div></div>
       </div></div>
