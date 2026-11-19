@@ -127,8 +127,10 @@ O ponto mais denso do mobile. Anatomia atual:
     `--danger`). No preview a aparência é a mesma, com Adicionar/Cancelar;
   - O antigo bloco "Listas" (`.twin-row`/`.twin-block`) foi eliminado;
 - O modo **sorteio/preview** troca Salvar/Remover por Adicionar /
-  Cancelar (usa os mesmos `.badge-action`) e esconde `#detailActionsRow`,
-  já que Detalhes/Listas/Episódios exigem um item salvo;
+  Cancelar (usa os mesmos `.badge-action`), mas mantém visíveis
+  **Detalhes · Listas · Episódios**: Detalhes e Episódios funcionam
+  pelo `tmdb_id`; "Listas" abre a folha só para consulta — ao concluir,
+  `saveTitleLists()` avisa "Adicione o título antes de escolher listas";
 - O insert do preview (`addRouletteTitle()`) grava **o que foi escolhido
   na tela** — `temporada`/`episodio` dos steppers (`curTemp`/`curEp`), `tier`
   (`currentTier`) e `status` (`currentStatus`). Antes eram constantes
@@ -211,6 +213,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Preview de títulos pesquisados voltou a mostrar Detalhes/Listas/Episódios;
+  ao tentar trocar listas antes de salvar, aparece aviso em vez de
+  fechar a folha silenciosamente;
 - Botões Salvar/Remover: sem rótulo "Ações" e sem caixa; apenas fonte
   (Sora 0.85rem/600) e cores (`bg-elevated`/`text-primary`, `--danger`
   em Remover) iguais às dos blocos Progresso/Episódio;

@@ -1588,8 +1588,8 @@ async function openTitleFromCatalog(item, opts = {}) {
 
   $('titleName').textContent = item.nome;
 
-  // Preview (título novo sorteado): troca Salvar/Remover por Adicionar/Cancelar
-  // e esconde a linha Detalhes/Listas/Episódios (ainda não há item no catálogo).
+  // Preview (título novo sorteado): troca Salvar/Remover por Adicionar/Cancelar.
+  // Detalhes/Listas/Episódios continuam visíveis e funcionais no preview.
   const actions = $('actionsSection');
   if (actions) {
     if (actionsSectionHTML === null) actionsSectionHTML = actions.innerHTML;
@@ -1597,7 +1597,6 @@ async function openTitleFromCatalog(item, opts = {}) {
       ? '<button class="badge-action" onclick="addRouletteTitle()"><i class="fas fa-plus"></i>Adicionar</button><button class="badge-action" onclick="goBackFromTitle()"><i class="fas fa-times"></i>Cancelar</button>'
       : actionsSectionHTML;
   }
-  $('detailActionsRow')?.classList.toggle('hidden', !!item._isPreview);
 
   // Meta badges
   updateTitleMeta();
@@ -2006,7 +2005,11 @@ function openListModal() {
 }
 
 async function saveTitleLists() {
-  if (!currentTitle || currentTitle._isPreview) { closeListModal(); return; }
+  if (!currentTitle || currentTitle._isPreview) {
+    closeListModal();
+    showToast('Adicione o título antes de escolher listas');
+    return;
+  }
   const checked = new Set(
     Array.from(document.querySelectorAll('#listCheckboxes input:checked')).map(c => String(c.dataset.listId))
   );
