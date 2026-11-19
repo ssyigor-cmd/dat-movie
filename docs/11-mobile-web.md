@@ -124,6 +124,10 @@ O ponto mais denso do mobile. Anatomia atual:
   Ações: Salvar, Remover.
 - O modo **sorteio/preview** troca o bloco Ações pelos botões Adicionar /
   Cancelar (usa os mesmos `.badge-action`).
+- O insert do preview (`addRouletteTitle()`) grava **o que foi escolhido
+  na tela** — `temporada`/`episodio` dos steppers (`curTemp`/`curEp`), `tier`
+  (`currentTier`) e `status` (`currentStatus`). Antes eram constantes
+  `1/0/'assistindo'/null`, então tier e progresso escolhidos eram perdidos.
 - Ao **adicionar** um título (`addRouletteTitle()`), o app grava o aviso em
   `sessionStorage`, troca a URL pelo deep link `#/titulo/:id` e faz
   `location.reload()` — estado limpo para evitar erros. No boot, `initApp()`
@@ -202,6 +206,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Corrigido o insert de novo título: tier, temporada/episódio e status
+  escolhidos no preview passam a ser gravados no banco (antes o insert
+  usava valores fixos e descartava a escolha do usuário);
 - Adicionar título agora recarrega a página (via deep link + toast em
   `sessionStorage`) para garantir estado limpo; steppers Temporada/Episódio
   passaram a aceitar clique e segurar no toque (pointer events) com

@@ -43,7 +43,7 @@ valiam só para o desktop):
 | `src/lib/contentRating.js` | 49 | `US_RATING_BR` + `pickContentRating` (extraído de `titleInfoModal.js`/`discoverSearch.js` em 18/11) |
 | `src/components/searchPage.js` | 443 | UI da busca |
 | `src/lib/recommendScoring.js` | 425 | Score e mix |
-| `src/mobile.js` | 2553 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
+| `src/mobile.js` | 2555 | Orquestração da frente mobile (ver `11-mobile-web.md`) |
 | `mobile.html` | 750 | Markup + CSS da frente mobile |
 | **Total `src/**/*.js`** | **~12.546** | 32 módulos |
 

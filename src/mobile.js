@@ -1026,9 +1026,11 @@ async function addRouletteTitle() {
     }
     const { data, error } = await supabase.from('items').insert([{
       user_id: user.id, nome: currentTitle.nome, tipo: 'serie',
-      temporada: 1, episodio: 0,
+      // Grava exatamente o que o usuário escolheu no preview (steppers,
+      // tier e status) — antes eram constantes 1/0/'assistindo'/null.
+      temporada: curTemp || 1, episodio: curEp || 0,
       total_episodios: currentTitle.totalEpisodios || 1,
-      season_episodes_map: currentTitle.seasonEpisodesMap || {}, status: 'assistindo', tier: null,
+      season_episodes_map: currentTitle.seasonEpisodesMap || {}, status: currentStatus || 'assistindo', tier: currentTier || null,
       imagem: currentTitle.imagem || null, tmdb_id: currentTitle.tmdb_id || null,
       ano: currentTitle.ano || null, data_criacao: new Date().toISOString()
     }]).select();
