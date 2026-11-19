@@ -110,13 +110,25 @@ O ponto mais denso do mobile. Anatomia atual:
     informações do título — ocupa o slot onde era o ano;
   - *Tier*: selo de 18×18 com a letra;
   - *Status*: ponto de 9px + rótulo (assistindo/concluído/planejado/pausado).
-- **Progresso**: steppers Temporada/Episódio.
+- **Progresso**: steppers Temporada/Episódio. Toque curto = 1 passo;
+  **clique e segurar** = 1 passo aos 300ms e repetição a cada 100ms
+  (`startHold`/`stopHold`). Os botões usam **pointer events**
+  (`pointerdown/up/cancel/leave`) para funcionar no toque do iPhone — antes
+  eram `mousedown/up/leave`, que não disparavam no iOS. `holdActive`/
+  `holdFired` evitam o passo duplo no clique emitido ao soltar, e
+  `touch-action:manipulation` + `user-select:none` evitam zoom/seleção
+  nativa. Os limites vêm da TMDB (`seasonMax`, `epMaxByTemp`).
 - **Blocos Listas | Ações** (`.twin-row` → `.twin-block`): dois blocos lado a
   lado abaixo da sinopse, botões `.badge-action` (mono, `radius-sm`,
   `bg-surface`, `--text-secondary`). Listas: Selecionar listas, Episódios.
   Ações: Salvar, Remover.
 - O modo **sorteio/preview** troca o bloco Ações pelos botões Adicionar /
   Cancelar (usa os mesmos `.badge-action`).
+- Ao **adicionar** um título (`addRouletteTitle()`), o app grava o aviso em
+  `sessionStorage`, troca a URL pelo deep link `#/titulo/:id` e faz
+  `location.reload()` — estado limpo para evitar erros. No boot, `initApp()`
+  abre o detalhe pelo deep link e exibe o toast "Título adicionado ao
+  catálogo!" (4s), lido do `sessionStorage` e removido em seguida.
 - `Corrigir título` **não existe** no mobile hoje (o desktop mantém a feature).
   Se voltar a existir, seguir o padrão do desktop (`relinkTitle` no
   `titlePage.js`).
@@ -190,6 +202,10 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Adicionar título agora recarrega a página (via deep link + toast em
+  `sessionStorage`) para garantir estado limpo; steppers Temporada/Episódio
+  passaram a aceitar clique e segurar no toque (pointer events) com
+  repetição e sem passo duplo ao soltar;
 - Home configurável: a linha "Configurações" (que só dizia "Em breve") virou
   "Personalizar tela inicial", com folha de mostrar/ocultar + reordenar os
   14 blocos; persistência por usuário em `homeLayout_<user.id>`;

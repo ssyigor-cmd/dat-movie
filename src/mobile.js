@@ -467,6 +467,16 @@ async function initApp(user = null) {
       const deepItem = state.items.find(i => String(i.id) === String(deepLinkId));
       if (deepItem) openTitleFromCatalog(deepItem, { pushHistory: true });
     }
+
+    // Confirmação de um título recém-adicionado: o toast viaja no
+    // sessionStorage para sobreviver ao location.reload() de addRouletteTitle().
+    try {
+      const addedToast = sessionStorage.getItem('datmovie_added_toast');
+      if (addedToast) {
+        sessionStorage.removeItem('datmovie_added_toast');
+        setTimeout(() => showToast(addedToast, 4000), 400);
+      }
+    } catch {}
   })();
   initAppInflight = promise;
   try {
@@ -1037,8 +1047,15 @@ async function addRouletteTitle() {
     };
     state.items.unshift(fullItem);
     stopBackdropAutoRotate();
-    showToast('Título adicionado ao catálogo!');
-    openTitleFromCatalog(fullItem, { pushHistory: true });
+    // Recarrega de verdade para limpar qualquer estado stale após o insert
+    // (evita erros na tela). O toast sobrevive ao reload via sessionStorage
+    // e o hash preserva a tela de detalhe do título recém-adicionado.
+    try {
+      sessionStorage.setItem('datmovie_added_toast', 'Título adicionado ao catálogo!');
+      history.replaceState(null, '', location.pathname + location.search + `#/titulo/${fullItem.id}`);
+    } catch {}
+    location.reload();
+    return;
   } catch (e) {
     showToast('Erro ao adicionar: ' + e.message);
   }
@@ -1704,12 +1721,31 @@ function applyStep(btn) {
 }
 
 let holdTimer = null, holdInterval = null;
+let holdBtn = null;
 let episodePanelSeq = 0;
 function startHold(btn) {
   stopHold();
-  holdTimer = setTimeout(() => { holdTimer = null; applyStep(btn); btn.dataset.holdFired = '1'; holdInterval = setInterval(() => applyStep(btn), 100); }, 300);
+  holdBtn = btn;
+  // Toque curto = 1 passo (clique); 300ms segurado = passo imediato e
+  // repetição a cada 100ms. O clique final é suprimido por holdFired.
+  holdTimer = setTimeout(() => {
+    holdTimer = null;
+    if (holdBtn !== btn) return;
+    btn.dataset.holdActive = '1';
+    applyStep(btn);
+    btn.dataset.holdFired = '1';
+    holdInterval = setInterval(() => applyStep(btn), 100);
+  }, 300);
 }
-function stopHold() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } if (holdInterval) { clearInterval(holdInterval); holdInterval = null; } }
+function stopHold() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+  if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+  if (holdBtn) {
+    if (holdBtn.dataset.holdActive === '1') holdBtn.dataset.holdFired = '1';
+    holdBtn.dataset.holdActive = '0';
+    holdBtn = null;
+  }
+}
 
 async function syncEpisodePanel() {
   const my = ++episodePanelSeq;
