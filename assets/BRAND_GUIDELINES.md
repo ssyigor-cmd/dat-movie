@@ -227,9 +227,7 @@ The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
   Ã­cone de atalho do iOS/iPadOS â€” gerados por `scripts/build-favicons.mjs`
   e versionados.
 - **apple-touch-icon** (`assets/icon/apple-touch-icon.png`, 180x180):
-  fundo carvÃ£o **opaco**, quadrado e sem cantos arredondados â€” o iOS aplica
-  a mÃ¡scara dele prÃ³prio. Usado quando o usuÃ¡rio faz "Adicionar Ã  Tela de
-  InÃ­cio" a partir do Safari. Declarado com
+  fundo papel claro (`#F4F1EA`), **opaco**, quadrado e sem cantos arredondados — o iOS aplica a máscara dele próprio. A marca em bronze (`#7A663B`) segue o padrão do tema claro. Usado quando o usuário faz "Adicionar à Tela de Início" a partir do Safari. Declarado com
   `<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" sizes="180x180">`.
 - Continua **sem** manifest/Web App layer â€” sÃ³ o Ã­cone do atalho.
 - Fora desses casos, todo ativo de marca Ã© SVG. Se algum dia precisar de
