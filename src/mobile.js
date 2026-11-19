@@ -1930,37 +1930,41 @@ async function openTitleInfoModal() {
       cachedTMDB(`tvcred_${tmdbId}`, `tv/${tmdbId}/aggregate_credits`, {}, 'pt-BR').catch(() => null),
     ]);
 
-    let html = `<div class="ti-hero"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div></div>`;
-    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-align-left"></i> Sinopse</div><p class="ti-text">${escapeHTML(details.overview || 'Sinopse não disponível.')}</p></div>`;
+    const heroImg = details.backdrop_path
+      ? `<img class="ti-hero-img" src="https://image.tmdb.org/t/p/w780${escapeHTML(details.backdrop_path)}" alt="" />`
+      : '';
+    const heroMeta = [details.type, details.first_air_date ? `desde ${formatDateBR(details.first_air_date)}` : ''].filter(Boolean).join(' · ');
+    let html = `<div class="ti-hero">${heroImg}<div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
+    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-align-left"></i> Sinopse</div><div class="ti-card"><p class="ti-text">${escapeHTML(details.overview || 'Sinopse não disponível.')}</p></div></div>`;
     // Links
-    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-link"></i> Sites</div><div class="ti-links">`;
+    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-link"></i> Sites</div><div class="ti-card"><div class="ti-links">`;
     if (details.homepage) html += `<a class="ti-link" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener"><i class="fas fa-globe"></i> Site oficial</a>`;
     html += `<a class="ti-link" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || currentTitle.nome)}" target="_blank" rel="noopener"><i class="fas fa-star"></i> IMDb</a>`;
     html += `<a class="ti-link" href="https://pt.wikipedia.org/wiki/${encodeURIComponent((details.name || currentTitle.nome).replace(/ /g, '_'))}" target="_blank" rel="noopener"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`;
     html += `<a class="ti-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || currentTitle.nome) + ' trailer')}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i> YouTube</a>`;
-    html += `</div></div>`;
+    html += `</div></div></div>`;
     // Detalhes
     const statusMap = { 'Returning Series': 'Em exibição', 'Ended': 'Finalizada', 'Canceled': 'Cancelada', 'In Production': 'Em produção', 'Planned': 'Planejada' };
     const genres = (details.genres || []).map(g => g.name).filter(Boolean);
     const runtime = Array.isArray(details.episode_run_time) && details.episode_run_time.length ? `${Math.min(...details.episode_run_time)} min` : '';
-    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-list"></i> Detalhes</div><div class="ti-grid">`;
+    html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-list"></i> Detalhes</div><div class="ti-card"><div class="ti-grid">`;
     html += `<div class="ti-cell ti-cell--wide"><span class="ti-cell-label">Gênero</span><span class="ti-cell-value">${genres.map(g => `<span class="ti-pill">${escapeHTML(g)}</span>`).join('')}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Status</span><span class="ti-cell-value">${escapeHTML(statusMap[details.status] || details.status || '—')}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Estreia</span><span class="ti-cell-value">${details.first_air_date ? formatDateBR(details.first_air_date) : '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Último episódio</span><span class="ti-cell-value">${details.last_air_date ? formatDateBR(details.last_air_date) : '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Duração</span><span class="ti-cell-value">${runtime || '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Tipo</span><span class="ti-cell-value">${escapeHTML(details.type || '—')}</span></div>`;
-    html += `</div></div>`;
+    html += `</div></div></div>`;
     // Elenco
     const cast = (credits?.cast || []).filter(c => c.name).slice(0, 12);
     if (cast.length) {
-      html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-users"></i> Elenco</div><div class="ti-cast">`;
+      html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-users"></i> Elenco</div><div class="ti-card"><div class="ti-cast">`;
       cast.forEach(p => {
-        const photo = p.profile_path ? `<img src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" style="width:72px;height:72px;border-radius:10px;object-fit:cover" />` : `<span class="ti-cast-ph"><i class="fas fa-user"></i></span>`;
+        const photo = p.profile_path ? `<img class="ti-cast-photo" src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />` : `<span class="ti-cast-ph"><i class="fas fa-user"></i></span>`;
         const role = (p.roles || []).map(r => r.character).filter(Boolean).slice(0, 2).join(' / ');
         html += `<div class="ti-cast-card">${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div>${role ? `<div class="ti-cast-role">${escapeHTML(role)}</div>` : ''}</div>`;
       });
-      html += `</div></div>`;
+      html += `</div></div></div>`;
     }
     $('titleInfoContent').innerHTML = html;
     $('titleInfoLoading').classList.add('hidden');

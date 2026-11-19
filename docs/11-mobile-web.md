@@ -147,6 +147,15 @@ O ponto mais denso do mobile. Anatomia atual:
   `titlePage.js`).
 - Sinopse do episódio atual, depois a lista de episódios em acordeão.
 
+**Modal Detalhes** (`#titleInfoModal`, aberto pelo botão "Detalhes"): segue
+a mesma gramática visual do restante do app — rótulos Sora 0.85rem/600 com
+ícone em `--accent`, conteúdo em cartões `--bg-elevated` com `--radius` e
+`padding:14px` (`.ti-card`). Hero com backdrop da TMDB (w780), nome em
+Sora 1.2rem e linha de meta em mono; Sinopse, Sites (grid 2 colunas de
+links mono), Detalhes (grid de células `--bg-surface` com rótulos
+uppercase e valores mono) e Elenco (carrossel com `.ti-cast-photo`/
+`.ti-cast-role`, antes sem CSS). Sem gradiente na UI.
+
 Selos/tipografia: títulos em Sora (`--font-display`), dados técnicos em
 IBM Plex Mono (`--font-mono`), corpo em Inter. O mobile respeita a mesma
 regra de cor sólida do desktop.
@@ -215,6 +224,9 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Modal Detalhes padronizado: cartões elevados por seção, hero com
+  backdrop, links em grid mono, células de dados e estilos de elenco
+  (inclusive `.ti-cast-role`, que não existia);
 - Detalhe: reduzido o espaço acima do bloco Progresso (`margin-top:12px`,
   contra 20px das demais seções);
 - Preview de títulos pesquisados voltou a mostrar Detalhes/Listas/Episódios;
