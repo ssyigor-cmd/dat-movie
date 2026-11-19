@@ -1546,7 +1546,7 @@ function updateTitleMeta() {
   if (!meta || !currentTitle) return;
   let mh = '';
   const tc = currentTier ? tierClass(currentTier) : '';
-  mh += `<button class="title-badge title-badge-btn tier" onclick="cycleTier()">${currentTier ? `<span class="tier-group-stamp ${tc}" style="width:18px;height:18px;font-size:0.5rem">${currentTier}</span>` : 'N/A'}</button>`;
+  mh += `<button class="title-badge title-badge-btn tier${tc ? ` ${tc}` : ''}" onclick="cycleTier()">${currentTier || 'N/A'}</button>`;
   const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
   const [dc, sl] = sm[currentStatus] || ['live', currentStatus];
   mh += `<button class="title-badge title-badge-btn" onclick="cycleStatus()"><span class="status-dot ${dc}"></span> ${sl}</button>`;

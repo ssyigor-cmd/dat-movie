@@ -105,9 +105,11 @@ O ponto mais denso do mobile. Anatomia atual:
 - Pôster 124px sobrepondo o backdrop; bloco de info à direita com o logo do
   título (ou nome como fallback) e os selos.
 - **Selos do cabeçalho** (mesma caixa: altura mínima 24px, gap 6px,
-  `.title-badge-btn`): *Tier* (selo 18×18 com a letra) e *Status* (ponto
-  de 9px + rótulo: assistindo/concluído/planejado/pausado). O antigo
-  selo *Detalhes* saiu daqui e virou botão com texto;
+  `.title-badge-btn`): *Tier* — botão inteiro preenchido pela cor da tier
+  (`.tier-*` no próprio botão, sem o quadradinho de 18px e sem fundo de
+  superfície ao redor; sem tier, mostra "N/A" no estilo neutro) — e
+  *Status* (ponto de 9px + rótulo: assistindo/concluído/planejado/pausado).
+  O antigo selo *Detalhes* saiu daqui e virou botão com texto;
 - **Progresso** (`#progressSection`): steppers Temporada/Episódio, com
   `margin-top:12px` (as outras seções do detalhe usam 20px) para reduzir
   o espaço acima do bloco. Toque curto = 1 passo;
@@ -229,6 +231,8 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Selo de tier no cabeçalho do detalhe: a cor da tier agora preenche o
+  botão inteiro, sem o quadradinho interno nem a moldura de superfície;
 - Modal Detalhes ganhou paridade parcial com o desktop: faixa etária
   (selo BR), origem (bandeiras), equipe (criação/direção/emissora/produtora)
   e nome original; helper de bandeiras extraído para `src/lib/flags.js`
