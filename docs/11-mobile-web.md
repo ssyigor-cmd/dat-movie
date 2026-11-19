@@ -218,6 +218,8 @@ Histórico relevante:
   para o **topo** do card; o mês aparece abreviado (JAN…DEZ) na mesma
   linha do dia, com `/NOV` em corpo menor (`.cal-dmonth`), e o dia da
   semana (`.cal-dday`) passou a ser escrito por extenso (Segunda…);
+  A dica `#calendarHint` ("Próximos episódios" / "Episódios que saíram
+  esta semana") foi removida por completo — markup e JS;
 - Marca pequena na linha do título, no fim da linha (canto superior
   direito da linha): `.page-mark` (`icon-face.svg`, 22px) ao lado do
   `h2` com `justify-content:space-between` — título à esquerda, marca à

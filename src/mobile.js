@@ -835,9 +835,6 @@ async function loadCalendar(items, opts = {}) {
   try {
     const week = await getCalendarWeek(items, { fresh: !!opts.fresh });
     if (!week || week.length === 0) { section.style.display = 'none'; return; }
-    const isUpcoming = week[0]?.[2] === true;
-    const hint = $('calendarHint');
-    if (hint) hint.textContent = isUpcoming ? 'Próximos episódios' : 'Episódios que saíram esta semana';
     const dows = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const monthsAbbr = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     const html = [];
