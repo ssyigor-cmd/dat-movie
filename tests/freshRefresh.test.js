@@ -212,6 +212,19 @@ describe('fresh: a fiação da home', () => {
     expect(juntos, 'nenhuma das duas passa a flag').not.toContain('fresh:');
   });
 
+  it('favoritos e abandonados pedem pool maior que a faixa para variar', () => {
+    // O getter das duas seções locais tem limite padrão igual à largura da
+    // faixa. Com o pool do tamanho exato dela, o botão de atualizar só
+    // reordenava os mesmos cartões — era o defeito de "não acontecer nada".
+    for (const [nome, getter] of [['renderHomeFavorites', 'getFavorites'], ['loadAndRenderAbandoned', 'getAbandoned']]) {
+      const i = js.indexOf(`function ${nome}(`);
+      expect(i, nome).toBeGreaterThan(-1);
+      const corpo = js.slice(i, js.indexOf('\n}', i));
+      expect(corpo, `${nome} pede o dobro da largura`).toContain(`${getter}(items, largura * 2)`);
+      expect(corpo, `${nome} pinta a largura da faixa`).toContain('largura)');
+    }
+  });
+
   it('Em Breve seleciona do pool em vez de pintar o topo', () => {
     const i = js.indexOf('export async function loadAndRenderUpcoming(');
     expect(i, 'loader exportado').toBeGreaterThan(-1);

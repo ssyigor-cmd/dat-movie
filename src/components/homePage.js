@@ -503,8 +503,9 @@ function renderHomeFavorites(container, items, onCardClick) {
   const section = container.querySelector('#homeFavoritesSection');
   const grid = container.querySelector('#homeFavoritesGrid');
   if (!section || !grid) return;
-  const all = getFavorites(items);
-  const favs = pickForSection('favorites', all, getFullWidthCount());
+  const largura = getFullWidthCount();
+  const all = getFavorites(items, largura * 2);
+  const favs = pickForSection('favorites', all, largura);
   if (all.length === 0) {
     section.style.display = 'none';
     return;
@@ -1193,8 +1194,12 @@ function loadAndRenderAbandoned(container, items, onCardClick) {
   const section = container.querySelector('#homeAbandonedSection');
   const grid = container.querySelector('#homeAbandonedGrid');
   if (!section || !grid) return;
-  const all = getAbandoned(items);
-  const list = pickForSection('abandoned', all, getFullWidthCount());
+  // O getter tem um limite padrão do tamanho da faixa. Pedir o dobro é o que
+  // dá material ao `pickForSection`: com o pool do tamanho exato da faixa, o
+  // botão de atualizar só reordenava os mesmos cartões e parecia não fazer nada.
+  const largura = getFullWidthCount();
+  const all = getAbandoned(items, largura * 2);
+  const list = pickForSection('abandoned', all, largura);
   if (all.length === 0) { section.style.display = 'none'; return; }
   section.style.display = '';
   setupSectionRefresh(section, () => {
