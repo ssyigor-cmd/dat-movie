@@ -759,9 +759,10 @@ function renderHome() {
   if (show('upcomingSection')) loadUpcoming();
   if (['rail0', 'rail1', 'rail2', 'rail3'].some(show)) loadAffinityRails();
 
-  // Favoritos — getFavorites do desktop (S+ antes de S, depois atualização)
+  // Favoritos — getFavorites (tamanho da faixa mobile)
   if (show('favoritesSection')) {
-    const favs = getFavorites(items, 10);
+    const largura = 10; // tamanho da faixa mobile (fixo)
+    const favs = getFavorites(items, largura * 2);
     $('favoritesRail').innerHTML = favs.map(t => cardHTML(t)).join('');
     $('favoritesSection').style.display = favs.length ? '' : 'none';
   }
@@ -772,11 +773,13 @@ function renderHome() {
   // Calendário — getCalendarWeek real
   if (show('calendarSection')) loadCalendar(items);
 
-  // Abandonados — getAbandoned do desktop (mais recentes primeiro)
+  // Abandonados — getAbandoned (tamanho da faixa mobile)
   if (show('abandonedSection')) {
-    const abandoned = getAbandoned(items, 10);
-    $('abandonedRail').innerHTML = abandoned.map(t => cardHTML(t)).join('');
-    $('abandonedSection').style.display = abandoned.length ? '' : 'none';
+    const largura = 10; // tamanho da faixa mobile (fixo)
+    const abandoned = getAbandoned(items, largura * 2);
+    const list = pickForSection('abandoned', abandoned, largura);
+    $('abandonedRail').innerHTML = list.map(t => cardHTML(t)).join('');
+    $('abandonedSection').style.display = list.length ? '' : 'none';
   }
 }
 
@@ -881,7 +884,8 @@ async function refreshFavorites(e) {
   const spin = startRefreshSpin(e);
   if (spin.skip) return;
   try {
-    const favs = getFavorites(state.items || [], 10);
+    const largura = 10; // tamanho da faixa mobile
+    const favs = getFavorites(state.items || [], largura * 2);
     $('favoritesRail').innerHTML = favs.map(t => cardHTML(t)).join('');
     $('favoritesSection').style.display = favs.length ? '' : 'none';
   } finally { spin.done(); }
@@ -892,9 +896,11 @@ async function refreshAbandoned(e) {
   if (spin.skip) return;
   bumpSeed('abandoned');
   try {
-    const ab = getAbandoned(state.items || [], 10);
-    $('abandonedRail').innerHTML = ab.map(t => cardHTML(t)).join('');
-    $('abandonedSection').style.display = ab.length ? '' : 'none';
+    const largura = 10; // tamanho da faixa mobile (fixo)
+    const ab = getAbandoned(state.items || [], largura * 2);
+    const list = pickForSection('abandoned', ab, largura);
+    $('abandonedRail').innerHTML = list.map(t => cardHTML(t)).join('');
+    $('abandonedSection').style.display = list.length ? '' : 'none';
   } finally { spin.done(); }
 }
 
