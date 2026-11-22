@@ -76,6 +76,11 @@ writeFileSync(join(root, 'assets/icon/apple-touch-icon.png'), applePng);
 const appleOut = join(root, 'public/assets/icon');
 mkdirSync(appleOut, { recursive: true });
 copyFileSync(join(root, 'assets/icon/apple-touch-icon.png'), join(appleOut, 'apple-touch-icon.png'));
+// O iOS cacheia o apple-touch-icon com o mesmo nome por muito tempo. O sufixo
+// de versao force um download novo quando a marca muda; os HTMLs apontam para
+// este arquivo versionado.
+copyFileSync(join(root, 'assets/icon/apple-touch-icon.png'), join(root, 'assets/icon/apple-touch-icon-v2.png'));
+copyFileSync(join(root, 'assets/icon/apple-touch-icon-v2.png'), join(appleOut, 'apple-touch-icon-v2.png'));
 
 console.log(`favicons gerados: ${pngs.map(p => p.size).join(', ')}px + favicon.ico (${buf.length} bytes)`);
 console.log(`apple-touch-icon gerado: ${APPLE_SIZE}px (assets/icon + public/assets/icon)`);
