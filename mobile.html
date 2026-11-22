@@ -348,9 +348,10 @@
     #actionsSection { display:flex; gap:10px; }
     #actionsSection .badge-action { flex:1; width:auto; justify-content:center; font-family:var(--font-display); font-size:0.8rem; font-weight:600; background:var(--bg-elevated); color:var(--text-primary); padding:12px; border-radius:var(--radius); }
     #actionsSection .badge-action.is-danger { color:var(--danger); }
-    /* Detalhes/Listas/Episódios: mesma fonte e estrutura dos botões de Salvar/
-       Remover, mas com fundo de blur bem escuro em vez do elevado. */
-    #detailActionsRow .badge-action { background:var(--bg-elevated); font-family:var(--font-display); font-size:0.8rem; font-weight:600; padding:12px; border-radius:var(--radius); color:var(--text-primary); }
+    /* Detalhes/Listas/Episódios: mesma estrutura dos botões de Salvar/Remover,
+       mas com fonte menor para os três caberem melhor na linha do título. */
+    #detailActionsRow .badge-action { background:var(--bg-elevated); font-family:var(--font-display); font-size:0.66rem; font-weight:600; padding:12px; border-radius:var(--radius); color:var(--text-primary); }
+    #detailActionsRow .badge-action i { font-size:0.62rem; }
     .badge-action { display:flex; align-items:center; gap:7px; width:100%; border:none; border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--text-secondary); font-family:var(--font-mono); font-size:0.66rem; font-weight:600; text-align:left; padding:10px 9px; cursor:pointer; transition:var(--transition); }
     .badge-action:active { background:var(--bg-hover); }
     .badge-action i { font-size:0.72rem; width:14px; text-align:center; }
