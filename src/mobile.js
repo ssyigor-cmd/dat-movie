@@ -52,7 +52,7 @@ import { getViewHistory, recordView, removeView, clearViewHistory } from './lib/
 let authMode = 'login';
 let currentTitle = null;
 let currentTier = '';
-let currentStatus = 'assistindo';
+let currentStatus = 'planejado';
 let curTemp = 1, curEp = 0;
 let seasonMax = 1, epMaxByTemp = {};
 let bdImages = [], bdIndex = 0, bdAutoTimer = null;
@@ -396,7 +396,7 @@ function openExternalPreview(raw, opts = {}) {
     episodio: 0,
     totalEpisodios: 1,
     seasonEpisodesMap: {},
-    status: 'assistindo',
+    status: 'planejado',
     tier: null,
     imagem: raw.posterUrl || raw.imagem || '',
     tmdb_id: raw.id,
@@ -1425,7 +1425,7 @@ function renderProximos() {
   let filtered = (state.items || []).filter(i => i.status === 'planejado');
   filtered = sortItems(filtered, sortMode);
 
-  $('proximosSubtitle').textContent = `${filtered.length} título(s) · Próximos`;
+  $('proximosSubtitle').textContent = `${filtered.length} título(s) · Watchlist`;
   const grid = $('proximosGrid');
   if (!grid) return;
 
@@ -1669,9 +1669,10 @@ function updateTitleMeta() {
   let mh = '';
   const tc = currentTier ? tierClass(currentTier) : '';
   mh += `<button class="title-badge title-badge-btn tier${tc ? ` ${tc}` : ''}" onclick="cycleTier()">${currentTier || 'N/A'}</button>`;
-  const sm = { 'assistindo': ['live', 'Assistindo'], 'concluido': ['done', 'Concluído'], 'planejado': ['info', 'Planejado'], 'pausado': ['warn', 'Pausado'] };
-  const [dc, sl] = sm[currentStatus] || ['live', currentStatus];
-  mh += `<button class="title-badge title-badge-btn" onclick="cycleStatus()"><span class="status-dot ${dc}"></span> ${sl}</button>`;
+  const sm = { 'assistindo': ['Assistindo', 'st-assistindo'], 'concluido': ['Concluído', 'st-concluido'], 'planejado': ['Planejado', 'st-planejado'], 'pausado': ['Pausado', 'st-pausado'] };
+  const [sl, sc] = sm[currentStatus] || [currentStatus || 'N/A', ''];
+  // Mesma lógica do tier: a cor do status preenche o bloco inteiro (sem ponto).
+  mh += `<button class="title-badge title-badge-btn${sc ? ` ${sc}` : ''}" onclick="cycleStatus()">${escapeHTML(sl)}</button>`;
   meta.innerHTML = mh;
 }
 
@@ -1693,6 +1694,27 @@ function cycleStatus() {
   showToast('Status: ' + (next === 'assistindo' ? 'Assistindo' : next === 'concluido' ? 'Concluído' : next === 'planejado' ? 'Planejado' : 'Pausado'));
 }
 
+// Blur de continuidade do pôster (tela de detalhe): cobre TODO o fundo do
+// card/tela com as cores do pôster borradas — em vez de ser todo escuro. Um
+// véu escuro sutil por cima mantém o texto legível sobre o blur. Com a classe
+// has-poster-blur no titleScreen, o backdrop nítido vira molho leve e o
+// gradiente quase some, deixando o pôster aparecer por trás.
+function setTitlePosterBlur(posterUrl) {
+  const screen = $('titleScreen');
+  const blur = $('titleScreenBlur');
+  if (!screen || !blur) return;
+  if (posterUrl) {
+    // Véu escuro sobre o blur: mais denso que antes para o fundo ficar mais
+    // escuro e a transição da imagem dissolver sem brilho.
+    const veil = 'linear-gradient(180deg, rgba(8,8,11,0.38), rgba(8,8,11,0.75))';
+    blur.style.backgroundImage = `${veil}, url('${escapeHTML(posterUrl)}')`;
+    screen.classList.add('has-poster-blur');
+  } else {
+    blur.style.backgroundImage = '';
+    screen.classList.remove('has-poster-blur');
+  }
+}
+
 async function openTitleFromCatalog(item, opts = {}) {
   // Guarda a tela de origem e registra o card aberto no histórico (inclusive
   // sugestões externas). Voltar pelo navegador não conta como nova abertura.
@@ -1709,7 +1731,8 @@ async function openTitleFromCatalog(item, opts = {}) {
   curTemp = item.temporada || 1;
   curEp = item.episodio || 0;
   currentTier = item.tier || '';
-  currentStatus = item.status || 'assistindo';
+  // Títulos que ainda não foram adicionados começam como "Planejado" + tier "N/A".
+  currentStatus = item.status || 'planejado';
 
   $('titleName').textContent = item.nome;
 
@@ -1728,6 +1751,18 @@ async function openTitleFromCatalog(item, opts = {}) {
 
   const tp = $('titlePoster');
   if (tp) { tp.src = item.imagem || ''; tp.style.display = item.imagem ? 'block' : 'none'; }
+  setTitlePosterBlur(item.imagem);
+
+  // Estado do backdrop é de módulo: sem limpar aqui, um título sem imagem de
+  // fundo deixava o backdrop do título anterior no ar — a tela aberta depois
+  // repetia a imagem do título que estava antes.
+  bdImages = [];
+  bdIndex = 0;
+  stopBackdropAutoRotate();
+  const bdEl = $('titleBackdrop');
+  if (bdEl) { bdEl.style.display = 'none'; bdEl.src = ''; }
+  if ($('bdPrev')) $('bdPrev').style.display = 'none';
+  if ($('bdNext')) $('bdNext').style.display = 'none';
 
   // Status buttons
   document.querySelectorAll('#statusRow .status-btn').forEach(b => { b.classList.toggle('active', b.textContent.toLowerCase() === currentStatus); });
@@ -1771,15 +1806,18 @@ async function loadTitleTMDBDetails(item) {
         bdImages = backdrops;
         bdIndex = 0;
         showBackdrop(0);
+        startBackdropAutoRotate();
       } else if (details.backdrop_path) {
         bdImages = [details.backdrop_path];
         showBackdrop(0);
+        startBackdropAutoRotate();
       }
     } catch {}
     // Poster atualizado
     if (details.poster_path && !item.imagem) {
       const tp2 = $('titlePoster');
       if (tp2) { tp2.src = `https://image.tmdb.org/t/p/w500${details.poster_path}`; tp2.style.display = 'block'; }
+      setTitlePosterBlur(`https://image.tmdb.org/t/p/w500${details.poster_path}`);
     }
     // Ano de lançamento (fallback via TMDB)
     if (!currentTitle.ano) {

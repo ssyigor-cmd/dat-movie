@@ -1,0 +1,2962 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark"><head>
+  
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>datmovie · iOS mobile-first</title>
+<meta name="description" content="Protótipo isolado da interface mobile-first do datmovie para iOS: catálogo pessoal de séries, progresso honesto e curadoria por Tier.">
+<meta name="theme-color" content="#101112" id="meta-theme">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="datmovie">
+<link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg">
+
+<script>
+/* Anti-flash: decide o tema antes do primeiro paint. Escuro é o padrão. */
+(function () {
+  try {
+    var saved = localStorage.getItem('dm-theme') || 'dark';
+    var resolved = saved === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      : saved;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.style.colorScheme = resolved;
+    var meta = document.getElementById('meta-theme');
+    if (meta) meta.setAttribute('content', resolved === 'light' ? '#F4F1EA' : '#101112');
+    if (localStorage.getItem('dm-progress') === '0') {
+      document.documentElement.classList.add('is-progress-hidden');
+    }
+  } catch (error) {
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="preconnect" href="https://static.tvmaze.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   1. TOKENS — valores canônicos da spec, mais o que é específico de iOS
+   ========================================================================== */
+:root {
+  --bg-primary: #101112;
+  --bg-surface: #191A1C;
+  --bg-elevated: #222325;
+  --bg-elevated-hover: #2A2C30;
+  --bg-secondary: #151618;
+  --bg-well: #0C0D0E;
+  --bg-hover: #26282C;
+
+  --text-primary: #F2EDE3;
+  --text-secondary: #AEAFB2;
+  --text-muted: #838589;
+
+  --accent: #E5D8BF;
+  --accent-hover: #F0E6D2;
+  --accent-ink: #101112;
+  --accent-soft: rgba(229, 216, 191, 0.1);
+
+  --border: transparent;
+  --border-strong: transparent;
+  --border-outline: #2A2C30;
+
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --warning: #fbbf24;
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.12);
+
+  --tier-splus: #FFD700;
+  --tier-splus-ink: #3B2F00;
+  --tier-s: #34d399;
+  --tier-s-ink: #06331F;
+  --tier-a: #3b82f6;
+  --tier-a-ink: #0E2A4D;
+  --tier-b: #f99e16;
+  --tier-b-ink: #452900;
+  --tier-c: hsl(17, 92%, 50%);
+  --tier-c-ink: #3D1600;
+  --tier-d: #ef4444;
+  --tier-d-ink: #430D0D;
+
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+
+  --shadow-sheet: 0 -12px 48px rgba(0, 0, 0, 0.55);
+  --shadow-stamp: 0 1px 4px rgba(0, 0, 0, 0.35);
+  --shadow-panel: 0 2px 12px rgba(0, 0, 0, 0.28);
+
+  --tap: 44px;
+  --tap-cta: 50px;
+  --topbar-h: 52px;
+  --tabbar-h: 56px;
+  --pad: 16px;
+  --gap: 12px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 180ms;
+  --scrollbar-thumb: rgba(242, 237, 227, 0.15);
+}
+
+:root[data-theme="light"] {
+  --bg-primary: #F4F1EA;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-elevated-hover: #EFEBE1;
+  --bg-secondary: #ECE7DC;
+  --bg-well: #E4DED1;
+  --bg-hover: #E6E0D3;
+
+  --text-primary: #1B1915;
+  --text-secondary: #55524A;
+  --text-muted: #665F53;
+
+  --accent: #7A663B;
+  --accent-hover: #8A7444;
+  --accent-ink: #F4F1EA;
+  --accent-soft: rgba(122, 102, 59, 0.12);
+
+  --border-outline: #D4D0C8;
+  --shadow-sheet: 0 -12px 48px rgba(27, 25, 21, 0.22);
+  --shadow-stamp: 0 1px 4px rgba(27, 25, 21, 0.18);
+  --shadow-panel: 0 2px 12px rgba(27, 25, 21, 0.1);
+  --scrollbar-thumb: rgba(27, 25, 21, 0.2);
+}
+
+/* ==========================================================================
+   2. BASE
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg-well);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+body.is-sheet-open { overflow: hidden; }
+
+h1, h2, h3, p, figure, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+::selection { background: var(--accent); color: var(--accent-ink); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: var(--radius-pill); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: calc(var(--safe-top) + 8px);
+  left: 50%;
+  z-index: 200;
+  transform: translate(-50%, -160%);
+  padding: 12px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--dur) var(--ease);
+}
+.skip-link:focus { transform: translate(-50%, 0); }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   3. SHELL — coluna de app, segura em qualquer largura
+   ========================================================================== */
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 560px) {
+  .app {
+    box-shadow: 0 0 0 1px var(--border-outline), 0 32px 80px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* ---- Top bar ---- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  padding-top: var(--safe-top);
+  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--border-outline);
+}
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .topbar { background: var(--bg-primary); }
+}
+
+.topbar__inner {
+  height: var(--topbar-h);
+  padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark { flex: none; display: flex; flex-direction: column; gap: 3px; }
+.brand-mark span { display: block; height: 4px; border-radius: 2px; background: var(--accent); }
+.brand-mark span:nth-child(1) { width: 17px; }
+.brand-mark span:nth-child(2) { width: 22px; }
+.brand-mark span:nth-child(3) { width: 17px; }
+
+.topbar__title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__title--wordmark { font-weight: 700; letter-spacing: -0.02em; }
+
+.topbar__actions { display: flex; align-items: center; gap: 2px; }
+
+.icon-btn {
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform 120ms var(--ease);
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn[aria-pressed="true"] { color: var(--accent); }
+
+/* ---- Tab bar ---- */
+.tabbar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 70;
+  padding-bottom: var(--safe-bottom);
+  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-top: 1px solid var(--border-outline);
+}
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .tabbar { background: var(--bg-primary); }
+}
+
+.tabbar__inner {
+  height: var(--tabbar-h);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 0 calc(4px + var(--safe-left)) 0 calc(4px + var(--safe-right));
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: var(--tap);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color var(--dur) var(--ease);
+}
+.tab svg { width: 23px; height: 23px; }
+.tab:active { transform: scale(0.96); }
+.tab[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.tab:hover { color: var(--text-secondary); }
+.tab[aria-current="page"]:hover { color: var(--accent); }
+
+/* ==========================================================================
+   4. CONTEÚDO / TELAS
+   ========================================================================== */
+.screens { flex: 1; }
+
+.screen {
+  display: none;
+  padding: 20px 0 calc(var(--tabbar-h) + var(--safe-bottom) + 28px);
+  animation: screen-in 260ms var(--ease) both;
+}
+.screen.is-active { display: block; }
+
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pad { padding-left: calc(var(--pad) + var(--safe-left)); padding-right: calc(var(--pad) + var(--safe-right)); }
+
+.screen-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+.screen-head__title {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.screen-head__sub {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  max-width: 34ch;
+}
+.screen-head .eyebrow { margin-bottom: 6px; }
+
+/* ---- Cabeçalho de seção ---- */
+.section { margin-top: 28px; }
+.section:first-child { margin-top: 0; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left));
+  margin-bottom: 10px;
+}
+.section-head__title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.section-head__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--tap);
+  padding: 0 4px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color var(--dur) var(--ease);
+}
+.section-head__action:hover { color: var(--accent); }
+.section-head__action svg { width: 16px; height: 16px; }
+
+/* ==========================================================================
+   5. CARD — anatomia única (grid e trilho)
+   ========================================================================== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+  padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left));
+}
+
+.rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 132px;
+  gap: var(--gap);
+  padding: 0 calc(var(--pad) + var(--safe-right)) 4px calc(var(--pad) + var(--safe-left));
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: calc(var(--pad) + var(--safe-left));
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail > * { scroll-snap-align: start; }
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 180ms var(--ease), background var(--dur) var(--ease);
+}
+.card:hover { background: var(--bg-elevated); }
+.card:active { transform: scale(0.985); }
+.card:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.card__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border-radius: inherit;
+}
+.card__hit:focus-visible { outline: none; }
+
+.card-img {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 400ms var(--ease);
+}
+.card:hover .card-img img { transform: scale(1.03); }
+
+.card-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.86) 0%, rgba(0, 0, 0, 0.5) 26%, rgba(0, 0, 0, 0) 58%);
+  pointer-events: none;
+}
+
+.card-img__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.card-img__fallback svg { width: 28px; height: 28px; opacity: 0.5; }
+
+.card-title {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 9px;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tier-stamp {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--tier-b);
+  color: var(--tier-b-ink);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-stamp);
+}
+.tier-stamp[data-tier="S+"] { background: var(--tier-splus); color: var(--tier-splus-ink); }
+.tier-stamp[data-tier="S"]  { background: var(--tier-s); color: var(--tier-s-ink); }
+.tier-stamp[data-tier="A"]  { background: var(--tier-a); color: var(--tier-a-ink); }
+.tier-stamp[data-tier="B"]  { background: var(--tier-b); color: var(--tier-b-ink); }
+.tier-stamp[data-tier="C"]  { background: var(--tier-c); color: var(--tier-c-ink); }
+.tier-stamp[data-tier="D"]  { background: var(--tier-d); color: var(--tier-d-ink); }
+
+.card-body {
+  padding: 9px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.is-progress-hidden .card-body--progress { display: none; }
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-track {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+:root[data-theme="light"] .progress-track { background: var(--bg-secondary); }
+.progress-bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 260ms var(--ease);
+}
+.progress-pct {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 34px;
+  text-align: right;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-open {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.card-open svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+.card-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; flex: none; }
+
+/* Card em trilho: muda APENAS a largura */
+.card--rail { width: 132px; }
+
+/* ==========================================================================
+   6. CHIPS / SEGMENTED
+   ========================================================================== */
+.chip-scroll {
+  display: flex;
+  gap: 8px;
+  padding: 2px calc(var(--pad) + var(--safe-right)) 2px calc(var(--pad) + var(--safe-left));
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.chip-scroll::-webkit-scrollbar { display: none; }
+
+.chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform 120ms var(--ease);
+}
+/* Área de toque de 44px sem inflar o desenho do chip */
+.chip::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+.chip:active { transform: scale(0.97); }
+.chip:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.chip[aria-pressed="true"], .chip.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.chip__count { font-family: var(--font-mono); font-size: 0.8125rem; opacity: 0.7; }
+
+/* Alvo de toque de 44px sem inflar o desenho do chip */
+.chip-wrap { display: inline-flex; align-items: center; min-height: var(--tap); flex: none; }
+/* ==========================================================================
+   7. LIST ROWS
+   ========================================================================== */
+.list {
+  padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-group-label {
+  padding: 18px calc(var(--pad) + var(--safe-right)) 6px calc(var(--pad) + var(--safe-left));
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  text-align: left;
+  transition: background var(--dur) var(--ease);
+}
+.row:hover { background: var(--bg-surface); }
+.row:active { background: var(--bg-elevated); }
+
+.row__thumb {
+  flex: none;
+  width: 44px;
+  height: 62px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+.row__thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.row__title {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row__meta {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row__meta .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; flex: none; }
+.row__chevron { flex: none; color: var(--text-muted); }
+.row__chevron svg { width: 18px; height: 18px; }
+
+.row__badge {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+:root[data-theme="light"] .row__badge { color: var(--accent); }
+
+.row--tier { align-items: stretch; }
+.row--tier .row__body { justify-content: center; }
+
+/* ==========================================================================
+   8. BOTÕES — 44px base, CTA 50px, um primário por tela
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 18px;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform 100ms var(--ease), opacity var(--dur) var(--ease);
+}
+.btn svg { width: 19px; height: 19px; flex: none; }
+.btn:active { transform: scale(0.975); }
+.btn[disabled] { opacity: 0.45; pointer-events: none; }
+
+.btn--primary { background: var(--accent); color: var(--accent-ink); }
+.btn--primary:hover { background: var(--accent-hover); }
+
+.btn--secondary { background: var(--bg-elevated); color: var(--text-primary); }
+.btn--secondary:hover { background: var(--bg-elevated-hover); }
+
+.btn--ghost { background: transparent; color: var(--text-secondary); }
+.btn--ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.btn--danger { background: var(--danger-soft); color: var(--danger); }
+.btn--danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+.btn--cta { min-height: var(--tap-cta); width: 100%; font-size: 1rem; }
+.btn--block { width: 100%; }
+.btn--sm { min-height: var(--tap); padding: 0 14px; font-size: 0.9375rem; }
+
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { flex: 1; }
+
+/* ==========================================================================
+   9. INPUTS / BUSCA
+   ========================================================================== */
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search svg {
+  position: absolute;
+  left: 14px;
+  width: 19px;
+  height: 19px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px 10px 42px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.3;
+  appearance: none;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.input::placeholder { color: var(--text-muted); }
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+.input--plain { padding-left: 14px; }
+
+.search__clear {
+  position: absolute;
+  right: 1px;
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+}
+.search__clear:hover { color: var(--text-primary); background: var(--bg-hover); }
+.search__clear[hidden] { display: none; }
+
+/* ==========================================================================
+   10. SWITCH / STEPPER / SEGMENTED
+   ========================================================================== */
+.pref-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  text-align: left;
+}
+.pref-row + .pref-row { margin-top: 2px; }
+.pref-row__body { flex: 1; min-width: 0; }
+.pref-row__label { font-size: 1rem; font-weight: 500; }
+.pref-row__hint { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.35; margin-top: 2px; }
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-hover);
+  transition: background var(--dur) var(--ease);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform var(--dur) var(--ease);
+}
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+/* Área de toque vertical de 44px sem inflar o desenho do switch */
+.switch::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+:root[data-theme="light"] .switch { background: #C9C3B6; }
+:root[data-theme="light"] .switch[aria-checked="true"] { background: var(--accent); }
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+.segmented__item {
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.segmented__item:hover { color: var(--text-primary); }
+.segmented__item[aria-pressed="true"] {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-panel);
+}
+:root[data-theme="light"] .segmented__item[aria-pressed="true"] { background: #fff; }
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
+.stepper__btn {
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform 100ms var(--ease);
+}
+.stepper__btn:hover { background: var(--bg-hover); }
+.stepper__btn:active { transform: scale(0.94); }
+.stepper__btn:disabled { opacity: 0.35; pointer-events: none; }
+.stepper__btn[data-dir="up"]:active { color: var(--success); }
+.stepper__btn[data-dir="down"]:active { color: var(--danger); }
+.stepper__value {
+  flex: 1;
+  min-width: 74px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.stepper__value small { display: block; font-size: 0.75rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ==========================================================================
+   11. SHEETS
+   ========================================================================== */
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  visibility: hidden;
+}
+.sheet-layer[data-open="true"] { visibility: visible; }
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.sheet-layer[data-open="true"] .sheet-backdrop { opacity: 1; }
+
+.sheet {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow-sheet);
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease);
+  touch-action: pan-y;
+}
+.sheet-layer[data-open="true"] .sheet { transform: translateY(0); }
+.sheet.is-dragging { transition: none; }
+
+.sheet__grabber {
+  flex: none;
+  padding: 8px 0 4px;
+  display: flex;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+.sheet__grabber span {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--border-outline);
+}
+
+.sheet__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px calc(var(--pad) + var(--safe-right)) 10px calc(var(--pad) + var(--safe-left));
+}
+.sheet__title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet__close {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  margin-right: -10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+.sheet__close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sheet__close svg { width: 18px; height: 18px; }
+
+.sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 calc(var(--pad) + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(var(--pad) + var(--safe-left));
+  overscroll-behavior: contain;
+}
+.sheet--compact .sheet__body { padding-bottom: calc(16px + var(--safe-bottom)); }
+
+.sheet-hero__title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.sheet-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.sheet-hero__meta .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.sheet-hero__synopsis {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin-top: 10px;
+}
+
+.sheet-media {
+  position: relative;
+  margin: -4px calc(-1 * (var(--pad) + var(--safe-right))) 0 calc(-1 * (var(--pad) + var(--safe-left)));
+  aspect-ratio: 16 / 9.6;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+}
+.sheet-media__img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; display: block; }
+
+.sheet-media__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  cursor: pointer;
+}
+.sheet-media__nav--prev { left: 10px; }
+.sheet-media__nav--next { right: 10px; }
+.sheet-media__nav svg { width: 16px; height: 16px; display: block; }
+
+.sheet-media__counter {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(4px);
+}
+
+.sheet-logo { display: block; max-width: 100%; max-height: 56px; width: auto; object-fit: contain; object-position: left center; }
+
+.sheet-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: -44px;
+  padding: 0 2px;
+}
+.sheet-head__poster {
+  flex: none;
+  width: 104px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-panel);
+}
+.sheet-head__poster img { width: 100%; height: 100%; object-fit: cover; }
+.sheet-head__info { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding-top: 48px; }
+
+.sheet-block { padding: 16px 0; border-top: 1px solid var(--border-outline); }
+.sheet-block:first-of-type { border-top: 0; padding-top: 4px; }
+.sheet-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sheet-block__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.sheet-block__value { font-family: var(--font-mono); font-size: 0.875rem; color: var(--text-secondary); }
+
+.tier-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.tier-option {
+  min-width: 0;
+  height: 44px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: transform 120ms var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tier-option:hover { background: var(--bg-hover); }
+.tier-option:active { transform: scale(0.96); }
+.tier-option[aria-pressed="true"] { color: var(--tier-option-ink, var(--accent-ink)); background: var(--tier-option, var(--accent)); }
+.tier-option[data-tier="S+"] { --tier-option: var(--tier-splus); --tier-option-ink: var(--tier-splus-ink); }
+.tier-option[data-tier="S"]  { --tier-option: var(--tier-s); --tier-option-ink: var(--tier-s-ink); }
+.tier-option[data-tier="A"]  { --tier-option: var(--tier-a); --tier-option-ink: var(--tier-a-ink); }
+.tier-option[data-tier="B"]  { --tier-option: var(--tier-b); --tier-option-ink: var(--tier-b-ink); }
+.tier-option[data-tier="C"]  { --tier-option: var(--tier-c); --tier-option-ink: var(--tier-c-ink); }
+.tier-option[data-tier="D"]  { --tier-option: var(--tier-d); --tier-option-ink: var(--tier-d-ink); }
+.tier-option .tier-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.85; }
+
+.sheet-note {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.sheet-confirm { padding: 4px 0 8px; }
+.sheet-confirm__text { font-size: 0.9375rem; line-height: 1.5; color: var(--text-secondary); margin-bottom: 18px; }
+.sheet-confirm__text strong { color: var(--text-primary); font-weight: 600; }
+
+/* ==========================================================================
+   12. TOAST
+   ========================================================================== */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 14px);
+  z-index: 120;
+  transform: translate(-50%, 12px);
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.toast__dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--success); vertical-align: 1px; }
+
+/* ==========================================================================
+   13. ESTADOS — vazio, erro, esqueleto
+   ========================================================================== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 36px 24px 28px;
+  color: var(--text-secondary);
+}
+.empty__icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+.empty__icon svg { width: 24px; height: 24px; }
+.empty__title { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 600; color: var(--text-primary); }
+.empty__text { font-size: 0.9375rem; line-height: 1.5; max-width: 32ch; }
+.empty .btn { margin-top: 6px; }
+
+.skeleton { pointer-events: none; }
+.skeleton .card-img,
+.skeleton .skeleton-line {
+  background: linear-gradient(100deg, var(--bg-secondary) 20%, var(--bg-elevated) 40%, var(--bg-secondary) 60%);
+  background-size: 220% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+.skeleton-line { height: 10px; border-radius: var(--radius-pill); }
+@keyframes shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+/* ==========================================================================
+   14. PERFIL
+   ========================================================================== */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+.avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.profile-card__body { min-width: 0; }
+.profile-card__name { font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; letter-spacing: -0.02em; }
+.profile-card__mail { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.stat {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat__value { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.stat__label { font-size: 0.8125rem; color: var(--text-muted); }
+
+.settings { display: flex; flex-direction: column; gap: 2px; }
+
+/* ---- Destaque da Home ---- */
+.hero-panel {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 196px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-surface);
+  text-align: left;
+  color: #fff;
+  isolation: isolate;
+  transition: transform 180ms var(--ease);
+}
+.hero-panel:active { transform: scale(0.99); }
+.hero-panel__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  transition: transform 500ms var(--ease);
+}
+.hero-panel:hover .hero-panel__img { transform: scale(1.03); }
+.hero-panel__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.62) 48%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 60%);
+}
+.hero-panel__content {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 16px;
+  max-width: 78%;
+}
+.hero-panel__eyebrow { color: rgba(255, 255, 255, 0.7); }
+.hero-panel__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.4);
+}
+.hero-panel__meta {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 6px;
+}
+.hero-panel__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 15px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.hero-panel__cta svg { width: 16px; height: 16px; }
+
+/* ---- Faixa de Tiers ---- */
+.tier-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.tier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.tier-chip b { font-weight: 600; color: var(--text-primary); }
+.tier-chip__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tier-color, var(--accent)); }
+.tier-chip[data-tier="S+"] { --tier-color: var(--tier-splus); }
+.tier-chip[data-tier="S"]  { --tier-color: var(--tier-s); }
+.tier-chip[data-tier="A"]  { --tier-color: var(--tier-a); }
+.tier-chip[data-tier="B"]  { --tier-color: var(--tier-b); }
+.tier-chip[data-tier="C"]  { --tier-color: var(--tier-c); }
+.tier-chip[data-tier="D"]  { --tier-color: var(--tier-d); }
+
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--tap);
+  margin: 14px 0 2px;
+  padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left));
+}
+.catalog-toolbar .section-head__action { margin-right: -6px; }
+
+/* ---- Painel explicativo ---- */
+.note-panel {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+.note-panel__icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+.note-panel__icon svg { width: 20px; height: 20px; }
+.note-panel__title {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.note-panel__text {
+  margin-top: 3px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.tier-stamp--inline {
+  position: static;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.sheet-layer[data-mode="add"] .is-catalog-only { display: none; }
+
+/* ==========================================================================
+   15. AJUSTES FINOS
+   ========================================================================== */
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack--tight { gap: 8px; }
+.pad-block { padding: 0 calc(var(--pad) + var(--safe-right)) 0 calc(var(--pad) + var(--safe-left)); }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.hint { font-size: 0.8125rem; line-height: 1.45; color: var(--text-muted); }
+
+.hidden { display: none !important; }
+
+.section-head--flush { margin-top: 14px; margin-bottom: 2px; }
+.pref-row--stack { flex-direction: column; align-items: flex-start; gap: 8px; }
+.pref-row--bare { padding-left: 0; padding-right: 0; }
+.segmented--block { width: 100%; }
+.row__thumb--icon { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.row__thumb--danger { color: var(--danger); }
+.row--danger { color: var(--danger); }
+.row--danger .row__meta { color: var(--danger); opacity: 0.8; }
+
+.sheet-layer { transition: visibility 0s linear 320ms; }
+.sheet-layer[data-open="true"] { transition-delay: 0s; }
+
+@media (max-width: 360px) {
+  :root { --pad: 14px; }
+  .rail { grid-auto-columns: 124px; }
+  .card--rail { width: 124px; }
+  .screen-head__title { font-size: 1.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .screen { animation: none; }
+  .card:hover .card-img img { transform: none; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --border: var(--border-outline); --border-strong: var(--text-muted); }
+  .card, .chip, .input, .profile-card, .stat { border: 1px solid var(--border-outline); }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Pular para o conteúdo</a>
+
+<div class="app">
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__brand">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="topbar__title topbar__title--wordmark" id="topbar-title">datmovie</span>
+      </div>
+      <div class="topbar__actions">
+        <button class="icon-btn" type="button" id="topbar-search" aria-label="Ir para a busca">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </button>
+        <button class="icon-btn" type="button" id="theme-toggle" aria-label="Tema: escuro. Toque para alternar" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" id="theme-icon"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"></path></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="screens" id="main" tabindex="-1">
+
+    <!-- ================= INÍCIO ================= -->
+    <section class="screen is-active" id="view-home" data-view="home" aria-labelledby="home-title">
+      <div class="screen-head pad">
+        <div>
+          <p class="eyebrow">Boa noite, Alex</p>
+          <h1 class="screen-head__title" id="home-title">Sua estante</h1>
+          <p class="screen-head__sub" id="home-sub">12 séries · 6 assistindo · 2 pausados</p>
+        </div>
+      </div>
+
+      <div class="pad">
+        <button class="hero-panel" type="button" id="hero-next" aria-label="A seguir: Severance, temporada 2, episódio 7. Abrir ficha.">
+          <img class="hero-panel__img" src="https://static.tvmaze.com/uploads/images/medium_portrait/548/1371406.jpg" alt="" width="342" height="513" fetchpriority="high">
+          <span class="hero-panel__scrim" aria-hidden="true"></span>
+          <span class="hero-panel__content">
+            <span class="eyebrow hero-panel__eyebrow">A seguir</span>
+            <span class="hero-panel__title">Severance</span>
+            <span class="hero-panel__meta mono">T2 · E9 · 41 min</span>
+            <span class="hero-panel__cta">
+              <span>Continuar</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+            </span>
+          </span>
+        </button>
+      </div>
+
+      <section class="section" aria-labelledby="continue-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="continue-title">Continuar assistindo</h2>
+          <button class="section-head__action" type="button" data-go="catalog">
+            Ver tudo
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <div class="rail" id="rail-continue" role="list" aria-label="Séries em andamento"></div>
+      </section>
+
+      <section class="section" aria-labelledby="tiers-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="tiers-title">Sua curadoria</h2>
+          <button class="section-head__action" type="button" data-go="catalog">Por Tier</button>
+        </div>
+        <div class="pad">
+          <div class="tier-strip" role="list" aria-label="Contagem de séries por Tier">
+            <span class="tier-chip" role="listitem" data-tier="S+"><span class="tier-chip__dot"></span>S+ <b class="mono">3</b></span>
+            <span class="tier-chip" role="listitem" data-tier="S"><span class="tier-chip__dot"></span>S <b class="mono">3</b></span>
+            <span class="tier-chip" role="listitem" data-tier="A"><span class="tier-chip__dot"></span>A <b class="mono">4</b></span>
+            <span class="tier-chip" role="listitem" data-tier="B"><span class="tier-chip__dot"></span>B <b class="mono">2</b></span>
+            <span class="tier-chip hidden" role="listitem" data-tier="C"><span class="tier-chip__dot"></span>C <b class="mono">0</b></span>
+            <span class="tier-chip hidden" role="listitem" data-tier="D"><span class="tier-chip__dot"></span>D <b class="mono">0</b></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="soon-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="soon-title">Quero ver</h2>
+          <button class="section-head__action" type="button" data-go="upcoming">
+            Ver fila
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="rail" id="rail-soon" role="list" aria-label="Séries que quero ver"></div>
+      </section>
+
+      <section class="section" aria-labelledby="shelf-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="shelf-title">Na estante</h2>
+          <button class="section-head__action" type="button" data-go="catalog">Ver catálogo</button>
+        </div>
+        <div class="grid" id="home-grid"></div>
+      </section>
+    </section>
+
+    <!-- ================= CATÁLOGO ================= -->
+    <section class="screen" id="view-catalog" data-view="catalog" aria-labelledby="catalog-title" hidden="">
+      <div class="screen-head pad">
+        <div>
+          <p class="eyebrow">Coleção</p>
+          <h1 class="screen-head__title" id="catalog-title">Catálogo</h1>
+          <p class="screen-head__sub"><span id="catalog-count">12</span> títulos · agrupados por Tier</p>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <label class="sr-only" for="catalog-search">Buscar no catálogo</label>
+          <input class="input" id="catalog-search" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Buscar no catálogo">
+        </div>
+      </div>
+
+      <div class="chip-scroll mt-16" role="group" aria-label="Filtrar por status">
+        <span class="chip-wrap"><button class="chip" type="button" data-status-filter="all" aria-pressed="true">Todos <span class="chip__count">12</span></button></span>
+        <span class="chip-wrap"><button class="chip" type="button" data-status-filter="watching" aria-pressed="false">Assistindo <span class="chip__count">6</span></button></span>
+        <span class="chip-wrap"><button class="chip" type="button" data-status-filter="paused" aria-pressed="false">Pausados <span class="chip__count">2</span></button></span>
+        <span class="chip-wrap"><button class="chip" type="button" data-status-filter="done" aria-pressed="false">Concluídos <span class="chip__count">3</span></button></span>
+        <span class="chip-wrap"><button class="chip" type="button" data-status-filter="planned" aria-pressed="false">Quero ver <span class="chip__count">1</span></button></span>
+      </div>
+
+      <div class="catalog-toolbar">
+        <h2 class="section-head__title">Todas as séries</h2>
+        <button class="section-head__action" type="button" id="open-filters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M7 12h10"></path><path d="M10 17h4"></path></svg>
+          Filtros
+        </button>
+      </div>
+
+      <div class="grid" id="catalog-grid"></div>
+
+      <div class="empty hidden" id="catalog-empty">
+        <span class="empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </span>
+        <h2 class="empty__title">Nada por aqui</h2>
+        <p class="empty__text">Nenhuma série combina com essa busca e esse filtro. Tente outro termo ou limpe os filtros.</p>
+        <button class="btn btn--secondary btn--sm" type="button" id="clear-catalog">Limpar busca e filtros</button>
+      </div>
+    </section>
+    <!-- ================= PRÓXIMOS ================= -->
+    <section class="screen" id="view-upcoming" data-view="upcoming" aria-labelledby="upcoming-title" hidden="">
+      <div class="screen-head pad">
+        <div>
+          <p class="eyebrow">Quero ver</p>
+          <h1 class="screen-head__title" id="upcoming-title">Próximos</h1>
+          <p class="screen-head__sub">Sua fila para começar.</p>
+        </div>
+      </div>
+
+      <div id="upcoming-list" class="mt-16"></div>
+
+      <div class="empty hidden" id="upcoming-empty">
+        <span class="empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h18M3 19h18"/></svg>
+        </span>
+        <h2 class="empty__title">Nada na sua fila</h2>
+        <p class="empty__text">Marque títulos como “Quero ver” na ficha e eles aparecem aqui.</p>
+        <button class="btn btn--secondary btn--sm" type="button" data-go="search">Encontrar séries</button>
+      </div>
+    </section>
+
+    <!-- ================= PESQUISAR ================= -->
+    <section class="screen" id="view-search" data-view="search" aria-labelledby="search-title" hidden="">
+      <div class="screen-head pad">
+        <div>
+          <p class="eyebrow">Descobrir</p>
+          <h1 class="screen-head__title" id="search-title">Pesquisar</h1>
+          <p class="screen-head__sub">Busque por título, ano ou gênero.</p>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <label class="sr-only" for="discover-search">Pesquisar séries para adicionar</label>
+          <input class="input" id="discover-search" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Ex.: The Pitt, Severance…">
+          <button class="search__clear" type="button" id="discover-clear" aria-label="Limpar busca" hidden="">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="section-head section-head--flush">
+        <h2 class="section-head__title" id="search-section-title">Sugestões para você</h2>
+        <span class="eyebrow" id="search-count">TMDb</span>
+      </div>
+
+      <div class="list" id="search-results"></div>
+
+      <div class="empty hidden" id="search-empty">
+        <span class="empty__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </span>
+        <h2 class="empty__title">Nenhum resultado</h2>
+        <p class="empty__text">Não encontramos esse título. Verifique a grafia ou tente pelo ano de estreia.</p>
+        <button class="btn btn--secondary btn--sm" type="button" id="search-reset">Limpar busca</button>
+      </div>
+
+      <div class="pad mt-16">
+        <p class="hint">Resultados vêm do TMDb.</p>
+      </div>
+    </section>
+
+    <!-- ================= PERFIL ================= -->
+    <section class="screen" id="view-profile" data-view="profile" aria-labelledby="profile-title" hidden="">
+      <div class="screen-head pad">
+        <div>
+          <p class="eyebrow">Conta</p>
+          <h1 class="screen-head__title" id="profile-title">Perfil</h1>
+          <p class="screen-head__sub">Preferências e dados da sua estante.</p>
+        </div>
+      </div>
+
+      <div class="pad">
+        <div class="profile-card">
+          <span class="avatar" aria-hidden="true">AM</span>
+          <div class="profile-card__body">
+            <p class="profile-card__name">Alex Moreira</p>
+            <p class="profile-card__mail">alex@datmovie.app</p>
+          </div>
+        </div>
+
+        <div class="stats" role="list" aria-label="Resumo da estante">
+          <div class="stat" role="listitem"><span class="stat__value">12</span><span class="stat__label">séries</span></div>
+          <div class="stat" role="listitem"><span class="stat__value">184</span><span class="stat__label">episódios</span></div>
+          <div class="stat" role="listitem"><span class="stat__value">7d 4h</span><span class="stat__label">assistidos</span></div>
+        </div>
+      </div>
+
+      <section class="section" aria-labelledby="prefs-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="prefs-title">Preferências</h2>
+        </div>
+        <div class="list">
+          <div class="pref-row">
+            <div class="pref-row__body">
+              <p class="pref-row__label">Barra de progresso</p>
+              <p class="pref-row__hint">Quando desligada, o corpo do card some por inteiro.</p>
+            </div>
+            <button class="switch" type="button" role="switch" aria-checked="true" id="pref-progress" aria-label="Mostrar barra de progresso"></button>
+          </div>
+          <div class="pref-row">
+            <div class="pref-row__body">
+              <p class="pref-row__label">Agrupar por Tier</p>
+              <p class="pref-row__hint">Catálogo ordenado por S+ até D, depois por ano.</p>
+            </div>
+            <button class="switch" type="button" role="switch" aria-checked="true" id="pref-tier" aria-label="Agrupar catálogo por Tier"></button>
+          </div>
+          <div class="pref-row pref-row--stack">
+            <div class="pref-row__body">
+              <p class="pref-row__label">Tema</p>
+              <p class="pref-row__hint">Escuro é o padrão. O sistema acompanha o iPhone.</p>
+            </div>
+            <div class="segmented segmented--block" role="group" aria-label="Tema do app">
+              <button class="segmented__item" type="button" data-theme-choice="system" aria-pressed="false">Sistema</button>
+              <button class="segmented__item" type="button" data-theme-choice="dark" aria-pressed="true">Escuro</button>
+              <button class="segmented__item" type="button" data-theme-choice="light" aria-pressed="false">Claro</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="data-title">
+        <div class="section-head">
+          <h2 class="section-head__title" id="data-title">Dados</h2>
+        </div>
+        <div class="list">
+          <button class="row" type="button" id="export-data">
+            <span class="row__thumb row__thumb--icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            </span>
+            <span class="row__body">
+              <span class="row__title">Exportar catálogo</span>
+              <span class="row__meta">JSON · 12 títulos</span>
+            </span>
+            <span class="row__chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></span>
+          </button>
+          <button class="row" type="button" id="sync-now">
+            <span class="row__thumb row__thumb--icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-4"></path><path d="M4 5v5h5"></path><path d="M4 13a8 8 0 0 0 14.9 4"></path><path d="M20 19v-5h-5"></path></svg>
+            </span>
+            <span class="row__body">
+              <span class="row__title">Sincronizar agora</span>
+              <span class="row__meta">Última sync há 2 min</span>
+            </span>
+            <span class="row__badge">Supabase</span>
+          </button>
+          <button class="row row--danger" type="button" id="sign-out">
+            <span class="row__thumb row__thumb--icon row__thumb--danger" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            </span>
+            <span class="row__body">
+              <span class="row__title">Sair da conta</span>
+              <span class="row__meta">Ação destrutiva · pede confirmação</span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <div class="pad mt-16">
+        <p class="hint">datmovie · v1.0 · feito para iPhone</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= TAB BAR ================= -->
+  <nav class="tabbar" aria-label="Navegação principal">
+    <div class="tabbar__inner">
+      <button class="tab" type="button" data-tab="home" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1Z"></path></svg>
+        Início
+      </button>
+      <button class="tab" type="button" data-tab="catalog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"></rect><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"></rect><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"></rect><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"></rect></svg>
+        Catálogo
+      </button>
+      <button class="tab" type="button" data-tab="upcoming">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path><path d="M8 14h2M14 14h2M8 17.5h2"></path></svg>
+        Próximos
+      </button>
+      <button class="tab" type="button" data-tab="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        Pesquisar
+      </button>
+      <button class="tab" type="button" data-tab="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"></circle><path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path></svg>
+        Perfil
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- ================= SHEET: FICHA ================= -->
+<div class="sheet-layer" id="sheet-detail" data-open="false" aria-hidden="true">
+  <div class="sheet-backdrop" data-close="detail"></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="detail-sheet-title" tabindex="-1">
+    <div class="sheet__grabber" data-drag="" aria-hidden="true"><span></span></div>
+    <header class="sheet__head">
+      <h2 class="sheet__title" id="detail-sheet-title">Ficha da série</h2>
+      <button class="sheet__close" type="button" data-close="detail" aria-label="Fechar ficha">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+    <div class="sheet__body">
+      <div class="sheet-media">
+        <img class="sheet-media__img" id="detail-backdrop" alt="" width="780" height="468" decoding="async">
+        <button type="button" class="sheet-media__nav sheet-media__nav--prev" id="detail-backdrop-prev" aria-label="Imagem anterior" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
+        </button>
+        <button type="button" class="sheet-media__nav sheet-media__nav--next" id="detail-backdrop-next" aria-label="Próxima imagem" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg>
+        </button>
+        <span class="sheet-media__counter" id="detail-backdrop-counter" hidden></span>
+      </div>
+
+      <div class="sheet-head">
+        <div class="sheet-head__poster">
+          <img id="detail-poster" alt="" width="104" height="156" decoding="async">
+        </div>
+        <div class="sheet-head__info">
+          <img class="sheet-logo" id="detail-logo" alt="" hidden>
+          <h3 class="sheet-hero__title" id="detail-name">—</h3>
+          <div class="sheet-hero__meta">
+            <span id="detail-year">—</span>
+            <span class="dot" aria-hidden="true"></span>
+            <span id="detail-seasons">—</span>
+            <span class="dot" aria-hidden="true"></span>
+            <span class="tier-stamp tier-stamp--inline" id="detail-tier-stamp" data-tier="S+">S+</span>
+          </div>
+          <p class="sheet-hero__synopsis" id="detail-synopsis"></p>
+        </div>
+      </div>
+
+      <div class="sheet-block is-catalog-only">
+        <div class="sheet-block__head">
+          <span class="sheet-block__label">Progresso</span>
+          <span class="sheet-block__value" id="detail-progress-label">T1 · 0/0</span>
+        </div>
+        <div class="stepper">
+          <button class="stepper__btn" type="button" data-step="-1" aria-label="Episódio anterior">−</button>
+          <span class="stepper__value"><span id="detail-episode">0 / 0</span><small>episódios</small></span>
+          <button class="stepper__btn" type="button" data-step="1" aria-label="Próximo episódio">+</button>
+        </div>
+        <div class="progress-row mt-8">
+          <div class="progress-track"><span class="progress-bar" id="detail-bar"></span></div>
+          <span class="progress-pct" id="detail-pct">0%</span>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-block__head">
+          <span class="sheet-block__label">Tier</span>
+          <span class="sheet-block__value" id="detail-tier-value">sua nota</span>
+        </div>
+        <div class="tier-picker" role="group" aria-label="Escolher Tier">
+          <button class="tier-option" type="button" data-tier-choice="S+" aria-pressed="false"><span class="tier-dot"></span>S+</button>
+          <button class="tier-option" type="button" data-tier-choice="S" aria-pressed="false"><span class="tier-dot"></span>S</button>
+          <button class="tier-option" type="button" data-tier-choice="A" aria-pressed="false"><span class="tier-dot"></span>A</button>
+          <button class="tier-option" type="button" data-tier-choice="B" aria-pressed="false"><span class="tier-dot"></span>B</button>
+          <button class="tier-option" type="button" data-tier-choice="C" aria-pressed="false"><span class="tier-dot"></span>C</button>
+          <button class="tier-option" type="button" data-tier-choice="D" aria-pressed="false"><span class="tier-dot"></span>D</button>
+        </div>
+      </div>
+
+      <div class="sheet-block is-catalog-only">
+        <div class="sheet-block__head">
+          <span class="sheet-block__label">Status</span>
+        </div>
+        <div class="segmented" role="group" aria-label="Status da série">
+          <button class="segmented__item" type="button" data-status-choice="watching" aria-pressed="true">Assistindo</button>
+          <button class="segmented__item" type="button" data-status-choice="paused" aria-pressed="false">Pausado</button>
+          <button class="segmented__item" type="button" data-status-choice="done" aria-pressed="false">Concluído</button>
+          <button class="segmented__item" type="button" data-status-choice="planned" aria-pressed="false">Quero ver</button>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <button class="btn btn--primary btn--cta" type="button" id="detail-cta">Marcar episódio</button>
+        <button class="btn btn--danger btn--block mt-8 is-catalog-only" type="button" id="detail-remove">Remover do catálogo</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= SHEET: FILTROS ================= -->
+<div class="sheet-layer" id="sheet-filters" data-open="false" aria-hidden="true">
+  <div class="sheet-backdrop" data-close="filters"></div>
+  <section class="sheet sheet--compact" role="dialog" aria-modal="true" aria-labelledby="filters-title" tabindex="-1">
+    <div class="sheet__grabber" data-drag="" aria-hidden="true"><span></span></div>
+    <header class="sheet__head">
+      <h2 class="sheet__title" id="filters-title">Filtros</h2>
+      <button class="sheet__close" type="button" data-close="filters" aria-label="Fechar filtros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+    <div class="sheet__body">
+      <div class="sheet-block">
+        <div class="sheet-block__head"><span class="sheet-block__label">Tier</span><span class="sheet-block__value">qualquer</span></div>
+        <div class="tier-picker" role="group" aria-label="Filtrar por Tier">
+          <button class="tier-option" type="button" data-filter-tier="S+" aria-pressed="false"><span class="tier-dot"></span>S+</button>
+          <button class="tier-option" type="button" data-filter-tier="S" aria-pressed="false"><span class="tier-dot"></span>S</button>
+          <button class="tier-option" type="button" data-filter-tier="A" aria-pressed="false"><span class="tier-dot"></span>A</button>
+          <button class="tier-option" type="button" data-filter-tier="B" aria-pressed="false"><span class="tier-dot"></span>B</button>
+          <button class="tier-option" type="button" data-filter-tier="C" aria-pressed="false"><span class="tier-dot"></span>C</button>
+          <button class="tier-option" type="button" data-filter-tier="D" aria-pressed="false"><span class="tier-dot"></span>D</button>
+        </div>
+      </div>
+      <div class="sheet-block">
+        <div class="pref-row pref-row--bare">
+          <div class="pref-row__body">
+            <p class="pref-row__label">Só em andamento</p>
+            <p class="pref-row__hint">Esconde concluídos e “quero ver”.</p>
+          </div>
+          <button class="switch" type="button" role="switch" aria-checked="false" id="filter-watching" aria-label="Mostrar só em andamento"></button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn--secondary" type="button" id="filters-clear">Limpar</button>
+        <button class="btn btn--primary" type="button" id="filters-apply">Aplicar</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= SHEET: CONFIRMAÇÃO ================= -->
+<div class="sheet-layer" id="sheet-confirm" data-open="false" aria-hidden="true">
+  <div class="sheet-backdrop" data-close="confirm"></div>
+  <section class="sheet sheet--compact" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text" tabindex="-1">
+    <div class="sheet__grabber" data-drag="" aria-hidden="true"><span></span></div>
+    <header class="sheet__head">
+      <h2 class="sheet__title" id="confirm-title">Remover do catálogo?</h2>
+      <button class="sheet__close" type="button" data-close="confirm" aria-label="Fechar confirmação">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+    <div class="sheet__body">
+      <div class="sheet-confirm">
+        <p class="sheet-confirm__text" id="confirm-text">Remover <strong id="confirm-name">esta série</strong> da sua estante? O progresso e o Tier serão perdidos.</p>
+        <div class="btn-row">
+          <button class="btn btn--secondary" type="button" data-close="confirm">Cancelar</button>
+          <button class="btn btn--danger" type="button" id="confirm-remove">Remover</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ==========================================================================
+   DADOS — uma fonte só. O card é escrito por uma função só (R-28).
+   ========================================================================== */
+const SERIES = [
+  { title: 'Severance', year: '2022', tier: 'S+', seasons: 2, episode: 9, episodes: 10, pct: 90, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/548/1371406.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/384/960581.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/397/992687.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/403/1009109.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/547/1369580.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/548/1371407.jpg'], synopsis: 'Funcionários da Lumon têm as memórias divididas entre trabalho e vida pessoal — até que o equilíbrio começa a rachar.' },
+  { title: 'The Last of Us', year: '2023', tier: 'S', seasons: 2, episode: 3, episodes: 7, pct: 43, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/563/1409008.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/441/1103208.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/429/1072778.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/443/1108600.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/566/1417169.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/571/1428075.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/442/1106984.jpg'], synopsis: 'Vinte anos após o colapso da civilização, Joel recebe a missão de escoltar Ellie por um país devastado.' },
+  { title: 'Andor', year: '2022', tier: 'S+', seasons: 2, episode: 12, episodes: 12, pct: 100, status: 'done', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/564/1411766.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/442/1107093.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/442/1107094.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/442/1107095.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/442/1107097.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/564/1411767.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/579/1447710.jpg'], synopsis: 'Cassian Andor passa de ladrão a peça central da rebelião contra o Império.' },
+  { title: 'House of the Dragon', year: '2022', tier: 'A', seasons: 2, episode: 5, episodes: 8, pct: 63, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/627/1568449.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/488/1221139.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/627/1568450.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/218/547436.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/403/1009475.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/449/1124625.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/392/981777.jpg'], synopsis: 'A casa Targaryen se divide em uma guerra civil pelo Trono de Ferro, duzentos anos antes de Game of Thrones.' },
+  { title: 'The Bear', year: '2022', tier: 'S', seasons: 4, episode: 6, episodes: 10, pct: 60, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/629/1574642.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/413/1034786.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/465/1164116.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/592/1480193.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/413/1034281.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/500/1251716.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/500/1251717.jpg'], synopsis: 'Um chef premiado volta a Chicago para assumir a lanchonete da família e tenta organizar o caos da cozinha.' },
+  { title: 'Shogun', year: '2024', tier: 'S+', seasons: 1, episode: 10, episodes: 10, pct: 100, status: 'done', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/506/1265637.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/506/1265761.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/505/1262957.jpg'], synopsis: 'No Japão de 1600, um navegador inglês se torna peça no tabuleiro de um senhor da guerra.' },
+  { title: 'Fallout', year: '2024', tier: 'A', seasons: 1, episode: 3, episodes: 8, pct: 38, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/599/1499142.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/514/1285810.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/514/1285808.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/514/1285809.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/514/1285813.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/514/1285814.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/583/1458361.jpg'], synopsis: 'Duzentos anos depois do apocalipse, uma moradora de abrigo sai à superfície em busca do pai.' },
+  { title: 'Succession', year: '2018', tier: 'A', seasons: 1, episode: 1, episodes: 10, pct: 10, status: 'paused', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/453/1134275.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/364/911662.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/453/1134276.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/219/547657.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/268/670692.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/268/670693.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/385/963321.jpg'], synopsis: 'Os filhos de um magnata da mídia disputam o controle da empresa enquanto o pai não decide sair.' },
+  { title: 'Dark', year: '2017', tier: 'B', seasons: 1, episode: 0, episodes: 10, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/504/1262352.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/219/547866.jpg'], synopsis: 'O desaparecimento de duas crianças expõe segredos e viagens no tempo em uma cidade alemã.' },
+  { title: 'Silo', year: '2023', tier: 'B', seasons: 2, episode: 5, episodes: 10, pct: 50, status: 'watching', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/631/1577677.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/459/1149869.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/539/1348387.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/622/1555789.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/627/1568745.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/460/1151687.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/460/1151688.jpg'], synopsis: 'Dez mil pessoas vivem em um silo subterrâneo. Lá fora, o ar é tóxico — ou dizem que é.' },
+  { title: 'Arcane', year: '2021', tier: 'S', seasons: 2, episode: 9, episodes: 9, pct: 100, status: 'done', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/536/1340287.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/442/1107100.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/442/1107101.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/544/1360594.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/396/990201.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/373/933225.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/403/1009287.jpg'], synopsis: 'Duas irmãs ficam em lados opostos de uma guerra entre a cidade alta de Piltover e a submersa Zaun.' },
+  { title: 'Slow Horses', year: '2022', tier: 'A', seasons: 3, episode: 4, episodes: 6, pct: 67, status: 'paused', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/641/1604425.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/489/1224351.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/489/1224353.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/531/1328384.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/586/1465240.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/637/1593463.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/637/1593466.jpg'], synopsis: 'Uma equipe de espiões descartados do MI5 tenta provar que ainda vale alguma coisa.' }
+];
+
+const CONTINUE = ['Severance', 'The Last of Us', 'House of the Dragon', 'The Bear', 'Silo', 'Slow Horses'];
+const SHELF = ['Andor', 'Shogun', 'Fallout', 'Dark'];
+
+const SOON = [];
+
+const SUGGESTIONS = [
+  { title: 'The Pitt', year: '2025', tier: 'S', seasons: 1, episode: 0, episodes: 15, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/606/1516776.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/546/1367179.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/607/1518460.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/608/1520490.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/610/1525634.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/546/1367178.jpg'], synopsis: 'Um turno no pronto-socorro de Pittsburgh, contado em tempo real.' },
+  { title: 'Adolescence', year: '2025', tier: 'S+', seasons: 1, episode: 0, episodes: 4, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/558/1395109.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/562/1406790.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/613/1533968.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/558/1395111.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/556/1390958.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/558/1395110.jpg'], synopsis: 'Uma família enfrenta a acusação de que o filho adolescente cometeu um crime.' },
+  { title: 'Alien: Earth', year: '2025', tier: 'B', seasons: 1, episode: 0, episodes: 8, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/586/1466409.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/584/1460358.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/288/720868.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/534/1335055.jpg'], synopsis: 'Uma nave da Weyland-Yutani cai na Terra e traz algo que não deveria estar aqui.' },
+  { title: 'Poker Face', year: '2023', tier: 'A', seasons: 2, episode: 0, episodes: 12, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/567/1419482.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/442/1107204.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/458/1145252.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/567/1418747.jpg'], synopsis: 'Uma detetive humana ambulante cruza os EUA e resolve crimes pelo caminho.' },
+  { title: 'The Diplomat', year: '2023', tier: 'A', seasons: 3, episode: 0, episodes: 8, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/646/1615567.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/590/1475860.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/457/1144996.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/458/1145220.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/456/1141071.jpg'], synopsis: 'Uma embaixadora americana em Londres tenta apagar incêndios diplomáticos — e políticos.' },
+  { title: 'Station Eleven', year: '2021', tier: 'S', seasons: 1, episode: 0, episodes: 10, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/632/1580985.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/385/963475.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/385/963476.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/632/1580986.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/632/1580988.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/385/964739.jpg'], synopsis: 'Uma trupe de teatro viaja por um mundo pós-pandemia tentando manter a arte viva.' },
+  { title: 'Pantheon', year: '2022', tier: 'S', seasons: 1, episode: 0, episodes: 8, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/436/1091844.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/436/1091845.jpg'], synopsis: 'Uma adolescente descobre que a mente do pai foi digitalizada e vive em rede.' },
+  { title: 'Scavengers Reign', year: '2023', tier: 'A', seasons: 1, episode: 0, episodes: 12, pct: 0, status: 'planned', img: 'https://static.tvmaze.com/uploads/images/medium_portrait/482/1205705.jpg', backs: ['https://static.tvmaze.com/uploads/images/original_untouched/482/1205706.jpg', 'https://static.tvmaze.com/uploads/images/original_untouched/482/1205707.jpg'], synopsis: 'Sobreviventes de uma nave caem em um planeta alienígena de ecologia implacável.' }
+];
+
+/* ==========================================================================
+   HELPERS
+   ========================================================================== */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+const TIER_ORDER = { 'S+': 0, S: 1, A: 2, B: 3, C: 4, D: 5 };
+const STATUS_LABEL = { watching: 'Assistindo', paused: 'Pausado', done: 'Concluído', planned: 'Quero ver' };
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* modo privado */ }
+  }
+};
+
+/* ==========================================================================
+   CARD — anatomia única, usada por grid, trilho e busca
+   ========================================================================== */
+function cardMarkup(item, options = {}) {
+  const rail = options.rail ? ' card--rail' : '';
+  const hasProgress = options.progress !== false;
+  const status = item.status || 'watching';
+  const pct = Math.max(0, Math.min(100, Number(item.pct) || 0));
+  const body = hasProgress
+    ? `<div class="card-body card-body--progress">
+         <div class="progress-row">
+           <div class="progress-track"><span class="progress-bar" style="width:${pct}%"></span></div>
+           <span class="progress-pct">${pct}%</span>
+         </div>
+         <span class="card-open">Detalhes
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+         </span>
+       </div>`
+    : `<div class="card-body"><div class="card-meta"><span>${esc(options.meta || item.year)}</span></div></div>`;
+  const label = hasProgress
+    ? `${item.title}, ${item.year}, Tier ${item.tier}, ${pct}% assistido`
+    : `${item.title}, ${options.meta || item.year}`;
+
+  return `<article class="card${rail}"${rail ? ' role="listitem"' : ''} data-status="${status}" data-title="${esc(item.title)}" data-year="${esc(item.year)}" data-tier="${item.tier}" data-seasons="${item.seasons || 1}" data-episode="${item.episode || 0}" data-episodes="${item.episodes || 0}" data-pct="${pct}" data-img="${esc(item.img)}" data-synopsis="${esc(item.synopsis || '')}">
+    <div class="card-img">
+      <img src="${esc(item.img)}" alt="" loading="lazy" width="342" height="513" />
+      <span class="tier-stamp" data-tier="${item.tier}">${item.tier}</span>
+      <h3 class="card-title">${esc(item.title)}</h3>
+    </div>
+    ${body}
+    <button class="card__hit" type="button" aria-label="${esc(label)}"></button>
+  </article>`;
+}
+
+function byTitle(title) { return SERIES.find((item) => item.title === title); }
+
+function paintFallbacks(root = document) {
+  $$('.card-img img', root).forEach((img) => {
+    img.addEventListener('error', () => {
+      img.style.display = 'none';
+      if (!img.parentElement.querySelector('.card-img__fallback')) {
+        img.parentElement.insertAdjacentHTML('beforeend', '<span class="card-img__fallback" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 9h10M7 12h10M7 15h6"/></svg></span>');
+      }
+    }, { once: true });
+  });
+}
+
+/* ==========================================================================
+   TELAS / TAB BAR
+   ========================================================================== */
+const TITLES = { home: 'datmovie', catalog: 'Catálogo', upcoming: 'Próximos', search: 'Pesquisar', profile: 'Perfil' };
+const topbarTitle = $('#topbar-title');
+const screens = $$('.screen');
+const tabs = $$('.tab');
+let currentView = 'home';
+
+function setView(name) {
+  if (!TITLES[name]) return;
+  currentView = name;
+  screens.forEach((screen) => {
+    const active = screen.dataset.view === name;
+    screen.classList.toggle('is-active', active);
+    screen.hidden = !active;
+  });
+  tabs.forEach((tab) => {
+    if (tab.dataset.tab === name) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
+  });
+  topbarTitle.textContent = TITLES[name];
+  topbarTitle.classList.toggle('topbar__title--wordmark', name === 'home');
+  window.scrollTo(0, 0);
+  if (name === 'search') setTimeout(() => { const input = $('#discover-search'); if (input && window.innerWidth > 0) input.focus({ preventScroll: true }); }, 120);
+}
+
+tabs.forEach((tab) => tab.addEventListener('click', () => setView(tab.dataset.tab)));
+$$('[data-go]').forEach((btn) => btn.addEventListener('click', () => setView(btn.dataset.go)));
+
+$('#topbar-search').addEventListener('click', () => setView('search'));
+
+/* ==========================================================================
+   TEMA — system | dark | light, escuro como padrão
+   ========================================================================== */
+const themeToggle = $('#theme-toggle');
+const themeIcon = $('#theme-icon');
+const MOON = '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
+const SUN = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/>';
+let themeChoice = store.get('dm-theme', 'dark');
+
+function resolveTheme(choice) {
+  if (choice !== 'system') return choice;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme(choice, persist = true) {
+  themeChoice = choice;
+  const resolved = resolveTheme(choice);
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.style.colorScheme = resolved;
+  const meta = $('#meta-theme');
+  if (meta) meta.setAttribute('content', resolved === 'light' ? '#F4F1EA' : '#101112');
+  themeToggle.setAttribute('aria-pressed', resolved === 'light' ? 'true' : 'false');
+  themeToggle.setAttribute('aria-label', `Tema: ${resolved === 'light' ? 'claro' : 'escuro'}${choice === 'system' ? ' (sistema)' : ''}. Toque para alternar`);
+  themeIcon.innerHTML = resolved === 'light' ? SUN : MOON;
+  $$('[data-theme-choice]').forEach((btn) => btn.setAttribute('aria-pressed', btn.dataset.themeChoice === choice ? 'true' : 'false'));
+  if (persist) store.set('dm-theme', choice);
+}
+
+themeToggle.addEventListener('click', () => applyTheme(resolveTheme(themeChoice) === 'light' ? 'dark' : 'light'));
+$$('[data-theme-choice]').forEach((btn) => btn.addEventListener('click', () => applyTheme(btn.dataset.themeChoice)));
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (themeChoice === 'system') applyTheme('system', false);
+});
+
+/* ==========================================================================
+   PREFERÊNCIAS
+   ========================================================================== */
+const progressSwitch = $('#pref-progress');
+let progressOn = store.get('dm-progress', '1') !== '0';
+
+function setProgressPref(on) {
+  progressOn = on;
+  document.documentElement.classList.toggle('is-progress-hidden', !on);
+  progressSwitch.setAttribute('aria-checked', on ? 'true' : 'false');
+  store.set('dm-progress', on ? '1' : '0');
+}
+progressSwitch.addEventListener('click', () => {
+  setProgressPref(!progressOn);
+  showToast(progressOn ? 'Barra de progresso visível.' : 'Corpo do card escondido.');
+});
+
+const tierSwitch = $('#pref-tier');
+let groupByTier = store.get('dm-tier', '1') !== '0';
+tierSwitch.setAttribute('aria-checked', groupByTier ? 'true' : 'false');
+tierSwitch.addEventListener('click', () => {
+  groupByTier = !groupByTier;
+  tierSwitch.setAttribute('aria-checked', groupByTier ? 'true' : 'false');
+  store.set('dm-tier', groupByTier ? '1' : '0');
+  renderCatalog();
+  showToast(groupByTier ? 'Catálogo agrupado por Tier.' : 'Catálogo na ordem de inclusão.');
+});
+
+/* ==========================================================================
+   PRIMEIRO DESENHO
+   ========================================================================== */
+function renderHome() {
+  $('#rail-continue').innerHTML = CONTINUE.filter(byTitle).map((title) => cardMarkup(byTitle(title), { rail: true })).join('');
+  const planned = SERIES.filter((item) => item.status === 'planned');
+  $('#rail-soon').innerHTML = planned.map((item) => cardMarkup(item, { rail: true, progress: false })).join('');
+  $('#home-grid').innerHTML = SHELF.filter(byTitle).map((title) => cardMarkup(byTitle(title))).join('');
+  paintFallbacks();
+  renderHomeStats();
+}
+
+function renderHomeStats() {
+  const total = SERIES.length;
+  const watching = SERIES.filter((item) => item.status === 'watching').length;
+  const paused = SERIES.filter((item) => item.status === 'paused').length;
+  const sub = $('#home-sub');
+  if (sub) sub.textContent = `${total} série${total === 1 ? '' : 's'} · ${watching} assistindo · ${paused} pausado${paused === 1 ? '' : 's'}`;
+  $$('.tier-chip').forEach((chip) => {
+    const count = SERIES.filter((item) => item.tier === chip.dataset.tier).length;
+    const badge = $('b', chip);
+    if (badge) badge.textContent = count;
+    chip.classList.toggle('hidden', count === 0);
+  });
+}
+
+applyTheme(themeChoice, false);
+setProgressPref(progressOn);
+renderHome();
+/* ==========================================================================
+   CATÁLOGO — busca local, filtros combinados e agrupamento por Tier
+   ========================================================================== */
+const catalogState = { q: '', status: 'all', tiers: [], onlyWatching: false };
+let filterDraft = { tiers: [], onlyWatching: false };
+
+function filteredSeries() {
+  const q = catalogState.q.trim().toLowerCase();
+  let items = SERIES.filter((item) => {
+    if (catalogState.status !== 'all' && item.status !== catalogState.status) return false;
+    if (catalogState.onlyWatching && item.status !== 'watching') return false;
+    if (catalogState.tiers.length && !catalogState.tiers.includes(item.tier)) return false;
+    if (q && !`${item.title} ${item.year}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (groupByTier) {
+    items = items.slice().sort((a, b) => (TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || (Number(b.year) - Number(a.year)) || a.title.localeCompare(b.title));
+  }
+  return items;
+}
+
+function refreshChipCounts() {
+  const counts = { all: SERIES.length, watching: 0, paused: 0, done: 0, planned: 0 };
+  SERIES.forEach((item) => { if (counts[item.status] !== undefined) counts[item.status] += 1; });
+  $$('[data-status-filter]').forEach((chip) => {
+    const badge = $('.chip__count', chip);
+    if (badge) badge.textContent = counts[chip.dataset.statusFilter] ?? 0;
+  });
+}
+
+function renderCatalog() {
+  const items = filteredSeries();
+  $('#catalog-grid').innerHTML = items.map((item) => cardMarkup(item)).join('');
+  $('#catalog-count').textContent = items.length;
+  $('#catalog-empty').classList.toggle('hidden', items.length > 0);
+  refreshChipCounts();
+  paintFallbacks($('#catalog-grid'));
+}
+
+$('#catalog-search').addEventListener('input', (event) => {
+  catalogState.q = event.target.value;
+  renderCatalog();
+});
+
+$$('[data-status-filter]').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    catalogState.status = chip.dataset.statusFilter;
+    $$('[data-status-filter]').forEach((other) => other.setAttribute('aria-pressed', other === chip ? 'true' : 'false'));
+    renderCatalog();
+  });
+});
+
+$('#clear-catalog').addEventListener('click', () => {
+  catalogState.q = '';
+  catalogState.status = 'all';
+  catalogState.tiers = [];
+  catalogState.onlyWatching = false;
+  $('#catalog-search').value = '';
+  $$('[data-status-filter]').forEach((chip) => chip.setAttribute('aria-pressed', chip.dataset.statusFilter === 'all' ? 'true' : 'false'));
+  renderCatalog();
+  showToast('Busca e filtros limpos.');
+});
+
+/* ---- Sheet de filtros ---- */
+function syncFilterDraft() {
+  $$('[data-filter-tier]').forEach((btn) => btn.setAttribute('aria-pressed', filterDraft.tiers.includes(btn.dataset.filterTier) ? 'true' : 'false'));
+  $('#filter-watching').setAttribute('aria-checked', filterDraft.onlyWatching ? 'true' : 'false');
+}
+
+function openFilters() {
+  filterDraft = { tiers: catalogState.tiers.slice(), onlyWatching: catalogState.onlyWatching };
+  syncFilterDraft();
+  openSheet('filters');
+}
+
+$('#open-filters').addEventListener('click', openFilters);
+
+$$('[data-filter-tier]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const tier = btn.dataset.filterTier;
+    if (filterDraft.tiers.includes(tier)) filterDraft.tiers = filterDraft.tiers.filter((t) => t !== tier);
+    else filterDraft.tiers.push(tier);
+    syncFilterDraft();
+  });
+});
+
+$('#filter-watching').addEventListener('click', () => {
+  filterDraft.onlyWatching = !filterDraft.onlyWatching;
+  syncFilterDraft();
+});
+
+$('#filters-clear').addEventListener('click', () => {
+  filterDraft = { tiers: [], onlyWatching: false };
+  syncFilterDraft();
+});
+
+$('#filters-apply').addEventListener('click', () => {
+  catalogState.tiers = filterDraft.tiers.slice();
+  catalogState.onlyWatching = filterDraft.onlyWatching;
+  renderCatalog();
+  closeSheet('filters');
+  const parts = [];
+  if (catalogState.tiers.length) parts.push(`Tier ${catalogState.tiers.join(', ')}`);
+  if (catalogState.onlyWatching) parts.push('só em andamento');
+  showToast(parts.length ? `Filtros aplicados: ${parts.join(' · ')}.` : 'Filtros limpos.');
+});
+
+/* ==========================================================================
+   PRÓXIMOS — a fila de "Quero ver"
+   ========================================================================== */
+function upcomingRow(item) {
+  return `<button class="row" type="button" data-upcoming="${esc(item.title)}">
+    <span class="row__thumb"><img src="${esc(item.img)}" alt="" loading="lazy" width="44" height="62" /></span>
+    <span class="row__body">
+      <span class="row__title">${esc(item.title)}</span>
+      <span class="row__meta"><span>${esc(item.year)}</span><span class="dot" aria-hidden="true"></span><span>Tier ${esc(item.tier)}</span></span>
+    </span>
+    <span class="row__badge">Quero ver</span>
+    <span class="row__chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+  </button>`;
+}
+
+function renderUpcoming() {
+  const planned = SERIES.filter((item) => item.status === 'planned');
+  if (!planned.length) {
+    $('#upcoming-list').innerHTML = '';
+    $('#upcoming-empty').classList.remove('hidden');
+    return;
+  }
+  const rows = planned.map(upcomingRow).join('');
+  $('#upcoming-list').innerHTML = `<div class="list">${rows}</div>`;
+  $('#upcoming-empty').classList.add('hidden');
+}
+
+/* ==========================================================================
+   PESQUISAR — sugestões e resultados
+   ========================================================================== */
+let searchQuery = '';
+
+function suggestionRow(item) {
+  const inCatalog = Boolean(byTitle(item.title));
+  return `<button class="row" type="button" data-suggestion="${esc(item.title)}">
+    <span class="row__thumb"><img src="${esc(item.img)}" alt="" loading="lazy" width="44" height="62" /></span>
+    <span class="row__body">
+      <span class="row__title">${esc(item.title)}</span>
+      <span class="row__meta"><span>${esc(item.year)}</span><span class="dot" aria-hidden="true"></span><span>Tier ${item.tier}</span><span class="dot" aria-hidden="true"></span><span>${item.episodes} eps</span></span>
+    </span>
+    <span class="row__badge">${inCatalog ? 'No catálogo' : 'Adicionar'}</span>
+    <span class="row__chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+  </button>`;
+}
+
+function renderSearch() {
+  const q = searchQuery.trim().toLowerCase();
+  const results = q
+    ? SUGGESTIONS.filter((item) => `${item.title} ${item.year}`.toLowerCase().includes(q))
+    : SUGGESTIONS.slice(0, 5);
+  $('#search-section-title').textContent = q ? 'Resultados' : 'Sugestões para você';
+  $('#search-count').textContent = q ? `${results.length} de ${SUGGESTIONS.length}` : 'TMDb';
+  $('#search-results').innerHTML = results.map(suggestionRow).join('');
+  $('#search-results').classList.toggle('hidden', results.length === 0);
+  $('#search-empty').classList.toggle('hidden', results.length > 0);
+  $('#discover-clear').hidden = !searchQuery;
+}
+
+$('#discover-search').addEventListener('input', (event) => {
+  searchQuery = event.target.value;
+  renderSearch();
+});
+
+$('#discover-clear').addEventListener('click', () => {
+  searchQuery = '';
+  $('#discover-search').value = '';
+  renderSearch();
+  $('#discover-search').focus();
+});
+
+$('#search-reset').addEventListener('click', () => {
+  searchQuery = '';
+  $('#discover-search').value = '';
+  renderSearch();
+  $('#discover-search').focus();
+});
+/* ==========================================================================
+   SHEETS — abertura, foco preso, Escape, arrastar para fechar
+   ========================================================================== */
+const sheetStack = [];
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function openSheet(name) {
+  const layer = document.getElementById(`sheet-${name}`);
+  if (!layer) return;
+  const panel = $('.sheet', layer);
+  const active = document.activeElement;
+  layer._returnFocus = active && active !== document.body && active !== document.documentElement ? active : null;
+  panel.style.transform = '';
+  layer.dataset.open = 'true';
+  layer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('is-sheet-open');
+  if (!sheetStack.includes(name)) sheetStack.push(name);
+  const target = $('.sheet__close', layer) || panel;
+  setTimeout(() => target.focus({ preventScroll: true }), 80);
+}
+
+function closeSheet(name) {
+  const layer = document.getElementById(`sheet-${name}`);
+  if (!layer || layer.dataset.open !== 'true') return;
+  if (name === 'detail') stopBackdropAutoRotate();
+  const panel = $('.sheet', layer);
+  panel.style.transform = '';
+  panel.classList.remove('is-dragging');
+  layer.dataset.open = 'false';
+  layer.setAttribute('aria-hidden', 'true');
+  const index = sheetStack.lastIndexOf(name);
+  if (index >= 0) sheetStack.splice(index, 1);
+  if (!sheetStack.length) document.body.classList.remove('is-sheet-open');
+  const back = layer._returnFocus;
+  layer._returnFocus = null;
+  if (back && document.contains(back) && typeof back.focus === 'function') {
+    back.focus({ preventScroll: true });
+  } else {
+    const main = document.getElementById('main');
+    if (main) main.focus({ preventScroll: true });
+  }
+}
+
+$$('[data-close]').forEach((el) => {
+  el.addEventListener('click', () => closeSheet(el.dataset.close));
+});
+
+document.addEventListener('keydown', (event) => {
+  if (!sheetStack.length) return;
+  const name = sheetStack[sheetStack.length - 1];
+  const layer = document.getElementById(`sheet-${name}`);
+  if (!layer) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSheet(name);
+    return;
+  }
+  if (name === 'detail' && backdropImages.length > 1) {
+    if (event.key === 'ArrowLeft') { event.preventDefault(); navegarPara(currentBackdropIndex - 1); return; }
+    if (event.key === 'ArrowRight') { event.preventDefault(); navegarPara(currentBackdropIndex + 1); return; }
+  }
+  if (event.key !== 'Tab') return;
+  const panel = $('.sheet', layer);
+  const items = $$(FOCUSABLE, panel).filter((el) => el.offsetParent !== null || el === document.activeElement);
+  if (!items.length) { event.preventDefault(); panel.focus(); return; }
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (!panel.contains(document.activeElement)) { event.preventDefault(); first.focus(); return; }
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
+
+/* Arrastar o grabber para fechar */
+$$('.sheet').forEach((panel) => {
+  const grab = $('.sheet__grabber', panel);
+  if (!grab) return;
+  let startY = 0;
+  let offset = 0;
+  let dragging = false;
+  grab.addEventListener('pointerdown', (event) => {
+    if (event.button !== undefined && event.button !== 0) return;
+    dragging = true;
+    startY = event.clientY;
+    offset = 0;
+    panel.classList.add('is-dragging');
+    if (grab.setPointerCapture && event.pointerId !== undefined) {
+      try { grab.setPointerCapture(event.pointerId); } catch (error) { /* ponteiro já liberado */ }
+    }
+  });
+  grab.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    offset = Math.max(0, event.clientY - startY);
+    panel.style.transform = `translateY(${offset}px)`;
+  });
+  const finish = () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.classList.remove('is-dragging');
+    const layer = panel.closest('.sheet-layer');
+    if (offset > 90) closeSheet(layer.id.replace('sheet-', ''));
+    else panel.style.transform = '';
+    offset = 0;
+  };
+  grab.addEventListener('pointerup', finish);
+  grab.addEventListener('pointercancel', finish);
+});
+
+/* ==========================================================================
+   FICHA — detalhe, progresso, Tier e status
+   ========================================================================== */
+let currentDetail = null;
+let detailMode = 'catalog';
+
+function itemFromCard(card) {
+  const data = card.dataset;
+  return {
+    title: data.title,
+    year: data.year,
+    tier: data.tier,
+    seasons: Number(data.seasons) || 1,
+    episode: Number(data.episode) || 0,
+    episodes: Number(data.episodes) || 0,
+    pct: Number(data.pct) || 0,
+    status: data.status || 'watching',
+    img: data.img,
+    synopsis: data.synopsis
+  };
+}
+
+/* ---- Galeria horizontal da ficha (mesma regra do dat-movie) ----
+   - só roda com 2+ imagens; com uma, setas e contador ficam escondidos;
+   - troca a cada 15 s; aba em segundo plano não conta tempo;
+   - navegação manual zera a contagem; ao fechar a ficha o timer morre. */
+const BACKDROP_AUTO_MS = 15000;
+let backdropImages = [];
+let currentBackdropIndex = 0;
+let backdropRotateTimer = null;
+
+function showBackdropAt(idx) {
+  if (!backdropImages.length) return;
+  currentBackdropIndex = ((idx % backdropImages.length) + backdropImages.length) % backdropImages.length;
+  const el = $('#detail-backdrop');
+  el.src = backdropImages[currentBackdropIndex];
+  refreshBackdropControls();
+}
+
+function refreshBackdropControls() {
+  const hasMany = backdropImages.length > 1;
+  $('#detail-backdrop-prev').hidden = !hasMany;
+  $('#detail-backdrop-next').hidden = !hasMany;
+  const counter = $('#detail-backdrop-counter');
+  counter.hidden = !hasMany;
+  if (hasMany) counter.textContent = `${currentBackdropIndex + 1} / ${backdropImages.length}`;
+}
+
+function stopBackdropAutoRotate() {
+  if (backdropRotateTimer !== null) {
+    clearInterval(backdropRotateTimer);
+    backdropRotateTimer = null;
+  }
+}
+
+function startBackdropAutoRotate() {
+  stopBackdropAutoRotate();
+  if (backdropImages.length <= 1) return;
+  backdropRotateTimer = setInterval(() => {
+    if (!document.hidden) showBackdropAt(currentBackdropIndex + 1);
+  }, BACKDROP_AUTO_MS);
+}
+
+function navegarPara(idx) {
+  showBackdropAt(idx);
+  startBackdropAutoRotate();
+}
+
+function paintDetailLogo(item) {
+  const logoEl = $('#detail-logo');
+  const nameEl = $('#detail-name');
+  if (item.logo) {
+    logoEl.onerror = () => {
+      logoEl.hidden = true;
+      logoEl.removeAttribute('src');
+      nameEl.hidden = false;
+    };
+    logoEl.alt = `Logo de ${item.title}`;
+    logoEl.src = item.logo;
+    logoEl.hidden = false;
+    nameEl.hidden = true;
+  } else {
+    logoEl.hidden = true;
+    logoEl.removeAttribute('src');
+    nameEl.hidden = false;
+  }
+}
+
+function paintDetail() {
+  const item = currentDetail;
+  if (!item) return;
+
+  if (item.status === 'planned') {
+    item.episode = 0;
+    item.pct = 0;
+  }
+
+  const total = Number(item.episodes) || 0;
+  const episode = Number(item.episode) || 0;
+  const pct = total ? Math.round((episode / total) * 100) : 0;
+  item.pct = pct;
+
+  backdropImages = Array.isArray(item.backs) && item.backs.length ? item.backs.slice() : (item.img ? [item.img] : []);
+  currentBackdropIndex = 0;
+  if (backdropImages.length) {
+    showBackdropAt(0);
+    startBackdropAutoRotate();
+  }
+  paintDetailLogo(item);
+  $('#detail-poster').src = item.img || '';
+  $('#detail-poster').alt = '';
+  $('#detail-name').textContent = item.title;
+  $('#detail-year').textContent = item.year;
+  $('#detail-seasons').textContent = `${item.seasons || 1} temporada${(item.seasons || 1) > 1 ? 's' : ''}`;
+  $('#detail-synopsis').textContent = item.synopsis || 'Sinopse não disponível.';
+  const stamp = $('#detail-tier-stamp');
+  stamp.textContent = item.tier;
+  stamp.dataset.tier = item.tier;
+
+  $('#detail-progress-label').textContent = `T${item.seasons || 1} · ${episode}/${total}`;
+  $('#detail-episode').textContent = `${episode} / ${total}`;
+  $('#detail-pct').textContent = `${pct}%`;
+  $('#detail-bar').style.width = `${pct}%`;
+
+  $$('[data-status-choice]').forEach((btn) => btn.setAttribute('aria-pressed', btn.dataset.statusChoice === (item.status || 'watching') ? 'true' : 'false'));
+  $$('[data-tier-choice]').forEach((btn) => btn.setAttribute('aria-pressed', btn.dataset.tierChoice === item.tier ? 'true' : 'false'));
+  $$('[data-step]').forEach((btn) => {
+    const dir = Number(btn.dataset.step);
+    btn.disabled = dir < 0 ? episode <= 0 : (total > 0 && episode >= total);
+  });
+
+  $('#detail-cta').textContent = detailMode === 'add' ? 'Adicionar ao catálogo' : 'Marcar episódio';
+}
+
+function syncCard(item) {
+  $$('.card').forEach((card) => {
+    if (card.dataset.title !== item.title) return;
+    card.dataset.episode = item.episode;
+    card.dataset.pct = item.pct;
+    card.dataset.status = item.status;
+    card.dataset.tier = item.tier;
+    const bar = $('.progress-bar', card);
+    if (bar) bar.style.width = `${item.pct}%`;
+    const pctEl = $('.progress-pct', card);
+    if (pctEl) pctEl.textContent = `${item.pct}%`;
+    const stamp = $('.tier-stamp', card);
+    if (stamp) { stamp.dataset.tier = item.tier; stamp.textContent = item.tier; }
+    const hit = $('.card__hit', card);
+    if (hit) hit.setAttribute('aria-label', `${item.title}, ${item.year}, Tier ${item.tier}, ${item.pct}% assistido`);
+  });
+}
+
+function commitDetail(item) {
+  const stored = byTitle(item.title);
+  if (!stored) return;
+  stored.episode = item.episode;
+  stored.episodes = item.episodes;
+  stored.pct = item.pct;
+  stored.status = item.status;
+  stored.tier = item.tier;
+  refreshChipCounts();
+  renderHome();
+  renderUpcoming();
+}
+
+function openDetail(item, mode = 'catalog') {
+  if (!item) return;
+  detailMode = mode;
+  currentDetail = { ...item, status: item.status || 'watching', tier: item.tier || 'B' };
+  const layer = $('#sheet-detail');
+  layer.dataset.mode = mode;
+  paintDetail();
+  openSheet('detail');
+}
+
+function changeEpisode(delta) {
+  const item = currentDetail;
+  if (!item) return;
+  const total = Number(item.episodes) || 0;
+  const next = Math.max(0, Math.min(total, (Number(item.episode) || 0) + delta));
+  if (next === item.episode) {
+    showToast(total ? 'Limite da temporada atingido.' : 'Sem episódios mapeados para esta temporada.');
+    return;
+  }
+  item.episode = next;
+  if (item.status === 'planned') item.status = 'watching';
+  if (total && next >= total) item.status = 'done';
+  else if (item.status === 'done') item.status = 'watching';
+  paintDetail();
+  syncCard(item);
+  commitDetail(item);
+}
+
+$$('[data-step]').forEach((btn) => {
+  let holdTimer = null;
+  let repeatTimer = null;
+  const step = () => {
+    if (btn.disabled) { stop(); return; }
+    changeEpisode(Number(btn.dataset.step));
+  };
+  const stop = () => {
+    clearTimeout(holdTimer);
+    clearInterval(repeatTimer);
+    holdTimer = null;
+    repeatTimer = null;
+  };
+  btn.addEventListener('pointerdown', () => {
+    if (btn.disabled) return;
+    step();
+    holdTimer = setTimeout(() => { repeatTimer = setInterval(step, 130); }, 420);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => btn.addEventListener(type, stop));
+  btn.addEventListener('click', (event) => { if (event.detail === 0) step(); });
+});
+
+$('#detail-backdrop-prev').addEventListener('click', () => navegarPara(currentBackdropIndex - 1));
+$('#detail-backdrop-next').addEventListener('click', () => navegarPara(currentBackdropIndex + 1));
+
+$$('[data-status-choice]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!currentDetail) return;
+    currentDetail.status = btn.dataset.statusChoice;
+    if (currentDetail.status === 'done' && currentDetail.episodes) {
+      currentDetail.episode = currentDetail.episodes;
+    } else if (currentDetail.status === 'planned') {
+      currentDetail.episode = 0;
+      currentDetail.pct = 0;
+    }
+    paintDetail();
+    syncCard(currentDetail);
+    commitDetail(currentDetail);
+    renderCatalog();
+    renderHomeStats();
+    renderUpcoming();
+    showToast(`${currentDetail.title}: ${STATUS_LABEL[currentDetail.status]}.`);
+  });
+});
+
+$$('[data-tier-choice]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!currentDetail) return;
+    currentDetail.tier = btn.dataset.tierChoice;
+    paintDetail();
+    syncCard(currentDetail);
+    commitDetail(currentDetail);
+    renderCatalog();
+    renderHomeStats();
+    showToast(`${currentDetail.title}: Tier ${currentDetail.tier}.`);
+  });
+});
+
+$('#detail-cta').addEventListener('click', () => {
+  if (!currentDetail) return;
+  if (detailMode === 'add') { addToCatalog(currentDetail); return; }
+  const total = Number(currentDetail.episodes) || 0;
+  if (!total) { showToast('Sem episódios mapeados para esta temporada.'); return; }
+  if (currentDetail.episode >= total) { showToast('Temporada já concluída.'); return; }
+  changeEpisode(1);
+  renderCatalog();
+  renderHomeStats();
+  renderUpcoming();
+  showToast(`${currentDetail.title}: T${currentDetail.seasons} · E${currentDetail.episode} marcado.`);
+});
+
+function addToCatalog(item) {
+  if (byTitle(item.title)) {
+    showToast('Este título já está no seu catálogo.');
+    return;
+  }
+  SERIES.push({
+    ...item,
+    status: 'planned',
+    episode: 0,
+    pct: 0,
+    seasons: item.seasons || 1,
+    episodes: item.episodes || 0
+  });
+  renderCatalog();
+  renderSearch();
+  renderHome();
+  renderUpcoming();
+  closeSheet('detail');
+  showToast(`${item.title} adicionada ao catálogo.`);
+}
+
+/* ==========================================================================
+   CONFIRMAÇÃO (remoção / sair)
+   ========================================================================== */
+let pendingConfirm = null;
+
+function openConfirm(type, item) {
+  pendingConfirm = { type, item };
+  const title = $('#confirm-title');
+  const text = $('#confirm-text');
+  const action = $('#confirm-remove');
+  if (type === 'signout') {
+    title.textContent = 'Sair da conta?';
+    text.innerHTML = 'Sua estante continua salva no Supabase. Você pode entrar de novo quando quiser.';
+    action.textContent = 'Sair';
+  } else {
+    title.textContent = 'Remover do catálogo?';
+    text.innerHTML = `Remover <strong>${esc(item.title)}</strong> da sua estante? O progresso e o Tier serão perdidos.`;
+    action.textContent = 'Remover';
+  }
+  openSheet('confirm');
+}
+
+$('#detail-remove').addEventListener('click', () => {
+  if (currentDetail) openConfirm('remove', currentDetail);
+});
+
+$('#sign-out').addEventListener('click', () => openConfirm('signout'));
+
+$('#confirm-remove').addEventListener('click', () => {
+  if (!pendingConfirm) return;
+  if (pendingConfirm.type === 'signout') {
+    closeSheet('confirm');
+    showToast('Sessão encerrada (demonstração).');
+    pendingConfirm = null;
+    return;
+  }
+  const item = pendingConfirm.item;
+  const index = SERIES.findIndex((entry) => entry.title === item.title);
+  if (index >= 0) SERIES.splice(index, 1);
+  $$('.card').forEach((card) => { if (card.dataset.title === item.title) card.remove(); });
+  renderCatalog();
+  renderSearch();
+  renderHome();
+  renderUpcoming();
+  closeSheet('confirm');
+  closeSheet('detail');
+  showToast(`${item.title} removida do catálogo.`);
+  pendingConfirm = null;
+});
+
+/* ==========================================================================
+   AÇÕES DIVERSAS
+   ========================================================================== */
+let toastTimer = null;
+function showToast(message) {
+  const toast = $('#toast');
+  toast.innerHTML = `<span class="toast__dot" aria-hidden="true"></span>${esc(message)}`;
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2800);
+}
+
+$('#hero-next').addEventListener('click', () => openDetail(byTitle('Severance')));
+
+document.addEventListener('click', (event) => {
+  const card = event.target.closest('.card');
+  if (card) { openDetail(itemFromCard(card)); return; }
+
+  const upcoming = event.target.closest('[data-upcoming]');
+  if (upcoming) {
+    const item = byTitle(upcoming.dataset.upcoming);
+    if (item) openDetail(item, 'catalog');
+    return;
+  }
+
+  const suggestion = event.target.closest('[data-suggestion]');
+  if (suggestion) {
+    const item = SUGGESTIONS.find((entry) => entry.title === suggestion.dataset.suggestion);
+    if (item) openDetail(byTitle(item.title) || item, byTitle(item.title) ? 'catalog' : 'add');
+  }
+});
+
+$('#export-data').addEventListener('click', () => {
+  try {
+    const payload = JSON.stringify({ exportedAt: new Date().toISOString(), series: SERIES }, null, 2);
+    const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'datmovie-catalogo.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Catálogo exportado em JSON.');
+  } catch (error) {
+    console.error(error);
+    showToast('Não foi possível exportar agora.');
+  }
+});
+
+$('#sync-now').addEventListener('click', () => {
+  showToast('Sincronizado com o Supabase há instantes.');
+});
+
+/* ==========================================================================
+   PRIMEIRO DESENHO COMPLETO
+   ========================================================================== */
+renderCatalog();
+renderUpcoming();
+renderSearch();
+</script>
+
+
+
+</body></html>

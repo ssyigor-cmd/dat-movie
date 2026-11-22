@@ -1,0 +1,1042 @@
+================================================================================
+DAT-MOVIE — ESPECIFICAÇÃO MOBILE-FIRST PARA iOS
+Guia completo de produto, design visual, componentes, botões, tamanhos e mínimos
+================================================================================
+
+Documento-base para transformar o Dat-Movie (hoje uma SPA desktop de catálogo
+pessoal de séries) em um app mobile-first para iOS SEM perder a essência.
+
+Este arquivo é autossuficiente: pode ser copiado para outro projeto e usado como
+checklist de revisão. Onde houver número, ele é regra. Onde houver "mínimo", ele
+é piso, não sugestão.
+
+Versão do levantamento: 2026-11-16
+Fonte analisada: repositório dat-movie (index.html, style.css, src/, docs/,
+assets/BRAND_GUIDELINES.md).
+
+--------------------------------------------------------------------------------
+ÍNDICE
+--------------------------------------------------------------------------------
+PARTE 0  — Como usar este documento
+PARTE 1  — A essência que NÃO pode ser perdida
+PARTE 2  — Estratégia técnica para iOS (PWA x Capacitor x nativo)
+PARTE 3  — Fundamentos de plataforma iOS (viewport, safe areas, teclado, gestos)
+PARTE 4  — Design system: tokens (cor, tipografia, espaço, raio, sombra, movimento)
+PARTE 5  — Layout e navegação (tab bar, top bar, sheets, grid, breakpoints)
+PARTE 6  — Componentes: anatomia e regras (com tabelas de tamanho)
+PARTE 7  — Botões: hierarquia, tamanhos, estados e mínimos
+PARTE 8  — Tipografia: escala, mínimos e Dynamic Type
+PARTE 9  — Toque e interação (alvos, gestos, feedback, timing)
+PARTE 10 — Estados de tela (carregando, vazio, erro, offline)
+PARTE 11 — Acessibilidade (VoiceOver, contraste, foco, reduce motion)
+PARTE 12 — Regras de negócio que a UI mobile deve preservar
+PARTE 13 — Do's e Don'ts específicos de iOS
+PARTE 14 — Checklist de aceite (paridade + qualidade + performance)
+PARTE 15 — Apêndice: tabelas de referência, telas e glossário
+
+
+================================================================================
+PARTE 0 — COMO USAR ESTE DOCUMENTO
+================================================================================
+
+0.1 Este é um documento de REGRAS, não de marketing. Cada seção termina, quando
+    faz sentido, em uma lista de regras numeradas (R-xx) para você citar na
+    revisão do outro projeto ("isto viola R-07").
+
+0.2 Prioridades quando duas regras colidem (nesta ordem):
+    1) Acessibilidade e legibilidade (toque e texto nunca abaixo do mínimo).
+    2) Integridade dos dados e regras de negócio (PARTE 12).
+    3) Identidade visual (PARTE 4) — paleta, fontes, anatomia do card.
+    4) Convenções de iOS (PARTE 3 e 13).
+    5) Estética/preferência pessoal.
+
+0.3 "Essência" (o que define o app): catálogo pessoal de séries, progresso
+    honesto por temporada/episódio, curadoria por Tier (S+ a D), listas livres,
+    descoberta sem nota pública, tema quente com acento areia. Se algo não serve
+    a isso, é candidato a corte.
+
+0.4 Nada neste documento autoriza "redesenhar". A identidade visual é ativo, não
+    dívida. Mobile-first significa REORGANIZAR e ADAPTAR, não trocar a cara.
+
+
+================================================================================
+PARTE 1 — A ESSÊNCIA QUE NÃO PODE SER PERDIDA
+================================================================================
+
+1.1 O QUE É O PRODUTO
+    Catálogo pessoal de séries de TV (com espaço para animes e animações) que
+    junta três coisas que normalmente vivem em apps separados:
+      (a) ACOMPANHAMENTO de progresso — em que temporada/episódio o usuário parou;
+      (b) CURADORIA pessoal — status, Tier (S+ a D) e listas customizáveis;
+      (c) DESCOBERTA — busca no TMDb, filtros avançados e recomendações na Home.
+    Backend: Supabase (Auth + Postgres com RLS). APIs externas (TMDb/Fanart)
+    SEMPRE via Edge Functions — nenhuma chave externa vai ao cliente.
+
+1.2 ESCOPO REAL
+    O catálogo é de TV. Filmes não fazem parte do catálogo nem da allow-list de
+    API. Não expandir para filmes "de graça" durante a migração mobile.
+
+1.3 O QUE O PRODUTO NÃO É (não introduzir no mobile)
+    - Não é app de filmes.
+    - Não é rede social (sem perfis públicos, comentários, notas públicas).
+    - Não é tracker automático (progresso é manual).
+    - Não é offline-first (cache melhora repetição, mas depende de rede).
+    - Não tem backend próprio (Supabase + Edge Functions são o backend).
+
+1.4 PRINCÍPIOS DE PRODUTO (contratos que sobrevivem a qualquer mudança)
+    P1. PROGRESSO HONESTO. Sem total confiável, a barra fica VAZIA em vez de
+        mentir 100%. O mapa de episódios por temporada (seasonEpisodesMap) manda
+        sobre a coluna total_episodios.
+    P2. SEM DUPLICATA. O mesmo tmdb_id não entra duas vezes no catálogo do mesmo
+        usuário. O banco tem índice único parcial como última defesa.
+    P3. CURADORIA, NÃO ALEATORIEDADE PURA. Recomendações ancoram no topo de
+        popularidade e reservam cota menor para exploração (mix 70/30).
+    P4. SEM NOTA PÚBLICA. A descoberta não mostra vote_average. A nota é pessoal
+        (Tier).
+    P5. TÍTULO LEGÍVEL. Filtros de qualidade escondem produções bloqueadas,
+        idiomas fora de en/ja/ko, datas absurdas, cards sem arte e títulos
+        predominantemente não latinos.
+    P6. SEGURANÇA NO SERVIDOR. Chaves do TMDb/Fanart nunca vão ao navegador.
+    P7. TIER É PESSOAL. Não vem do TMDb; é ranking do usuário.
+    P8. LISTAS SÃO LIVRES. Um título pode estar em várias listas; nunca duas
+        vezes na mesma. Listas de sistema não podem ser apagadas.
+
+1.5 IDENTIDADE QUE NÃO SE NEGOCIA
+    - Acento areia (#E5D8BF no escuro / #7A663B no claro) é a ÚNICA cor de marca.
+    - Tema escuro é o padrão; claro é override de token.
+    - Três famílias: Inter (corpo), Sora (títulos), IBM Plex Mono (dado técnico).
+    - Anatomia única de card: pôster 2/3, título SOBRE a imagem, barra no corpo.
+    - Barra de progresso é PREFERÊNCIA do usuário (esconde o corpo inteiro).
+    - Sem "glow"/halo colorido: sombras são pretas e discretas.
+
+R-01. Preserve paleta, fontes e anatomia do card. Não "modernize" a identidade.
+R-02. Preserve os 4 status (assistindo, concluido, planejado, pausado) e os 7
+      valores de Tier (S+, S, A, B, C, D, sem tier).
+R-03. Preserve o mapa de temporadas como fonte do progresso.
+R-04. Não exiba nota do TMDb em nenhuma tela de descoberta.
+R-05. Não introduza login social, comentários ou feed público.
+
+
+================================================================================
+PARTE 2 — ESTRATÉGIA TÉCNICA PARA iOS (PWA x CAPACITOR x NATIVO)
+================================================================================
+
+2.1 PONTO DE PARTIDA
+    O app é JavaScript puro (ES Modules) + Vite, HTML estático e CSS puro, sem
+    framework de UI e sem roteador. Toda a lógica de negócio vive em src/lib/.
+    Isso favorece REAPROVEITAR quase todo o domínio.
+
+2.2 TRÊS CAMINHOS (do mais fiel ao mais custoso)
+
+    CAMINHO A — PWA mobile-first (recomendado como FASE 1)
+      - Mesma base de código, layout reescrito para mobile.
+      - Instalável via Safari ("Adicionar à Tela de Início").
+      - Exige: manifest.json, apple-touch-icon, meta tags de iOS, service worker,
+        safe areas, tab bar inferior, sheets.
+      - Prós: menor custo, domínio reaproveitado 100%, um só código.
+      - Contras: sem App Store; haptics limitados; algumas APIs restritas.
+
+    CAMINHO B — Capacitor (recomendado como FASE 2, para App Store)
+      - Envelopa o MESMO build web em um shell iOS nativo.
+      - Habilita: Haptics, StatusBar, SplashScreen, Keyboard, Share, Push.
+      - Prós: publica na App Store reaproveitando o código da Fase 1.
+      - Contras: build/assinatura Xcode, revisão da Apple, mais superfície.
+
+    CAMINHO C — Nativo (SwiftUI) ou React Native (último recurso)
+      - Só se o requisito for performance nativa ou widgets profundos.
+      - Custo alto; risco alto de perder a essência na reescrita.
+      - Se adotar: PORTAR o domínio (PARTE 12) com testes antes de redesenhar.
+
+    RECOMENDAÇÃO: Fase 1 = PWA mobile-first; Fase 2 = Capacitor se precisar de
+    App Store. Não comece pela Fase 2 nem pela C.
+
+2.3 O QUE A MIGRAÇÃO MOBILE EXIGE DA BASE
+    - Reorganizar layout desktop em layout vertical (sem toolbar horizontal).
+    - Trocar navbar superior por TAB BAR inferior + top bar contextual.
+    - Trocar modais largos por SHEETS (bottom sheets) e telas empilhadas.
+    - Introduzir rotas reais (deep link por tela/lista/título).
+    - Introduzir camada de instalação (manifest, ícone, splash, service worker).
+    - Introduzir safe areas e tratamento de teclado.
+    - Manter intocado: src/lib/ (domínio) e o contrato das Edge Functions.
+
+R-06. Nenhuma chamada ao TMDb/Fanart fora das Edge Functions.
+R-07. O domínio em src/lib/ deve ser portado com os mesmos testes, sem mudar
+      fórmula de progresso, filtros, dedupe, score ou cache.
+R-08. Se for PWA: manifest, apple-touch-icon, meta de status bar e service worker
+      são obrigatórios (o app desktop de hoje não tem — isso muda aqui).
+
+2.4 CSP E ORIGENS (atenção ao migrar)
+    A CSP atual restringe origens: fontes do Google, Font Awesome no CDN, imagens
+    de image.tmdb.org, placehold.co, flagcdn.com, assets.fanart.tv e conexões com
+    *.supabase.co e pt.wikipedia.org.
+    - Qualquer nova origem (CDN, analytics, push) exige atualizar a CSP.
+    - O import map resolve @supabase/supabase-js e sortablejs por CDN. Em um
+      bundler real (Capacitor/React Native), remova o import map e empacote.
+
+
+================================================================================
+PARTE 3 — FUNDAMENTOS DE PLATAFORMA iOS
+================================================================================
+
+3.1 VIEWPORT E ÁREA SEGURA (obrigatório)
+    - Meta viewport DEVE incluir viewport-fit=cover:
+        <meta name="viewport" content="width=device-width, initial-scale=1,
+              viewport-fit=cover">
+    - Use as variáveis de ambiente CSS para safe areas:
+        env(safe-area-inset-top)
+        env(safe-area-inset-right)
+        env(safe-area-inset-bottom)
+        env(safe-area-inset-left)
+    - Top bar: padding-top = env(safe-area-inset-top) + altura interna.
+    - Tab bar: padding-bottom = env(safe-area-inset-bottom) + altura interna.
+    - Conteúdo rolável: padding-bottom para não ficar sob a tab bar e o home
+      indicator.
+    - A faixa do home indicator (aprox. 34pt em aparelhos com Face ID) é área
+      "proibida" para controles: nada clicável encostado ali.
+
+R-09. Nenhum controle essencial pode ficar sob a Dynamic Island/notch ou sob o
+      home indicator.
+R-10. Rolagem não pode "vazar" para trás (overscroll-behavior: contain) em
+      sheets e rails horizontais.
+
+3.2 BARRA DE STATUS
+    - Decida o estilo: barra clara (conteúdo escuro) no tema claro e barra escura
+      (conteúdo claro) no tema escuro.
+    - PWA: <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      combinado com safe-area-inset-top.
+    - Capacitor: usar o plugin StatusBar e sincronizar com o tema (system/dark/light).
+
+3.3 SEM HOVER — REGRA CENTRAL
+    - iOS não tem hover confiável. TODO estado que dependia de hover no desktop
+      precisa de equivalente em toque.
+    - No card: no desktop o hover revela o nome. No mobile, o nome deve estar
+      SEMPRE visível sobre a imagem (o overlay já existe) OU aparecer em um
+      primeiro toque que não abre o item. Recomendado: nome sempre visível.
+    - Nenhuma informação pode existir apenas em estado de hover.
+
+R-11. Proibido depender de :hover para revelar informação essencial.
+R-12. O nome do título no card fica sempre legível (sobre o gradiente preto).
+
+3.4 TECLADO
+    - Fonte de input >= 16px para evitar zoom automático do Safari ao focar.
+    - Use inputmode e type corretos: type="email", inputmode="numeric",
+      autocomplete apropriado, enterkeyhint="search"/"go"/"done".
+    - Ao focar um campo, garanta que ele não fique sob o teclado:
+      use visualViewport / scrollIntoView({ block: 'center' }).
+    - Evite elementos position:fixed reagindo mal ao teclado; prefira layout com
+      altura baseada em 100dvh (dynamic viewport height), não 100vh.
+    - Em formulários de login, "Done"/"Go" deve submeter.
+
+R-13. Todo input tem font-size >= 16px (16px é o piso anti-zoom; 17px é o ideal).
+R-14. Nunca use 100vh para telas cheias; use 100dvh (ou svh/lvh quando couber).
+
+3.5 SCROLL E MOMENTUM
+    - Rolagem nativa com momentum: -webkit-overflow-scrolling: touch.
+    - Rails horizontais com scroll-snap (manter a primitiva única de trilho).
+    - Esconder a scrollbar visual sem desabilitar a rolagem.
+    - Pull-to-refresh: só onde fizer sentido (ex.: Home). Não usar em telas com
+      formulários, para não recarregar e perder estado.
+
+3.6 GESTOS
+    - Swipe da borda esquerda = voltar (comportamento do sistema; não sequestrar).
+    - Swipe horizontal em rails = rolar o trilho.
+    - Long press = menu de contexto opcional (ex.: card → abrir ficha, remover).
+    - Swipe em linha de lista = ações destrutivas (com confirmação).
+    - Nunca usar gesto como ÚNICO caminho para uma ação crítica (precisa de botão).
+
+R-15. Toda ação acessível por gesto tem também um botão/menu equivalente.
+R-16. Não sobrescrever o gesto de voltar da borda.
+
+3.7 HAPTICS (Fase Capacitor)
+    - Feedback tátil leve em: marcar episódio, concluir temporada, salvar,
+      confirmar ação destrutiva, atingir limite de stepper.
+    - Não usar haptics em rolagem, nem em cada toque de card.
+    - PWA: navigator.vibrate não funciona no iOS — não contar com ele.
+
+3.8 TEMA E COR
+    - Manter 3 estados de tema: system | dark | light, com escuro como padrão.
+    - Anti-flash: script inline no <head> lê localStorage.theme e escreve
+      data-theme ANTES do CSS.
+    - color-scheme acompanha o tema (scrollbar, selects e controles nativos).
+    - Tela retina: usar imagens @2x/@3x; pôsteres do TMDb em w342 (card) e w500
+      (detalhe) já bastam para telas móveis comuns; não baixar w780+ em grid.
+
+R-17. Preserve o anti-flash de tema; sem ele o app "clareia" depois de abrir.
+R-18. Não hardcode cores em componentes; consuma tokens (ver PARTE 4).
+
+
+================================================================================
+PARTE 4 — DESIGN SYSTEM: TOKENS
+================================================================================
+Estes são os valores canônicos do app atual. No mobile, preserve os nomes e os
+valores; só ADICIONE o que for específico de iOS (safe area, tab bar).
+
+4.1 COR — TEMA ESCURO (base)
+    Papel                     Token                 Valor
+    ------------------------------------------------------------------
+    Fundo                     --bg-primary          #101112
+    Superfície (cards)        --bg-surface          #191A1C
+    Elevado (modais/menus)    --bg-elevated         #222325
+    Hover elevado             --bg-elevated-hover   #2A2C30
+    Poço / secundário         --bg-secondary        #151618
+    Poço fundo                --bg-well             #0C0D0E
+    Hover                     --bg-hover            #26282C
+    Texto primário            --text-primary        #F2EDE3
+    Texto secundário          --text-secondary      #AEAFB2
+    Texto muted               --text-muted          #838589
+    Acento (marca)            --accent              #E5D8BF
+    Acento hover              --accent-hover        #F0E6D2
+    Tinta sobre acento        --accent-ink          #101112
+    Contorno                  --border-outline      #2A2C30
+    Perigo                    --danger              #ef4444
+    Aviso                     --warning             #fbbf24
+    Sucesso                   --success             #34d399
+
+4.2 COR — TEMA CLARO (override de token; NUNCA regra por componente)
+    Fundo                     --bg-primary          #F4F1EA
+    Superfície                --bg-surface          #FFFFFF
+    Elevado                   --bg-elevated         #FFFFFF
+    Hover elevado             --bg-elevated-hover   #EFEBE1
+    Secundário                --bg-secondary        #ECE7DC
+    Poço fundo                --bg-well             #E4DED1
+    Hover                     --bg-hover            #E6E0D3
+    Texto primário            --text-primary        #1B1915
+    Texto secundário          --text-secondary      #55524A
+    Texto muted               --text-muted          #8A8478
+    Acento                    --accent              #7A663B
+    Acento hover              --accent-hover        #8A7444
+    Tinta sobre acento        --accent-ink          #F4F1EA
+    Contorno                  --border-outline      #D4D0C8
+
+    Regras de cor:
+    - Bordas DESLIGADAS por padrão (--border e --border-strong transparentes).
+      A separação vem do tom. --border-outline só onde dois blocos do mesmo tom
+      se tocam.
+    - Acento ÚNICO. Cores de Tier são a exceção saturada e só aparecem em selos,
+      grupos e opções de Tier — nunca como fundo de área grande.
+    - SEM HALO: nenhum box-shadow colorido/glow no acento. Sombra é preta.
+
+4.3 COR — TIERS (com tinta própria para contraste)
+    Tier   Cor (--tier-*)        Tinta (--tier-*-ink)
+    --------------------------------------------------------
+    S+     #FFD700               #3B2F00
+    S      #34d399               #06331F
+    A      #3b82f6               #0E2A4D
+    B      #f99e16               #452900
+    C      hsl(17,92%,50%)       #3D1600
+    D      #ef4444               #430D0D
+    Ordem: S+ > S > A > B > C > D > sem tier.
+
+4.4 TIPOGRAFIA — TRÊS FAMÍLIAS, TRÊS PAPÉIS (contrato rígido)
+    Papel     Família          Token           Onde
+    -----------------------------------------------------------------------
+    Corpo     Inter            --font-body     texto, sinopse, botões, inputs
+    Display   Sora             --font-display  títulos, cabeçalhos, nome do card
+    Mono      IBM Plex Mono    --font-mono     ano, "T1 · 5/8", %, data, contagem
+
+    Pesos carregados:
+      Inter 400/500/600/700 · Sora 400/600/700 · IBM Plex Mono 500/600/700.
+    - Nenhum font-weight fora da faixa carregada (evita negrito sintético).
+    - MONO NÃO É DECORAÇÃO: só dado técnico que precisa alinhar em coluna.
+    - Títulos usam Sora; corpo NUNCA usa Sora.
+    - Fallbacks: body cai em -apple-system/BlinkMacSystemFont/sans-serif; display
+      em sans-serif; mono em monospace.
+
+4.5 ESCALA DE TEXTO (tokens) + MÍNIMOS MOBILE
+    Token             Desktop atual     Regra mobile (iOS)
+    ------------------------------------------------------------------
+    --fs-display      clamp(1.6rem,4vw,2.2rem)   saudação; pode ir até 28-34px
+    --fs-title        1rem (16px)                título de seção; 17-20px no mobile
+    --fs-body         0.85rem (~13.6px)          SUBIR para >= 16px no mobile
+    --fs-meta         0.72rem (~11.5px)          SUBIR para >= 13px no mobile
+    --fs-btn          0.8rem (~12.8px)           SUBIR rótulo de botão para >= 15px
+    --fs-label        0.72rem (~11.5px)          rótulo maiúsculo; >= 12px
+    --fs-min          0.75rem (12px)             PISO ABSOLUTO (nunca abaixo)
+    --fs-min-comfort  0.875rem (14px)            piso confortável
+
+    REGRAS DE MÍNIMO (iOS):
+    - Corpo de texto: >= 16px (17px ideal, padrão Apple).
+    - Metadado/legenda: >= 13px. Nunca abaixo de 12px.
+    - Rótulo de botão: >= 15px.
+    - Não replicar valores legados de 0.62rem/0.68rem (~10-11px) da title page.
+
+4.6 ESPAÇAMENTO (escala fechada: 12 / 16 / 20 / 32)
+    Token                   Valor         Uso
+    ---------------------------------------------------------------
+    --home-space-section    32px          entre seções (ritmo vertical)
+    --home-space-block      20px          entre blocos (título -> trilho)
+    --home-space-item       12px          entre cards (trilhos e grade)
+    --home-space-inner      12px          dentro do card
+    --page-pad-x            32px          respiro lateral (mobile: 16px)
+    --page-pad-top          120px         navbar 64 + 56 (mobile: top bar + safe area)
+    --page-pad-bottom       28px          fim da página (mobile: + tab bar)
+    --home-panel-pad        18px 20px     respiro de painéis
+
+    Regra mobile: padding lateral da tela = 16px (12px só em telas muito estreitas).
+    A escala 12/16/20/32 é a única permitida na Home; número novo entra como token.
+
+4.7 RAIO, SOMBRA, MOVIMENTO
+    Token                  Valor
+    ------------------------------------------------------
+    --radius               10px      (card, painel, sheet)
+    --radius-sm            6px       (pôster, botão, chip)
+    --radius-xs            6px
+    --radius-pill          999px     (pills, avatares)
+    --shadow               0 4px 16px rgba(0,0,0,.4)   (claro: .10)
+    --shadow-lg            0 8px 24px rgba(0,0,0,.5)   (claro: .14)
+    --transition           0.2s ease
+    --transition-fast      0.3s cubic-bezier(.4,0,.2,1)
+    --transition-smooth    0.4s cubic-bezier(.4,0,.2,1)
+
+    Regras:
+    - Sem halo colorido. Só sombra preta discreta.
+    - Movimento é funcional (feedback de abertura/entrada), não decorativo.
+    - prefers-reduced-motion: reduce zera animações e transições.
+
+4.8 ALVOS DE TOQUE E FOCO
+    Token              Valor      Observação
+    -------------------------------------------------------
+    --touch-target     44px       MÍNIMO acessível global (Apple HIG / WCAG)
+    --tap-btn          36px       botão de toolbar (subir para >=44 no mobile)
+    --tap-icon         28px       ícone compacto (subir para >=44 no mobile)
+    --focus-ring       0 0 0 2px var(--accent)
+
+    REGRA MOBILE: no iOS, todo alvo interativo tem >= 44x44pt de área de toque,
+    mesmo que o desenho visual seja menor (use padding/área invisível).
+
+4.9 Z-INDEX (substituir os valores soltos por escala nomeada)
+    Camada atual (desktop)       Valor     Proposta nomeada (mobile)
+    ----------------------------------------------------------------
+    Conteúdo do title page       20        --z-content
+    Navbar                       100       --z-topbar
+    Dropdowns da navbar          110       --z-dropdown
+    Modal                        200       --z-sheet
+    Login                        300       --z-auth
+    Toast                        400       --z-toast
+    Menu de filtros              1200      --z-popover (fora de escala; normalizar)
+
+R-19. Todo componente consome var(--...). Nenhum literal de cor/tamanho solto.
+R-20. Alvos de toque >= 44x44 em todo o app.
+R-21. Texto de corpo >= 16px; metadado >= 13px; piso absoluto 12px.
+R-22. Mono só para dado técnico.
+R-23. Sem halo/glow; sombra preta discreta.
+
+
+================================================================================
+PARTE 5 — LAYOUT E NAVEGAÇÃO
+================================================================================
+
+5.1 MODELO DE NAVEGAÇÃO MOBILE
+    - TAB BAR INFERIOR fixa (substitui a navbar superior de desktop).
+    - TOP BAR contextual no topo (título da tela + ações), colada sob a safe area.
+    - Telas empilhadas para detalhe (título), perfil, listas e configurações.
+    - SHEETS para ações rápidas (seleção de listas, filtros, confirmação).
+
+5.2 TAB BAR (regra de tamanho)
+    - Altura visual: 49-56px + env(safe-area-inset-bottom).
+    - 4 a 5 abas no máximo. Sugestão alinhada ao produto:
+        Início · Catálogo · Próximos · Pesquisar · Perfil
+      (as listas do usuário migram para dentro de Catálogo/Próximos, com um
+      seletor de coleção, para não estourar o limite de abas).
+    - Item ativo: cor de acento + rótulo; inativo: --text-muted.
+    - Ícone 24-28px, rótulo >= 10-11px em Inter (nunca Sora).
+    - Cada item com área de toque >= 44x44.
+    - NÃO usar barra superior com abas horizontais roláveis no mobile.
+
+5.3 TOP BAR
+    - Altura interna: 44-56px + env(safe-area-inset-top).
+    - Esquerda: voltar (quando empilhada) ou marca.
+    - Centro: título da tela (Sora) — truncar com reticências.
+    - Direita: 1-3 ações (buscar, filtros, mais). Ícones >= 44x44 de toque.
+    - Fundo --bg-primary, sombra discreta ou separador por tom.
+
+5.4 GRID DE CARDS
+    - Desktop hoje: auto-fill, mínimo 160px, gap 12px (classe histórica grid-cols-8).
+    - MOBILE (largura de iPhone ~390pt):
+        2 colunas é o padrão do catálogo (card ~171px com padding 16 e gap 12).
+        3 colunas só em modo compacto, com card >= 104px e texto ainda legível.
+        1 coluna só para listas de "linha" (não para pôsteres).
+    - Gap: 12px (manter a escala). Padding lateral: 16px.
+    - A largura do card é conhecida pelo JS (contagem "quantos cabem"): ao mudar
+      a medida, atualize CSS e JS juntos (mesmo contrato).
+
+5.5 TRILHOS (RAILS) DA HOME
+    - Primitiva única de rolagem horizontal (scroll-snap + máscara de fade nas
+      bordas + scrollbar escondida).
+    - O esqueleto de carregamento usa a MESMA primitiva (troca sem "pular").
+    - Card do trilho difere do grid APENAS na largura; raio, borda, superfície,
+      tipografia e barra são os mesmos.
+
+5.6 SHEETS (substituem os modais largos de desktop)
+    - Apresentação de baixo para cima, com "grabber" e arrastar para fechar.
+    - Raio superior --radius (10px). Largura = 100% da tela.
+    - Altura: até ~90dvh; conteúdo rola, cabeçalho fixo.
+    - Backdrop escurecido (rgba(0,0,0,.5-.7)); tocar fora fecha (quando seguro).
+    - Foco preso no sheet; Escape/gesto de voltar fecha.
+    - Confirmações destrutivas: sheet pequeno e centrado ou alerta nativo.
+
+5.7 BREAKPOINTS
+    - Mobile-first: base = telas estreitas; adicione degraus só se necessário.
+    - Sugestão: 0-430 (iPhone), 431-767 (phablet/landscape), 768+ (tablet/desktop).
+    - NÃO reintroduzir o comportamento desktop dentro do app iOS; se houver
+      versão web, tratar como build separado.
+
+5.8 LARGURA DE LEITURA
+    - Sinopse e textos longos: máximo ~65-75 caracteres por linha.
+    - Painéis (roleta, afinidade, ano): caixa preenchida com largura limitada.
+
+R-24. Navegação principal é tab bar inferior; sem abas roláveis no topo.
+R-25. Toda tela respeita safe areas no topo e na base.
+R-26. Grid mobile padrão = 2 colunas, gap 12px, padding lateral 16px.
+R-27. Modais largos viram sheets; nenhum modal desktop gigante no iOS.
+
+
+================================================================================
+PARTE 6 — COMPONENTES: ANATOMIA E REGRAS
+================================================================================
+
+6.1 CARD (anatomia única — um só lugar no código)
+    Estrutura:
+      .card
+        .card-img
+          <img> (pôster 2/3, loading="lazy")
+          .tier-stamp (opcional)   -> selo de Tier
+          .card-title              -> nome SOBRE a imagem
+        .card-body
+          .progress-wrap
+            .progress-track > .progress-bar (width = %)
+            .progress-pct
+    Regras:
+    - Pôster 2/3. Título DENTRO da imagem, sobre overlay escuro (gradiente preto).
+    - Corpo é só a barra de progresso. Quando a preferência esconde a barra, o
+      corpo inteiro some; conteúdo próprio (episódio do calendário, data de "Em
+      Breve") sobrevive.
+    - Sem hover, o nome continua acessível (sempre visível no mobile).
+    - Tocar abre o card; teclado (Enter/Espaço) abre direto.
+    - Variante de trilho muda APENAS a largura.
+    - Placeholder de pôster ausente é um só (ícone fa-film), sem estilo inline.
+    - Tamanho de toque: card inteiro >= 44x44 (o pôster já garante).
+
+6.2 SELO DE TIER (tier-stamp)
+    - Canto da imagem, formato pill/quadrado arredondado.
+    - Fundo na cor do Tier, texto na tinta do Tier (--tier-*-ink).
+    - Tamanho mínimo: 24px de altura, texto >= 12px em peso 700.
+    - Não usar a cor do Tier como fundo de área grande em lugar nenhum.
+
+6.3 BARRA DE PROGRESSO
+    - Track em --bg-secondary/poço; barra em --accent.
+    - Percentual em mono (--font-mono), >= 12px.
+    - Progresso HONESTO: sem mapa confiável, barra VAZIA (nunca 100% falso).
+    - Preferência global "mostrar barra": quando desligada, esconde o corpo do
+      card por completo (não só a porcentagem).
+
+6.4 BOTÕES — ver PARTE 7 (tabela completa). Resumo: altura mínima 44px, primário
+    em acento, secundário em superfície, destrutivo em vermelho, ícone >= 44x44.
+
+6.5 INPUTS E SELECTS
+    - Altura mínima 44px; font-size >= 16px (anti-zoom).
+    - Rótulo sempre visível (não usar só placeholder como rótulo).
+    - Estados: default, foco (focus-ring 2px acento), erro (.invalid + .field-error
+      com role="alert"), desabilitado.
+    - Selects nativos: preferir o picker do iOS em vez de dropdown customizado.
+    - Autocomplete correto (email, name, current-password, new-password).
+
+6.6 SEGMENTED CONTROL / CHIPS
+    - Para filtros rápidos (status, ordenação, densidade).
+    - Chips com altura >= 32px de desenho, mas área de toque >= 44px.
+    - Ativo = sólido (--accent + --accent-ink); inativo = superfície/ghost.
+    - Máximo ~5-6 opções visíveis; além disso, sheet de filtros.
+
+6.7 STEPPERS (temporada/episódio)
+    - Botões de + e - com área >= 44x44; valor central em mono.
+    - Hold-to-repeat (segurar acelera) mantido do desktop, com limite calculado
+      pelo TMDb.
+    - Feedback de tinta: somar levemente verde, subtrair levemente vermelho
+      (--success-soft / --danger-soft).
+    - Ao atingir o limite, parar e (Capacitor) dar haptic leve.
+
+6.8 TOGGLE / SWITCH
+    - Usar switch no padrão iOS (ligado = --accent).
+    - Rótulo à esquerda, switch à direita, linha >= 44px de altura.
+    - Ex.: preferência de barra de progresso, tema, agrupamento por Tier.
+
+6.9 MODAIS -> SHEETS (ver 5.6). Ficha técnica, episódios, seleção de listas,
+    correção de vínculo e confirmação viram sheets/telas.
+
+6.10 TOAST / FEEDBACK
+    - Mensagem curta, role="alert", aria-live.
+    - Posição: acima da tab bar, respeitando safe area.
+    - Duração ~2,5-3s. Erros também vão ao console (diagnóstico).
+    - Não usar toast para confirmação destrutiva (usar sheet/alerta).
+
+6.11 ESQUELETO / SKELETON
+    - Na Home, mesma primitiva de trilho do conteúdo real.
+    - Sem salto de layout ao trocar esqueleto por conteúdo.
+
+6.12 ESTADO VAZIO E ESTADO DE ERRO
+    - Vazio: ícone + texto explicativo (não esconder a seção sem explicação,
+      exceto quando o contrato da seção manda esconder).
+    - Erro: mensagem clara + ação de tentar de novo quando fizer sentido.
+
+6.13 LINHA DE LISTA (list row)
+    - Avatar/pôster pequeno (>= 40x40) + título + metadado + chevron.
+    - Altura >= 56px. Ação destrutiva por swipe (com confirmação).
+
+R-28. Card tem anatomia única; nenhuma segunda implementação de card.
+R-29. Barra de progresso é preferência; esconde o corpo inteiro do card.
+R-30. Steppers mantêm hold-to-repeat e limites do TMDb.
+R-31. Sheets substituem modais largos; sempre com foco preso e fechamento por
+      gesto/voltar.
+R-32. Nenhum componente novo sem token para suas cores/tamanhos.
+
+
+================================================================================
+PARTE 7 — BOTÕES: HIERARQUIA, TAMANHOS, ESTADOS E MÍNIMOS
+================================================================================
+Esta é a seção mais importante para a revisão. Trate cada linha como regra.
+
+7.1 HIERARQUIA (quatro níveis; no máximo UM primário por tela)
+    Nível          Uso                                  Aparência
+    ---------------------------------------------------------------------------
+    PRIMÁRIO       ação principal (Salvar, Adicionar)   fundo --accent, texto --accent-ink
+    SECUNDÁRIO     ação alternativa (Cancelar, Editar)  fundo superfície/ghost, texto --text-primary
+    TERCIÁRIO      ação de baixa ênfase (link de texto) só texto em --accent
+    DESTRUTIVO     remover/excluir                      texto/fundo --danger, com confirmação
+
+7.2 TAMANHOS (mínimos absolutos no iOS)
+    Tipo                 Altura    Área de toque mínima   Rótulo
+    ----------------------------------------------------------------------
+    Botão de tela (CTA)  >= 50px   >= 44x44               >= 16px
+    Botão padrão         >= 44px   >= 44x44               >= 15px
+    Botão compacto       >= 36px   >= 44x44 (invisível)   >= 14px
+    Ícone (só ícone)     desenho >= 24px   toque >= 44x44  —
+    Pill / chip          desenho >= 32px   toque >= 44x44  >= 14px
+    Item de tab bar      >= 49px   >= 44x44 por item      >= 10px
+    Item de lista        >= 56px   linha inteira           >= 16px
+
+    REGRAS:
+    - Altura mínima de qualquer botão tocável: 44px (Apple HIG).
+    - CTA principal da tela: 50px para cima (conforto e destaque).
+    - Área de toque pode ser maior que o desenho (padding transparente).
+    - Espaço entre dois alvos adjacentes: >= 8px (ideal >= 12px).
+    - Largura mínima de botão com rótulo: >= 88px; botão de largura total em
+      formulários/CTAs principais.
+
+7.3 RAIO DOS BOTÕES
+    - Padrão: --radius-sm (6px) para botões retangulares.
+    - Pills (chips, filtros): --radius-pill (999px).
+    - Botão de CTA pode usar --radius (10px) para alinhar com cards/sheets.
+
+7.4 ESTADOS (todos obrigatórios)
+    Estado        Comportamento
+    ----------------------------------------------------------------------
+    default       aparência base
+    pressed       feedback imediato: escurece/clareia levemente + scale ~0.97
+    focus         --focus-ring (2px acento) para teclado/switch control
+    disabled      opacidade ~0.5, sem toque, cursor não-ativo
+    loading       spinner inline + texto opcional; bloquear novo toque
+    hover         irrelevante no iOS; NÃO depender dele
+    REGRAS:
+    - Feedback de toque em <= 100ms (use :active / estado pressed).
+    - Botão em loading não dispara de novo (evita duplo submit).
+    - Botão destrutivo SEMPRE pede confirmação (sheet/alerta).
+
+7.5 CONTEÚDO DO BOTÃO
+    - Rótulo em Inter (nunca Sora), peso 600, caixa conforme o resto da UI.
+    - Verbo no infinitivo/imperativo curto ("Salvar", "Adicionar", "Remover").
+    - Ícone + rótulo quando ajudar; ícone sozinho SÓ com aria-label e se o
+      significado for universal (ex.: voltar, fechar, buscar).
+    - Não usar dois botões primários lado a lado; o secundário fica neutro.
+
+7.6 BOTÕES ESPECÍFICOS DO PRODUTO
+    - Adicionar (busca) -> PRIMÁRIO, largura total no sheet/tela do título.
+    - Salvar (título) -> PRIMÁRIO.
+    - Remover do catálogo -> DESTRUTIVO, confirmação obrigatória.
+    - Atualizar seção da Home -> ÍCONE, >= 44x44, com estado de carregando.
+    - Stepper +/- -> ver 6.7.
+    - Corrigir vínculo -> SECUNDÁRIO.
+    - Voltar -> ícone chevron na top bar, >= 44x44, alvo fácil.
+
+R-33. Um único botão primário por tela.
+R-34. Altura mínima de botão = 44px; CTA = 50px; área de toque nunca < 44x44.
+R-35. Todo botão tem estado pressed com feedback em <= 100ms.
+R-36. Ação destrutiva sempre confirma.
+R-37. Botão de ícone tem aria-label e alvo >= 44x44.
+R-38. Botão em loading bloqueia reenvio.
+
+
+================================================================================
+PARTE 8 — TIPOGRAFIA: ESCALA, MÍNIMOS E DYNAMIC TYPE
+================================================================================
+
+8.1 MÍNIMOS (iOS)
+    - Corpo: >= 16px (ideal 17px).
+    - Metadado/legenda: >= 13px; piso absoluto 12px.
+    - Rótulo de botão: >= 15px.
+    - Rótulo de tab bar: >= 10px (aceitável por ser ícone+rótulo, mas prefira 11px).
+    - Nunca abaixo de 12px em nenhum texto lido.
+
+8.2 PAPÉIS
+    - Sora: títulos de tela, títulos de seção, nome do card, wordmark.
+    - Inter: corpo, sinopse, botões, inputs, episódios, tab bar.
+    - IBM Plex Mono: ano, "T1 · 5/8", porcentagem, data, contagem, código.
+    - Caixa alta + letter-spacing (~0.05em) em rótulos maiúsculos.
+
+8.3 DYNAMIC TYPE (acessibilidade)
+    - Ideal: respeitar o tamanho de texto do sistema. Em web/PWA, use unidades
+      relativas (rem) e considere `font-size: clamp()` com base no root.
+    - Em Capacitor/nativo, aderir a Dynamic Type de verdade.
+    - Layout não pode quebrar quando o texto cresce: permitir quebra de linha e
+      evitar alturas fixas em elementos de texto.
+
+8.4 TRUNCAMENTO
+    - Título de card: até 2 linhas com reticências.
+    - Título de top bar: 1 linha com reticências.
+    - Sinopse: até N linhas no card, texto completo no detalhe.
+
+R-39. Nenhum texto abaixo de 12px; corpo >= 16px; metadado >= 13px.
+R-40. Usar rem/unidades relativas para permitir Dynamic Type.
+R-41. Título de card no máximo 2 linhas; truncar com reticências.
+
+
+================================================================================
+PARTE 9 — TOQUE E INTERAÇÃO
+================================================================================
+
+9.1 ALVOS
+    - Mínimo 44x44pt para QUALQUER elemento tocável (botão, ícone, chip, linha).
+    - Espaçamento entre alvos >= 8px (ideal 12px).
+    - Área de toque invisível é permitida e encorajada para ícones pequenos.
+
+9.2 FEEDBACK
+    - Toque: resposta visual em <= 100ms (estado pressed).
+    - Ações que demoram: mostrar loading (spinner) e desabilitar reenvio.
+    - Haptics (Capacitor): leve em marcar episódio/salvar/confirmar; sem haptic
+      em rolagem.
+
+9.3 TIMING E DEBOUNCE
+    - Busca local: debounce 200ms (manter).
+    - Busca TMDb: debounce próprio (manter).
+    - Transições: 0.2s (micro), 0.3s (modal/sheet), 0.4s (entrada de card).
+    - prefers-reduced-motion: reduce -> sem animação.
+
+9.4 GESTOS
+    - Edge swipe = voltar (sistema). Não sequestrar.
+    - Rails: arrastar horizontal com snap.
+    - Long press: menu de contexto opcional (não único caminho).
+    - Swipe em linha: ações destrutivas com confirmação.
+    - Drag-and-drop de listas (SortableJS no desktop): no touch, oferecer também
+      reordenação por botões (mover para cima/baixo) como alternativa acessível.
+
+9.5 PREVENÇÕES
+    - -webkit-tap-highlight-color: transparent (remover highlight azul padrão).
+    - overscroll-behavior: contain em sheets e rails.
+    - Não bloquear o pinch-zoom do usuário (não usar user-scalable=no).
+    - Não usar duplo toque como ação (atrasa o toque simples).
+
+R-42. Todo alvo >= 44x44; espaçamento >= 8px entre alvos.
+R-43. Feedback visual em <= 100ms; ações lentas com loading.
+R-44. Gestos sempre têm alternativa por botão/menu.
+R-45. Permitir zoom do usuário; não desabilitar acessibilidade de escala.
+R-46. Drag-and-drop tem alternativa acessível por botões.
+
+
+================================================================================
+PARTE 10 — ESTADOS DE TELA
+================================================================================
+
+10.1 TRÊS ESTADOS OBRIGATÓRIOS EM TODA TELA QUE CARREGA DADOS
+    Estado       Representação
+    ----------------------------------------------------------------------
+    Carregando   spinner (form-loading) ou esqueleto de cards na Home
+    Vazio        .empty-state com ícone + mensagem explicativa
+    Erro         mensagem clara + ação de tentar de novo (toast/console)
+
+10.2 REGRAS
+    - Nenhuma tela pode ficar "em branco" sem explicação.
+    - Falha de uma seção da Home NÃO derruba a Home inteira (cada loader trata o
+      próprio erro e mantém a seção vazia/escondida).
+    - Botão de atualizar da seção passa { fresh: true } (ignora cache).
+    - Esqueleto e conteúdo usam a mesma primitiva de trilho (sem salto).
+    - Paginação da busca: "carregar mais" explícito; nunca scroll infinito mudo.
+
+10.3 OFFLINE / REDE
+    - PWA pode ter fallback offline básico, mas o produto NÃO é offline-first.
+    - Sem rede: mostrar mensagem e permitir nova tentativa; não fingir sucesso.
+
+R-47. Toda tela de dados tem carregando, vazio e erro explícitos.
+R-48. Falha de seção isolada não derruba a tela inteira.
+R-49. Sem scroll infinito mudo; sempre botão "carregar mais" explícito.
+
+
+================================================================================
+PARTE 11 — ACESSIBILIDADE
+================================================================================
+
+11.1 BASE (já existente no desktop; preservar e reforçar no mobile)
+    - :focus-visible com contorno 2px no acento + offset 2px.
+    - Alvo global 44x44.
+    - aria-label em botões icônicos; aria-expanded em toggles; aria-haspopup em
+      menus; aria-current="page" na aba ativa; aria-pressed em favoritos/revelar
+      senha.
+    - role="dialog" + aria-modal="true" + aria-labelledby nos modais/sheets.
+    - aria-live em mensagens, subtítulo e toast.
+    - prefers-reduced-motion: reduce zera animações.
+    - Contraste do acento no claro resolvido por token (#7A663B).
+
+11.2 LACUNAS A CORRIGIR NO MOBILE
+    - Foco preso só em alguns modais; tornar global em sheets.
+    - Escape não é global; garantir fechamento por gesto de voltar e por botão.
+    - Falta "pular para o conteúdo" e hierarquia de headings consistente.
+    - Padrão ARIA de menu incompleto no perfil.
+
+11.3 VOICEOVER (iOS)
+    - Todo controle tem rótulo acessível e valor (ex.: stepper "Temporada, 2").
+    - Ordem de foco lógica (top bar -> conteúdo -> tab bar).
+    - Imagens com alt significativo; decorativas com alt="".
+    - Anúncios de mudança de estado via aria-live (sem exagero: não anunciar a
+      tela inteira).
+
+11.4 CONTRASTE
+    - Texto normal: contraste >= 4.5:1; texto grande: >= 3:1.
+    - Acento no claro usa #7A663B justamente para legibilidade.
+    - Nunca texto em cor de Tier sem a tinta de contraste (--tier-*-ink).
+
+R-50. Foco visível e preso em sheets; fechamento por gesto/voltar/botão.
+R-51. Todo controle tem rótulo acessível e valor quando aplicável.
+R-52. Contraste >= 4.5:1 em texto normal.
+R-53. prefers-reduced-motion respeitado em todo movimento.
+
+
+================================================================================
+PARTE 12 — REGRAS DE NEGÓCIO QUE A UI MOBILE DEVE PRESERVAR
+================================================================================
+A UI é orquestração; a regra vive no domínio. Não duplicar regra na tela.
+
+12.1 PROGRESSO
+    - assistido = episodio + soma dos episódios das temporadas anteriores (mapa).
+    - total = soma do seasonEpisodesMap, se > 0; senão total_episodios.
+    - total <= 0 -> 0. Sem mapa e assistido >= total -> 0 (total não confiável).
+    - pct = round(min(assistido, total) / total * 100).
+    - O MAPA MANDA sobre total_episodios.
+
+12.2 STATUS E TIER
+    - Status: assistindo, concluido, planejado, pausado. Qualquer -> qualquer.
+    - planejado é uma FILA separada: só aparece na aba Próximos; nas outras,
+      excluído.
+    - Tier: S+ > S > A > B > C > D > sem tier. S+ e S são "favoritos" na Home.
+    - Tier é pessoal; nunca vem do TMDb.
+
+12.3 FILTROS E ORDENAÇÃO
+    - Filtros: lista, aba, tipo legado, busca textual, status, tier, década
+      (e idade/ano fora do catalog.js).
+    - Ordenação: nome, progresso, data, tier, temporada, ano.
+    - Busca local tolerante a erro (normaliza acento, minúsculas, pontuação;
+      distância de edição por tamanho do termo).
+
+12.4 DEDUPLICAÇÃO
+    - Com tmdb_id: compara só tmdb_id. Sem tmdb_id: nome + tipo + ano.
+    - Banco: índice único parcial (user_id, tmdb_id) WHERE tmdb_id IS NOT NULL.
+    - Listas: UNIQUE(item_id, list_id).
+    - 23505 -> "Este título já existe no seu catálogo.".
+
+12.5 LISTAS
+    - N:N; lista de sistema não pode ser excluída.
+    - "Próximos" e "Lista de Desejos" identificadas por nome; escondidas do
+      seletor da página do título.
+    - Falhas parciais toleradas (Promise.allSettled).
+
+12.6 BUSCA E DESCOBERTA
+    - Sem filtro + texto >= 2 -> search/tv. Com filtro -> discover/tv.
+    - Página lógica de 40 itens (2 páginas do TMDb).
+    - SEM NOTA: nenhum vote_average na UI.
+    - Texto + filtros juntos (texto vira filtro local no modo discover).
+
+12.7 QUALIDADE DE CONTEÚDO
+    - Proibições duras: produção bloqueada; idioma só en/ja/ko (ausente passa).
+    - Defeitos relaxáveis: título não latino, data absurda (>365 dias futuro),
+      sem arte.
+
+12.8 CACHE E FRESH
+    - TTL 1h, máximo 200 entradas, persistência debounced 250ms, restauração até
+      7 dias, invalidação por prefixo.
+    - fresh: ignora leitura e regrava.
+
+12.9 SESSÃO E SEGURANÇA
+    - Auth por e-mail/senha; nome em user_metadata.full_name (sem tabela profiles).
+    - Edge Functions com verify_jwt + checagem de usuário real.
+    - Chaves externas só em secrets.
+
+R-54. A UI não recalcula progresso/filtro/dedupe; usa o domínio.
+R-55. Nenhuma tela mostra nota do TMDb.
+R-56. Nenhum dado de um usuário visível para outro (cache por usuário no mobile).
+R-57. Chaves externas nunca no cliente.
+
+
+================================================================================
+PARTE 13 — DO'S E DON'TS ESPECÍFICOS DE iOS
+================================================================================
+
+13.1 DO'S
+    - Usar safe areas em topo e base.
+    - Usar tab bar inferior e sheets.
+    - Alvos >= 44x44 e texto de corpo >= 16px.
+    - Feedback de toque imediato.
+    - Suportar tema claro/escuro seguindo o sistema, com override do usuário.
+    - Suportar Dynamic Type e reduzir movimento quando pedido.
+    - Manter o anti-flash de tema.
+    - Manter pôster 2/3 e nome sempre visível no card.
+    - Usar o picker nativo em vez de dropdown customizado.
+    - Prever teclado (campos não ficam escondidos).
+
+13.2 DON'TS
+    - Não usar hover como único caminho para informação.
+    - Não usar modal gigante de desktop; usar sheet/tela.
+    - Não usar font-size < 16px em input (causa zoom no Safari).
+    - Não usar 100vh; usar 100dvh.
+    - Não colocar controle sob a Dynamic Island/home indicator.
+    - Não sequestrar o edge swipe de voltar.
+    - Não desabilitar zoom do usuário.
+    - Não trocar a paleta, as fontes ou a anatomia do card.
+    - Não mostrar nota pública (vote_average).
+    - Não introduzir realtime/offline antes da paridade funcional.
+    - Não copiar SQL de schema para a UI/docs narrativos.
+    - Não apagar testes de contrato para "destravar" o build; migrar o contrato.
+
+
+================================================================================
+PARTE 14 — CHECKLIST DE ACEITE
+================================================================================
+
+14.1 PARIDADE FUNCIONAL (mobile)
+    [ ] Login, cadastro, logout e sessão expirada.
+    [ ] Catálogo com busca local, filtros combinados, ordenação e agrupamento.
+    [ ] Página do título com progresso, steppers, status, tier, listas e episódios.
+    [ ] Adicionar título pela busca do TMDb, com dedupe e seleção de listas.
+    [ ] Home com todas as seções e botão de atualizar.
+    [ ] Listas: criar, renomear, reordenar, excluir e associar títulos.
+    [ ] Perfil: nome, tema, barra de progresso.
+    [ ] Corrigir vínculo de título.
+    [ ] Estados vazios, carregando e erro em todas as telas.
+
+14.2 DESIGN E REGRAS (revisão do outro projeto)
+    [ ] Paleta e tokens preservados (PARTE 4).
+    [ ] Três famílias com os papéis corretos; mono só em dado técnico.
+    [ ] Corpo >= 16px, metadado >= 13px, piso 12px.
+    [ ] Todo alvo >= 44x44; espaçamento >= 8px.
+    [ ] Botões: um primário por tela; estados pressed/focus/disabled/loading.
+    [ ] Card: pôster 2/3, nome sobre a imagem, barra no corpo.
+    [ ] Barra de progresso como preferência (esconde o corpo inteiro).
+    [ ] Sheets no lugar de modais largos; foco preso.
+    [ ] Safe areas aplicadas; nada sob notch/home indicator.
+    [ ] Sem halo/glow; sombra preta discreta.
+    [ ] Tema escuro padrão; claro por override de token; anti-flash.
+    [ ] Sem nota pública; sem hover obrigatório.
+
+14.3 ACESSIBILIDADE
+    [ ] Foco visível e preso em sheets; fechamento por gesto/voltar/botão.
+    [ ] Rótulos acessíveis e valores em steppers/toggles.
+    [ ] Contraste >= 4.5:1.
+    [ ] Dynamic Type / unidades relativas.
+    [ ] prefers-reduced-motion respeitado.
+
+14.4 DADOS E SEGURANÇA
+    [ ] Nenhuma duplicata (user_id, tmdb_id).
+    [ ] RLS de items, user_lists e item_lists verificada e versionada.
+    [ ] tipo NULL preservado.
+    [ ] Cache separado por usuário.
+    [ ] Nenhuma chave externa no cliente; proxy por Edge Function.
+
+14.5 PERFORMANCE
+    [ ] LCP < 2,5s em 4G simulado na Home.
+    [ ] JS inicial dentro do orçamento (ex.: < 200KB gzip).
+    [ ] Imagens no tamanho certo e lazy fora da primeira dobra.
+    [ ] Nenhuma requisição TMDb duplicada em voo.
+    [ ] Sem console.error em fluxo normal.
+
+14.6 QUALIDADE DE CÓDIGO
+    [ ] npm run lint sem erro.
+    [ ] Testes de domínio verdes (mesmas fórmulas).
+    [ ] Testes de componente para Card, Rail, Tabs, Modal/Sheet e Stepper.
+    [ ] E2E dos fluxos críticos.
+    [ ] Documentação atualizada no mesmo commit da mudança.
+
+
+================================================================================
+PARTE 15 — APÊNDICE
+================================================================================
+
+15.1 INVENTÁRIO DE TELAS (o que existe hoje e vira o quê no mobile)
+    Desktop hoje            Mobile
+    ----------------------------------------------------------------------
+    Auth (login/cadastro)    Tela cheia (mesma lógica, campos >= 44px)
+    Home (11 seções)         Tela "Início" com trilhos e snap
+    Catálogo (grade)         Tela "Catálogo" (grid 2 col) + seletor de coleção
+    Próximos (planejado)     Tela/aba "Próximos"
+    Pesquisar (TMDb)         Tela "Pesquisar" + sheet de filtros avançados
+    Lista do usuário         Tela de lista (grid) via deep link
+    Página do título         Tela empilhada (HUD -> ações -> episódios)
+    Modal de listas          Sheet de seleção de listas
+    Modal de episódios       Sheet/tela de episódios (acordeão)
+    Ficha técnica (TMDb)     Sheet de ficha técnica
+    Corrigir vínculo         Tela/sheet de busca de vínculo
+    Confirmação              Sheet pequeno ou alerta nativo
+    Perfil                   Tela "Perfil" (nome, tema, preferências, sair)
+    Toast                    Toast acima da tab bar
+
+15.2 SEÇÕES DA HOME (ordem preservada)
+    1 Saudação · 2 Continuar Assistindo · 3 Roleta · 4 Episódios da Semana ·
+    5 Descubra por afinidade · 6 Em Breve · 7 Abandonados · 8 Destaques do ano ·
+    9 Em Alta · 10 Seus Favoritos · 11 Explorar por gênero.
+
+15.3 GLOSSÁRIO
+    Item/título   Registro do catálogo (linha de items).
+    Tier          Ranking pessoal S+ a D (ou nulo).
+    Status        assistindo | concluido | planejado | pausado.
+    seasonEpisodesMap  { "1": 10, "2": 8 } — denominador confiável do progresso.
+    Lista         Coleção nomeada (user_lists); de sistema ou customizada.
+    Relação       Vínculo item <-> lista (item_lists).
+    Trilho/rail   Faixa horizontal de cards na Home.
+    Afinidade     Recomendação ancorada em um título do catálogo.
+    Fresh         Leitura que ignora o cache e vai à rede.
+    Preview       Item vindo da busca antes de ser adicionado.
+    Edge Function Função Deno no Supabase que faz proxy seguro para TMDb/Fanart.
+
+15.4 ARQUIVOS-CHAVE DO PROJETO ATUAL (para o outro projeto espelhar/portar)
+    index.html                    Shell (auth, navbar, home, grade, busca, modais)
+    style.css                     Design system (tokens, temas, componentes)
+    src/lib/catalog.js            Progresso, filtros, ordenação, dedupe, escape
+    src/lib/fuzzySearch.js        Busca tolerante a erro
+    src/lib/titleFilters.js       Filtros de qualidade de conteúdo
+    src/lib/recommendScoring.js   Score e mix 70/30
+    src/lib/discoverSearch.js     Busca avançada (discover/tv)
+    src/lib/seasonArt.js          Arte por temporada
+    src/lib/logoPicker.js         Escolha canônica de logo
+    src/lib/cache.js              LRU + TTL + localStorage
+    src/lib/state.js              Estado global e chaves de preferência
+    src/components/cards.js       Anatomia única do card
+    src/pages/titlePage.js        Página do título
+    supabase/functions/*          Edge Functions (proxy TMDb/Fanart)
+    supabase/migrations/*         Schema, índices e RLS (fonte da verdade)
+
+15.5 TOKENS EM UMA LINHA (cola rápida)
+    --bg-primary #101112 · --bg-surface #191A1C · --bg-elevated #222325 ·
+    --text-primary #F2EDE3 · --text-secondary #AEAFB2 · --text-muted #838589 ·
+    --accent #E5D8BF · --accent-ink #101112 · --border-outline #2A2C30 ·
+    --danger #ef4444 · --warning #fbbf24 · --success #34d399 ·
+    --radius 10px · --radius-sm 6px · --radius-pill 999px ·
+    --touch-target 44px · --fs-min 12px · --fs-min-comfort 14px ·
+    --font-body Inter · --font-display Sora · --font-mono IBM Plex Mono.
+
+15.6 FRASES-QUE-DEFINEM (mantra para a revisão)
+    "Progresso honesto ou vazio."
+    "Sem duplicata; o banco é a última defesa."
+    "Curadoria, não aleatoriedade pura."
+    "Sem nota pública; a nota é pessoal."
+    "Título legível ou fora."
+    "Chave no servidor, nunca no cliente."
+    "Toque >= 44. Texto >= 16. Sem hover. Com safe area."
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

@@ -538,7 +538,7 @@ label:has(input[type="radio"]) {
   width: 20px;
   text-align: center;
   font-size: 1rem;
-  color: var(--text-muted);
+  color: var(--accent);
   transition: color var(--transition-fast);
   flex-shrink: 0;
 }
@@ -1516,7 +1516,7 @@ body.is-progress-bar-hidden .card-body:not(:has(> *:not(.progress-wrap))) { disp
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-shrink: 0; }
 .modal-header h2 { font-size: 1.4rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
 #detailListModalTitle { font-size: 1rem; font-weight: 600; }
-.modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.modal-close { background: transparent; border: none; font-size: 1.3rem; color: var(--accent); cursor: pointer; padding: 4px; transition: color 0.2s, transform 0.2s; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .modal-close:hover { color: var(--text-strong); transform: rotate(90deg); }
 .modal-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
 
@@ -2913,7 +2913,7 @@ a:focus-visible,
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--accent);
   font-size: 0.8rem;
   cursor: pointer;
   display: inline-flex;
@@ -2923,7 +2923,7 @@ a:focus-visible,
 }
 .home-refresh-btn:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
 .home-refresh-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.home-refresh-btn:disabled { cursor: default; color: var(--text-muted); opacity: 0.4; }
+.home-refresh-btn:disabled { cursor: default; color: var(--accent); opacity: 0.5; }
 .home-refresh-btn.is-loading i { animation: homeSpin 0.8s linear infinite; }
 @keyframes homeSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
