@@ -286,7 +286,7 @@
   </style>
   <style>
     /* TITLE DETAIL */
-    .title-detail { position:relative; padding-bottom:24px; overflow:hidden; min-height:100vh; }
+    .title-detail { position:relative; padding-bottom:calc(24px + var(--bottom-nav-h) + var(--safe-bottom) + 16px); margin-bottom:calc(-1 * (var(--bottom-nav-h) + var(--safe-bottom) + 16px)); overflow:hidden; min-height:100vh; }
     /* Blur de continuidade do pôster: cobre TODO o fundo da tela de detalhe
        (titleScreen) com as cores do pôster borradas — em vez de o fundo ser
        todo escuro. Camada fixa atrás do conteúdo (backdrop, ficha e body);
