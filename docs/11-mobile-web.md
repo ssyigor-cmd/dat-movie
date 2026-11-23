@@ -122,8 +122,23 @@ O ponto mais denso do mobile. Anatomia atual:
   nativa. Os limites vêm da TMDB (`seasonMax`, `epMaxByTemp`).
 - **Botões de ação** (`.badge-action`: mono, `radius-sm`, `bg-surface`,
   `--text-secondary`), todos em linha (flex, `flex:1`):
-  - logo **abaixo da sinopse do episódio**: `#detailActionsRow` com
-    **Detalhes · Listas · Episódios** (um do lado do outro);
+  - logo **abaixo da sinopse do episódio**: `#moreInfoSection` com um único
+    botão **"Mais informações"** (`.more-info-toggle`, Sora 0.8rem/600 em
+    `--bg-elevated`, com chevron). Um toque expande/colapsa o acordeão
+    `#moreInfoBody` (grid `0fr → 1fr` em 0.35s, que acompanha o conteúdo
+    carregado depois) e atualiza `aria-expanded`. Dentro dele, dois blocos
+    empilhados: **Detalhes** e **Listas** (agrupadas em "Do sistema" e "Minhas
+    listas", com toggle próprio e contagem de selecionadas; não há botão —
+    marcar/desmarcar salva sozinho após 500ms (`onListToggle()`), com toast
+    discreto e proteção contra salvar no título errado; no preview o bloco
+    fica desabilitado com uma dica). Cada bloco é carregado
+    uma vez por título (`loadMoreInfoContent()`) e limpo ao trocar de título
+    ou sair da tela (`resetMoreInfo()`). Os antigos modais/bottom sheet
+    (`#titleInfoModal`, `#episodesModal`, `#listSheet`) foram removidos;
+  - **Episódios** saiu do acordeão: o botão `#episodesToggle` fica na mesma
+    linha do título "Episódio" e expande `#episodesInline` logo abaixo da
+    sinopse, com o acordeão de temporadas (`toggleSeason`). Carregamento
+    próprio (`toggleEpisodesInline()`), uma vez por título;
   - **no fim da página**: `#actionsSection` com **Salvar · Remover** (um
     do lado do outro). Sem rótulo e sem caixa: só a **cor** e a **fonte**
     seguem os blocos Progresso/Episódio — `font-display` (Sora) 0.85rem/600,
@@ -131,10 +146,10 @@ O ponto mais denso do mobile. Anatomia atual:
     `--danger`). No preview a aparência é a mesma, com Adicionar/Cancelar;
   - O antigo bloco "Listas" (`.twin-row`/`.twin-block`) foi eliminado;
 - O modo **sorteio/preview** troca Salvar/Remover por Adicionar /
-  Cancelar (usa os mesmos `.badge-action`), mas mantém visíveis
-  **Detalhes · Listas · Episódios**: Detalhes e Episódios funcionam
-  pelo `tmdb_id`; "Listas" abre a folha só para consulta — ao concluir,
-  `saveTitleLists()` avisa "Adicione o título antes de escolher listas";
+  Cancelar (usa os mesmos `.badge-action`) e mantém "Mais informações"
+  disponível: Detalhes e Episódios funcionam pelo `tmdb_id`; em "Listas",
+  ao concluir, `saveTitleLists()` avisa "Adicione o título antes de
+  escolher listas";
 - O insert do preview (`addRouletteTitle()`) grava **o que foi escolhido
   na tela** — `temporada`/`episodio` dos steppers (`curTemp`/`curEp`), `tier`
   (`currentTier`) e `status` (`currentStatus`). Antes eram constantes
@@ -149,19 +164,53 @@ O ponto mais denso do mobile. Anatomia atual:
   `titlePage.js`).
 - Sinopse do episódio atual, depois a lista de episódios em acordeão.
 
-**Modal Detalhes** (`#titleInfoModal`, aberto pelo botão "Detalhes"): segue
+**Bloco Detalhes** (dentro de `#moreInfoBody`, aberto por "Mais informações"): segue
 a mesma gramática visual do restante do app — rótulos Sora 0.85rem/600 com
 ícone em `--accent`, conteúdo em cartões `--bg-elevated` com `--radius` e
-`padding:14px` (`.ti-card`). Hero com backdrop da TMDB (w780), nome em
-Sora 1.2rem, **nome original** (quando diferente) e linha de mono só com
-a estreia; Sinopse, Sites (grid 2 colunas de links mono), Detalhes (grid
+`padding:14px` (`.ti-card`). Cabeçalho só com texto: nome em Sora 1.2rem,
+**nome original** (quando diferente) e linha de mono só com a estreia — sem
+imagem nem vídeo; Sinopse, Sites (quatro tiles idênticos de 40px com as cores
+das marcas: azul/globo, amarelo/IMDb, escuro/W e vermelho/YouTube; as marcas
+transparentes ficam em `public/assets/icon/*-mark.svg`), Detalhes (grid
 de células `--bg-surface` com rótulos uppercase e valores mono, incluindo
 **Faixa etária** com selo BR e **Origem** com bandeiras), Elenco (carrossel
 com `.ti-cast-photo`/`.ti-cast-role`) e **Equipe** (Criação, Direção,
 Emissora e Produtora no mesmo trilho, separadores `.ti-team-sep`). O selo
 etário usa as cores oficiais BR fixas nos dois temas; as bandeiras vêm de
 `src/lib/flags.js` (mesmo helper do desktop, com fallback para emoji se
-o SVG do flagcdn não carregar). Sem gradiente na UI.
+o SVG do flagcdn não carregar). Sem gradiente na UI. A chamada de detalhes usa
+`append_to_response=content_ratings,keywords` (chave de cache própria).
+As **Palavras-chave** do TMDb (vêm em inglês) são traduzidas para português
+pelo dicionário local `src/lib/keywordTranslations.js` (o original fica no
+tooltip; sem tradução, mantém o texto da API) e aparecem como chips clicáveis no
+fim do grid de Detalhes.
+
+Vários elementos do Detalhes são clicáveis e abrem a tela genérica
+`#discoverScreen`, que chama `discover/tv` com o filtro correspondente e mostra
+os títulos relacionados com os mesmos cards externos da busca (o botão "Voltar"
+retorna à tela de origem):
+
+- **Palavras-chave** → `with_keywords`;
+- **Gêneros** → `with_genres` (Terror/id 27 usa a keyword `315058`, que é o
+  fallback do proxy);
+- **Elenco / Criação / Direção** → `person/{id}/tv_credits` (o `discover/tv`
+  do TMDb **não** aceita `with_cast`/`with_crew` — esses filtros são só de
+  `discover/movie`; parâmetros desconhecidos são ignorados e voltava a lista
+  genérica). Endpoint liberado na allow-list do proxy — requer redeploy da
+  Edge Function;
+- **Emissoras** → `with_networks`; **Produtoras** → `with_companies`;
+- **Origem** (bandeiras) → `with_origin_country`.
+
+Os chips são montados por `discoverChip()` e os cards de elenco/equipe por
+`discoverCard()` (sem id válido, caem para um `<div>` comum). A seleção usa
+`with_type=2|4` (minissérie + ficção, fora talk/news/reality/vídeo), filtra
+também os gêneros de ruído (Notícias/Reality/Talk) no cliente e ordena por
+`vote_count.desc` — o TMDb não expõe views, então número de votos é o melhor
+proxy de "mais vistos até os menos". Cada clique em "Carregar mais" traz 40
+títulos: filmografias de pessoas são paginadas no cliente (40 por lote) e os
+demais filtros juntam 2 páginas da API (o TMDb fixa 20 por página). O botão
+aparece enquanto houver lotes. O link
+"YouTube" em Sites continua abrindo a busca de trailer no YouTube.
 
 Selos/tipografia: títulos em Sora (`--font-display`), dados técnicos em
 IBM Plex Mono (`--font-mono`), corpo em Inter. O mobile respeita a mesma

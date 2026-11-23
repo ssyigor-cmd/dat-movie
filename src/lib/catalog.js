@@ -222,6 +222,27 @@ export function isDuplicateInCatalog(candidate, catalogItems, excludeIndex = nul
 }
 
 /**
+ * Encontra no catálogo o item correspondente a um id do TMDB.
+ *
+ * Fonte da verdade é `tmdb_id`, comparado como string porque o banco pode
+ * devolver número ou string. Usado ao abrir um resultado de busca/sugestão:
+ * se o título já estiver na lista, a tela de detalhe deve mostrar o item real
+ * (com seu progresso, status e tier) em vez do preview "Adicionar".
+ *
+ * @param {number|string|null|undefined} tmdbId
+ * @param {Array} catalogItems
+ * @returns {Object|null}
+ */
+export function findInCatalogByTmdbId(tmdbId, catalogItems) {
+  if (tmdbId == null || tmdbId === '') return null;
+  if (!Array.isArray(catalogItems)) return null;
+  const id = String(tmdbId);
+  return catalogItems.find(
+    (it) => it && it.tmdb_id != null && it.tmdb_id !== '' && String(it.tmdb_id) === id
+  ) || null;
+}
+
+/**
  * Filtra resultados TMDb removendo os que já estão no catálogo (por tmdb_id).
  * Reutiliza a lógica de dedupe por tmdb_id.
  * @param {Array} tmdbResults - array com id

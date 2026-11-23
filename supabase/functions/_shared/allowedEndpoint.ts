@@ -19,7 +19,7 @@ export const MAX_ENDPOINT_LENGTH = 120;
  * nem um endpoint fora da lista.
  */
 export const ALLOWED_ENDPOINT =
-  /^(?:search\/(?:tv|multi)|discover\/tv|trending\/tv\/(?:day|week)|genre\/tv\/list|tv\/\d+(?:\/(?:images|aggregate_credits|recommendations|similar|season\/\d+))?)$/;
+  /^(?:search\/(?:tv|multi)|discover\/tv|trending\/tv\/(?:day|week)|genre\/tv\/list|person\/\d+\/(?:tv_credits|combined_credits)|tv\/\d+(?:\/(?:images|aggregate_credits|recommendations|similar|season\/\d+))?)$/;
 
 /**
  * Valida o endpoint recebido no corpo da requisição.

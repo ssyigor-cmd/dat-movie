@@ -21,12 +21,14 @@ import {
   totalDeEpisodiosDaSerie,
   filterItems,
   sortItems,
+  findInCatalogByTmdbId,
   TIER_ORDER,
   decadeOf,
 } from './lib/catalog.js';
 import { callTMDB, fetchTitleLogo } from './lib/api.js';
 import { US_RATING_BR, pickContentRating } from './lib/contentRating.js';
 import { flagEmoji, flagUrl } from './lib/flags.js';
+import { translateKeyword } from './lib/keywordTranslations.js';
 import {
   getCalendarWeek, getTrendingToSuggest, CATEGORIES,
   normalizeTrendingItem, filterNotInCatalog,
@@ -387,6 +389,25 @@ function openPreview(key) {
 }
 
 function openExternalPreview(raw, opts = {}) {
+  // Busca, tendências, roleta e histórico trazem títulos do TMDB. Se o título
+  // já estiver no catálogo, abre o item real — senão a tela de detalhe mostra
+  // "Adicionar" e permite tentar inserir um duplicado. O desktop já faz isso
+  // em openTitlePageForSearch (main.js); esta é a paridade no mobile.
+  const existing = findInCatalogByTmdbId(raw?.id, state.items);
+  if (existing) {
+    // Some a entrada antiga de "Sugestão" (chave tmdb:) do histórico: ela virou
+    // um item de verdade e agora é registrada com a chave item: em
+    // openTitleFromCatalog. Mesmo tratamento de addRouletteTitle(). Num popstate
+    // não há novo registro, então a entrada antiga deve ficar intacta.
+    if (!opts.fromPopstate) {
+      try { removeView(viewHistoryUser(), `tmdb:${raw.id}`); } catch {}
+    }
+    openTitleFromCatalog(existing, {
+      pushHistory: opts.pushHistory !== false,
+      fromPopstate: opts.fromPopstate,
+    });
+    return;
+  }
   openTitleFromCatalog({
     id: `preview-${raw.id}`,
     _isPreview: true,
@@ -577,16 +598,6 @@ async function initApp(user = null) {
       const deepItem = state.items.find(i => String(i.id) === String(deepLinkId));
       if (deepItem) openTitleFromCatalog(deepItem, { pushHistory: true });
     }
-
-    // Confirmação de um título recém-adicionado: o toast viaja no
-    // sessionStorage para sobreviver ao location.reload() de addRouletteTitle().
-    try {
-      const addedToast = sessionStorage.getItem('datmovie_added_toast');
-      if (addedToast) {
-        sessionStorage.removeItem('datmovie_added_toast');
-        setTimeout(() => showToast(addedToast, 4000), 400);
-      }
-    } catch {}
   })();
   initAppInflight = promise;
   try {
@@ -1172,14 +1183,12 @@ async function addRouletteTitle() {
       recordTitleView(fullItem);
     } catch {}
     stopBackdropAutoRotate();
-    // Recarrega de verdade para limpar qualquer estado stale após o insert
-    // (evita erros na tela). O toast sobrevive ao reload via sessionStorage
-    // e o hash preserva a tela de detalhe do título recém-adicionado.
-    try {
-      sessionStorage.setItem('datmovie_added_toast', 'Título adicionado ao catálogo!');
-      history.replaceState(null, '', location.pathname + location.search + `#/titulo/${fullItem.id}`);
-    } catch {}
-    location.reload();
+    // Igual ao desktop (titlePage.js chama onBack após onCreateItem): volta
+    // para a tela de origem — pesquisa, home, roleta, etc. — em vez de ficar
+    // no detalhe do título recém-adicionado. hideTitlePage() também limpa o
+    // hash #/titulo/..., então um reload não reabre a tela de detalhe.
+    showToast('Título adicionado ao catálogo!');
+    hideTitlePage();
     return;
   } catch (e) {
     showToast('Erro ao adicionar: ' + e.message);
@@ -1584,6 +1593,155 @@ async function loadMoreSearch() {
   }
 }
 
+// ================================================================
+// DESCOBERTA (chips do Detalhes -> discover/tv com filtros variados)
+// ================================================================
+let activeDiscover = null;
+let discoverResults = [];
+let discoverPage = 1;
+let discoverTotalPages = 0;
+let discoverOriginScreen = 'home';
+let discoverInflight = false;
+let discoverReqSeq = 0;
+let personCreditsAll = [];
+
+// Gêneros TMDb considerados "ruído" em resultados relacionados:
+// 10763 = Notícias, 10764 = Reality, 10767 = Talk Show.
+const DISCOVER_NOISE_GENRES = new Set([10763, 10764, 10767]);
+const DISCOVER_PERSON_PAGE = 40;
+// TMDb devolve 20 por página (fixo): cada "Carregar mais" junta 2 páginas.
+const DISCOVER_API_PAGES_PER_BATCH = 2;
+function isNoiseShow(raw) {
+  return (raw?.genre_ids || []).some(id => DISCOVER_NOISE_GENRES.has(Number(id)));
+}
+
+// Os filtros ficam num registro interno: o HTML só leva uma chave curta, sem
+// JSON escapado em atributo (evita qualquer problema de parse no onclick).
+let discoverKeySeq = 0;
+const discoverRegistry = new Map();
+function registerDiscover(params) {
+  const key = 'd' + (++discoverKeySeq);
+  discoverRegistry.set(key, params);
+  return key;
+}
+
+// Chip genérico: qualquer filtro aceito por discover/tv (with_keywords,
+// with_cast, with_crew, with_genres, with_networks, with_companies, ...).
+function discoverChip(name, params, cls) {
+  const key = registerDiscover(params);
+  return `<button class="${cls}" type="button" onclick="openDiscoverResults(this)" data-discover-key="${key}" data-discover-title="${escapeHTML(name)}" title="${escapeHTML(name)}">${escapeHTML(name)}</button>`;
+}
+
+// Card de elenco/equipe clicável; sem id válido cai para um div comum.
+function discoverCard(inner, name, params) {
+  if (!params) return `<div class="ti-cast-card">${inner}</div>`;
+  const key = registerDiscover(params);
+  return `<button class="ti-cast-card ti-cast-card--link" type="button" onclick="openDiscoverResults(this)" data-discover-key="${key}" data-discover-title="${escapeHTML(name)}" title="${escapeHTML(name)}">${inner}</button>`;
+}
+
+function openDiscoverResults(btn) {
+  const params = discoverRegistry.get(btn?.dataset.discoverKey);
+  if (!params || !Object.keys(params).length) return;
+  const name = btn?.dataset.discoverTitle || 'Títulos relacionados';
+  activeDiscover = { params, name };
+  discoverResults = [];
+  personCreditsAll = [];
+  discoverPage = 1;
+  discoverTotalPages = 0;
+  discoverOriginScreen = currentScreen || 'home';
+  $('discoverTitle').textContent = name;
+  $('discoverSummary').textContent = 'Títulos relacionados';
+  // Limpa o conteúdo anterior e invalida qualquer requisição em andamento.
+  const grid = $('discoverGrid');
+  if (grid) { grid.innerHTML = ''; grid.classList.add('hidden'); }
+  discoverReqSeq++;
+  discoverInflight = false;
+  switchScreen('discover');
+  loadDiscoverResults();
+}
+
+function goBackFromDiscover() {
+  activeDiscover = null;
+  discoverReqSeq++;
+  discoverInflight = false;
+  switchScreen(discoverOriginScreen || 'home');
+}
+
+async function loadDiscoverResults() {
+  if (!activeDiscover || discoverInflight) return;
+  discoverInflight = true;
+  const my = ++discoverReqSeq;
+  const loading = $('discoverLoading'), grid = $('discoverGrid');
+  const empty = $('discoverEmpty'), more = $('discoverMore');
+  loading?.classList.remove('hidden');
+  grid?.classList.add('hidden');
+  empty?.classList.add('hidden');
+  more?.classList.add('hidden');
+  try {
+    const params = activeDiscover.params;
+    let raw;
+    // discover/tv NÃO aceita with_cast/with_crew (só discover/movie aceita).
+    // Para pessoas, a filmografia de TV vem de person/{id}/tv_credits.
+    if (params.with_cast || params.with_crew) {
+      if (!personCreditsAll.length) {
+        const personId = params.with_cast || params.with_crew;
+        const credits = await callTMDB(`person/${encodeURIComponent(personId)}/tv_credits`);
+        const list = params.with_cast ? (credits?.cast || []) : (credits?.crew || []);
+        const seenCredits = new Set();
+        personCreditsAll = list
+          .filter(r => r?.id && !isNoiseShow(r) && !seenCredits.has(String(r.id)) && seenCredits.add(String(r.id)))
+          .sort((a, b) => (b?.vote_count || 0) - (a?.vote_count || 0));
+      }
+      discoverTotalPages = Math.max(1, Math.ceil(personCreditsAll.length / DISCOVER_PERSON_PAGE));
+      raw = personCreditsAll.slice((discoverPage - 1) * DISCOVER_PERSON_PAGE, discoverPage * DISCOVER_PERSON_PAGE);
+    } else {
+      const firstApiPage = (discoverPage - 1) * DISCOVER_API_PAGES_PER_BATCH + 1;
+      const pages = await Promise.all(
+        Array.from({ length: DISCOVER_API_PAGES_PER_BATCH }, (_, i) =>
+          callTMDB('discover/tv', {
+            ...params,
+            // 2 = minissérie, 4 = ficção: fora talk/news/reality/vídeo.
+            with_type: '2|4',
+            // "Mais vistos": TMDb não tem views, vote_count é o melhor proxy.
+            sort_by: 'vote_count.desc',
+            page: firstApiPage + i,
+          }).catch(() => null)
+        )
+      );
+      // Filtro extra caso a API não aplique o with_type esperado.
+      raw = pages.flatMap(p => (p?.results || []).filter(r => !isNoiseShow(r)));
+      const totalApiPages = pages.find(Boolean)?.total_pages || 1;
+      discoverTotalPages = Math.max(1, Math.ceil(totalApiPages / DISCOVER_API_PAGES_PER_BATCH));
+    }
+    if (my !== discoverReqSeq) return; // resposta antiga: descarta
+    // Evita repetir títulos já carregados em lotes anteriores.
+    const seen = new Set(discoverResults.map(r => String(r.id)));
+    const unique = raw.filter(r => r?.id && !seen.has(String(r.id)) && seen.add(String(r.id)));
+    const fresh = filterNotInCatalog(unique, state.items || []);
+    discoverResults.push(...fresh.map(normalizeTrendingItem));
+    grid.innerHTML = discoverResults.map(externalCardHTML).join('');
+    grid.classList.remove('hidden');
+    empty.classList.toggle('hidden', discoverResults.length > 0);
+    more.classList.toggle('hidden', discoverPage >= discoverTotalPages);
+  } catch (e) {
+    if (my !== discoverReqSeq) return;
+    console.warn('Erro ao buscar títulos relacionados:', e);
+    empty.querySelector('p').textContent = 'Erro ao carregar títulos.';
+    empty.classList.remove('hidden');
+  } finally {
+    if (my === discoverReqSeq) {
+      loading?.classList.add('hidden');
+      discoverInflight = false;
+    }
+  }
+}
+
+async function loadMoreDiscover() {
+  if (!activeDiscover || discoverInflight || discoverPage >= discoverTotalPages) return;
+  discoverPage++;
+  await loadDiscoverResults();
+}
+
 function countActiveSearchFilters(f) {
   // Ordenação não conta como filtro — mesma regra do desktop.
   let n = 0;
@@ -1649,7 +1807,13 @@ function clearSearchFilters() {
 // TITLE DETAIL
 // ================================================================
 async function openTitle(id) {
-  const item = state.items.find(i => String(i.id) === String(id));
+  let item = state.items.find(i => String(i.id) === String(id));
+  if (!item) {
+    // Cards externos usam o id do TMDB. Se esse título já estiver no catálogo,
+    // abre o item em vez de cair no preview "Adicionar" (paridade com o desktop).
+    const rawById = externalPreviewsById[String(id)];
+    item = findInCatalogByTmdbId(rawById ? rawById.id : id, state.items);
+  }
   if (item) {
     openTitleFromCatalog(item, { pushHistory: true });
     return;
@@ -1728,6 +1892,8 @@ async function openTitleFromCatalog(item, opts = {}) {
     );
   }
   currentTitle = item;
+  // "Mais informações" sempre começa fechado e vazio para cada título.
+  resetMoreInfo();
   curTemp = item.temporada || 1;
   curEp = item.episodio || 0;
   currentTier = item.tier || '';
@@ -2008,15 +2174,71 @@ function confirmDelete() {
 }
 
 // ================================================================
-// EPISODES MODAL
+// MAIS INFORMAÇÕES (acordeão: Detalhes + Listas) + EPISÓDIOS INLINE
+// ================================================================
+let moreInfoLoaded = { details: false, lists: false };
+let episodesInlineLoaded = false;
+
+function toggleMoreInfo() {
+  const body = $('moreInfoBody');
+  const btn = $('moreInfoToggle');
+  if (!body || !btn) return;
+  const open = !body.classList.contains('open');
+  body.classList.toggle('open', open);
+  btn.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) loadMoreInfoContent();
+}
+
+// Carrega cada bloco uma única vez por título. Detalhes vem do TMDb (cacheado);
+// Listas usa o estado local. Episódios carrega à parte, pelo próprio botão.
+function loadMoreInfoContent() {
+  if (!currentTitle) return;
+  if (!moreInfoLoaded.details) { moreInfoLoaded.details = true; openTitleInfoModal(); }
+  if (!moreInfoLoaded.lists) { moreInfoLoaded.lists = true; openListModal(); }
+}
+
+function toggleEpisodesInline() {
+  const box = $('episodesInline');
+  const btn = $('episodesToggle');
+  if (!box || !btn) return;
+  const open = !box.classList.contains('open');
+  box.classList.toggle('open', open);
+  btn.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open && !episodesInlineLoaded) { episodesInlineLoaded = true; openEpisodesModal(); }
+}
+
+function resetMoreInfo() {
+  // Cancela uma gravação automática ainda pendente deste título.
+  clearTimeout(listSaveTimer);
+  listSaveTimer = null;
+  listSaveTitleId = null;
+  moreInfoLoaded = { details: false, lists: false };
+  episodesInlineLoaded = false;
+  const body = $('moreInfoBody');
+  const btn = $('moreInfoToggle');
+  body?.classList.remove('open');
+  if (btn) { btn.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+  const epBox = $('episodesInline'), epBtn = $('episodesToggle');
+  epBox?.classList.remove('open');
+  if (epBtn) { epBtn.classList.remove('open'); epBtn.setAttribute('aria-expanded', 'false'); }
+  const ti = $('titleInfoContent'), ep = $('episodesContent'), lc = $('listCheckboxes');
+  if (ti) { ti.innerHTML = ''; ti.style.display = 'none'; }
+  if (ep) { ep.innerHTML = ''; ep.style.display = 'none'; }
+  if (lc) lc.innerHTML = '';
+  $('titleInfoLoading')?.classList.add('hidden');
+  $('episodesLoading')?.classList.add('hidden');
+}
+
+// ================================================================
+// EPISÓDIOS (bloco do acordeão "Mais informações")
 // ================================================================
 async function openEpisodesModal() {
   if (!currentTitle) return;
-  $('episodesModalTitle').innerHTML = `<i class="fas fa-list"></i> Episódios - ${escapeHTML(currentTitle.nome)}`;
   $('episodesLoading').classList.remove('hidden');
   $('episodesContent').style.display = 'none';
   $('episodesContent').innerHTML = '';
-  $('episodesModal').classList.add('open');
   try {
     let tmdbId = currentTitle.tmdb_id;
     if (!tmdbId) {
@@ -2073,10 +2295,9 @@ function toggleSeason(header) {
     episodes.addEventListener('transitionend', function onEnd(e) { if (e.propertyName === 'max-height' && episodes.classList.contains('expanded')) episodes.style.maxHeight = 'none'; episodes.removeEventListener('transitionend', onEnd); });
   }
 }
-function closeEpisodesModal() { $('episodesModal').classList.remove('open'); }
 
 // ================================================================
-// TITLE INFO MODAL
+// DETALHES (bloco do acordeão "Mais informações")
 // ================================================================
 // ================================================================
 // TITLE INFO MODAL — selo etário e bandeiras (regras do desktop)
@@ -2095,10 +2316,13 @@ function tiAgeBadge(rating) {
   return `<span class="ti-age ti-age--${tiAgeTone(rating.rating)}" title="${escapeHTML(titulo)}">${escapeHTML(exibida)}</span>`;
 }
 
-function tiFlagTag(iso, alt) {
+function tiFlagTag(iso, alt, clickable = false) {
   const url = flagUrl(iso);
   if (!url) return '';
-  return `<img class="ti-flag" src="${escapeHTML(url)}" data-fallback="${flagEmoji(iso)}" alt="${escapeHTML(alt || '')}" loading="lazy" width="20" height="14" />`;
+  const img = `<img class="ti-flag" src="${escapeHTML(url)}" data-fallback="${flagEmoji(iso)}" alt="${escapeHTML(alt || '')}" loading="lazy" width="20" height="14" />`;
+  if (!clickable) return img;
+  const name = alt || iso;
+  return `<button class="ti-flag-link" type="button" onclick="openDiscoverResults(this)" data-discover-params="${escapeHTML(JSON.stringify({ with_origin_country: iso }))}" data-discover-title="${escapeHTML(name)}" title="${escapeHTML(name)}">${img}</button>`;
 }
 
 function tiOrigins(details) {
@@ -2108,7 +2332,7 @@ function tiOrigins(details) {
     const iso = String(isoRaw || '').toUpperCase();
     if (!/^[A-Z]{2}$/.test(iso) || vistos.has(iso)) return;
     vistos.add(iso);
-    flags.push(tiFlagTag(iso, alt));
+    flags.push(tiFlagTag(iso, alt, true));
   };
   (details.production_countries || []).forEach(c => add(c?.iso_3166_1, c?.name));
   (details.origin_country || []).forEach(iso => add(iso, iso));
@@ -2133,38 +2357,35 @@ async function openTitleInfoModal() {
   if (!currentTitle) return;
   $('titleInfoLoading').classList.remove('hidden');
   $('titleInfoContent').style.display = 'none';
-  $('titleInfoModal').classList.add('open');
   try {
     let tmdbId = currentTitle.tmdb_id;
     if (!tmdbId) { const sd = await callTMDB('search/tv', { query: currentTitle.nome }, 'pt-BR'); tmdbId = sd.results?.[0]?.id; }
     if (!tmdbId) throw new Error('Sem TMDB ID');
 
     const [details, credits] = await Promise.all([
-      cachedTMDB(`tvcache_${tmdbId}_ratings`, `tv/${tmdbId}`, { append_to_response: 'content_ratings' }, 'pt-BR'),
+      cachedTMDB(`tvcache_${tmdbId}_ratings_keywords`, `tv/${tmdbId}`, { append_to_response: 'content_ratings,keywords' }, 'pt-BR'),
       cachedTMDB(`tvcred_${tmdbId}`, `tv/${tmdbId}/aggregate_credits`, {}, 'pt-BR').catch(() => null),
     ]);
 
-    const heroImg = details.backdrop_path
-      ? `<img class="ti-hero-img" src="https://image.tmdb.org/t/p/w780${escapeHTML(details.backdrop_path)}" alt="" />`
-      : '';
     const heroMeta = details.first_air_date ? `desde ${formatDateBR(details.first_air_date)}` : '';
     const heroOriginal = details.original_name && details.original_name !== details.name
       ? `<div class="ti-original">${escapeHTML(details.original_name)}</div>` : '';
-    let html = `<div class="ti-hero">${heroImg}<div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroOriginal}${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
+    let html = `<div class="ti-hero"><div class="ti-hero-body"><div class="ti-name">${escapeHTML(details.name || currentTitle.nome)}</div>${heroOriginal}${heroMeta ? `<div class="ti-hero-meta">${escapeHTML(heroMeta)}</div>` : ''}</div></div>`;
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-align-left"></i> Sinopse</div><div class="ti-card"><p class="ti-text">${escapeHTML(details.overview || 'Sinopse não disponível.')}</p></div></div>`;
     // Links
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-link"></i> Sites</div><div class="ti-card"><div class="ti-links">`;
-    if (details.homepage) html += `<a class="ti-link" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener"><i class="fas fa-globe"></i> Site oficial</a>`;
-    html += `<a class="ti-link" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || currentTitle.nome)}" target="_blank" rel="noopener"><i class="fas fa-star"></i> IMDb</a>`;
-    html += `<a class="ti-link" href="https://pt.wikipedia.org/wiki/${encodeURIComponent((details.name || currentTitle.nome).replace(/ /g, '_'))}" target="_blank" rel="noopener"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`;
-    html += `<a class="ti-link" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || currentTitle.nome) + ' trailer')}" target="_blank" rel="noopener"><i class="fab fa-youtube"></i> YouTube</a>`;
+    if (details.homepage) html += `<a class="ti-link ti-link--site" href="${escapeHTML(details.homepage)}" target="_blank" rel="noopener" title="Site oficial"><i class="fas fa-globe"></i> Site oficial</a>`;
+    html += `<a class="ti-link ti-link--imdb" href="https://www.imdb.com/find?q=${encodeURIComponent(details.name || currentTitle.nome)}" target="_blank" rel="noopener" title="IMDb"><img class="ti-site-mark ti-site-mark--imdb" src="${import.meta.env.BASE_URL}assets/icon/imdb-mark.svg" alt="" aria-hidden="true" /> IMDb</a>`;
+    html += `<a class="ti-link ti-link--wiki" href="https://pt.wikipedia.org/wiki/${encodeURIComponent((details.name || currentTitle.nome).replace(/ /g, '_'))}" target="_blank" rel="noopener" title="Wikipédia"><i class="fab fa-wikipedia-w"></i> Wikipédia</a>`;
+    html += `<a class="ti-link ti-link--youtube" href="https://www.youtube.com/results?search_query=${encodeURIComponent((details.name || currentTitle.nome) + ' trailer')}" target="_blank" rel="noopener" title="YouTube"><img class="ti-site-mark ti-site-mark--youtube" src="${import.meta.env.BASE_URL}assets/icon/youtube-mark.svg" alt="" aria-hidden="true" /> YouTube</a>`;
     html += `</div></div></div>`;
     // Detalhes
     const statusMap = { 'Returning Series': 'Em exibição', 'Ended': 'Finalizada', 'Canceled': 'Cancelada', 'In Production': 'Em produção', 'Planned': 'Planejada' };
-    const genres = (details.genres || []).map(g => g.name).filter(Boolean);
+    const genres = (details.genres || []).filter(g => g?.id && g?.name);
     const runtime = Array.isArray(details.episode_run_time) && details.episode_run_time.length ? `${Math.min(...details.episode_run_time)} min` : '';
     html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-list"></i> Detalhes</div><div class="ti-card"><div class="ti-grid">`;
-    html += `<div class="ti-cell ti-cell--wide"><span class="ti-cell-label">Gênero</span><span class="ti-cell-value">${genres.map(g => `<span class="ti-pill">${escapeHTML(g)}</span>`).join('')}</span></div>`;
+    // Gênero 27 (Terror) não funciona no proxy via with_genres; usa a keyword equivalente.
+    html += `<div class="ti-cell ti-cell--wide"><span class="ti-cell-label">Gênero</span><span class="ti-cell-value">${genres.map(g => discoverChip(g.name, g.id === 27 ? { with_keywords: '315058' } : { with_genres: g.id }, 'ti-pill ti-pill--link')).join('')}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Status</span><span class="ti-cell-value">${escapeHTML(statusMap[details.status] || details.status || '—')}</span></div>`;
     const age = pickContentRating(details.content_ratings);
     html += `<div class="ti-cell"><span class="ti-cell-label">Faixa etária</span><span class="ti-cell-value">${tiAgeBadge(age) || '—'}</span></div>`;
@@ -2173,6 +2394,16 @@ async function openTitleInfoModal() {
     html += `<div class="ti-cell"><span class="ti-cell-label">Origem</span><span class="ti-cell-value">${tiOrigins(details) || '—'}</span></div>`;
     html += `<div class="ti-cell"><span class="ti-cell-label">Duração</span><span class="ti-cell-value">${runtime || '—'}</span></div>`;
     html += `</div></div></div>`;
+    // Palavras-chave do TMDb (em inglês): chips clicáveis que abrem títulos relacionados.
+    const keywords = (details.keywords?.results || []).filter(k => k?.id && k?.name).slice(0, 12);
+    if (keywords.length) {
+      html += `<div class="ti-section"><div class="ti-section-title"><i class="fas fa-tags"></i> Palavras-chave</div><div class="ti-card"><div class="ti-keywords">`;
+      keywords.forEach(k => {
+        const name = translateKeyword(k.name);
+        html += discoverChip(name, { with_keywords: k.id }, 'ti-keyword');
+      });
+      html += `</div></div></div>`;
+    }
     // Elenco
     const cast = (credits?.cast || []).filter(c => c.name).slice(0, 12);
     if (cast.length) {
@@ -2180,7 +2411,7 @@ async function openTitleInfoModal() {
       cast.forEach(p => {
         const photo = p.profile_path ? `<img class="ti-cast-photo" src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />` : `<span class="ti-cast-ph"><i class="fas fa-user"></i></span>`;
         const role = (p.roles || []).map(r => r.character).filter(Boolean).slice(0, 2).join(' / ');
-        html += `<div class="ti-cast-card">${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div>${role ? `<div class="ti-cast-role">${escapeHTML(role)}</div>` : ''}</div>`;
+        html += discoverCard(`${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div>${role ? `<div class="ti-cast-role">${escapeHTML(role)}</div>` : ''}`, p.name, p.id != null ? { with_cast: p.id } : null);
       });
       html += `</div></div></div>`;
     }
@@ -2199,19 +2430,19 @@ async function openTitleInfoModal() {
       const photo = p.profile_path
         ? `<img class="ti-cast-photo" src="https://image.tmdb.org/t/p/w185${p.profile_path}" alt="${escapeHTML(p.name)}" loading="lazy" />`
         : `<span class="ti-cast-ph"><i class="fas fa-user"></i></span>`;
-      return `<div class="ti-cast-card">${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div><div class="ti-cast-role">${funcao}</div></div>`;
+      return discoverCard(`${photo}<div class="ti-cast-name">${escapeHTML(p.name)}</div><div class="ti-cast-role">${funcao}</div>`, p.name, p.id != null ? { with_crew: p.id } : null);
     };
-    const orgCard = (o, funcao) => {
+    const orgCard = (o, funcao, key) => {
       const logo = o.logo_path
         ? `<img class="ti-cast-photo ti-team-logo" src="https://image.tmdb.org/t/p/w185${o.logo_path}" alt="${escapeHTML(o.name)}" loading="lazy" />`
         : `<span class="ti-cast-ph"><i class="fas fa-building"></i></span>`;
-      return `<div class="ti-cast-card">${logo}<div class="ti-cast-name">${escapeHTML(o.name)}</div><div class="ti-cast-role">${funcao}</div></div>`;
+      return discoverCard(`${logo}<div class="ti-cast-name">${escapeHTML(o.name)}</div><div class="ti-cast-role">${funcao}</div>`, o.name, o.id != null ? { [key]: o.id } : null);
     };
     const grupos = [
       creatorCards.map(p => personCard(p, 'Criação')),
       directorCards.map(p => personCard(p, 'Direção')),
-      networkCards.map(o => orgCard(o, 'Emissora')),
-      companyCards.map(o => orgCard(o, 'Produtora')),
+      networkCards.map(o => orgCard(o, 'Emissora', 'with_networks')),
+      companyCards.map(o => orgCard(o, 'Produtora', 'with_companies')),
     ].filter(g => g.length);
     const equipeHtml = grupos.map(g => g.join('')).join('<div class="ti-team-sep" aria-hidden="true"></div>');
     if (equipeHtml) {
@@ -2227,7 +2458,6 @@ async function openTitleInfoModal() {
     $('titleInfoContent').style.display = 'block';
   }
 }
-function closeTitleInfoModal() { $('titleInfoModal').classList.remove('open'); }
 
 // ================================================================
 // CONFIRM
@@ -2238,7 +2468,7 @@ function executeConfirm() { closeConfirm(); if (confirmCallback) confirmCallback
 function closeConfirm() { $('confirmSheet').classList.remove('open'); $('confirmOverlay').classList.remove('open'); }
 
 // ================================================================
-// LIST MODAL
+// LISTAS (bloco do acordeão "Mais informações")
 // ================================================================
 function isUserCollection(l) {
   return !l?.is_system && l?.nome !== 'Próximos' && l?.nome !== 'Lista de Desejos';
@@ -2247,32 +2477,64 @@ function isUserCollection(l) {
 function openListModal() {
   // Mesmo filtro do desktop: listas do sistema não são coleções selecionáveis.
   const lists = (state.userLists || [])
-    .filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos')
-    .sort((a, b) => (b.is_system ? 1 : 0) - (a.is_system ? 1 : 0));
+    .filter(l => l.nome !== 'Próximos' && l.nome !== 'Lista de Desejos');
   const selected = new Set((currentTitle?.lists || []).map(l => String(l.id)));
-  $('listCheckboxes').innerHTML = lists.length ? lists.map(l => `
-    <label class="list-checkbox">
-      <input type="checkbox" ${selected.has(String(l.id)) ? 'checked' : ''} data-list-id="${l.id}" />
-      <i class="fas ${l.is_system ? 'fa-heart' : 'fa-list'}"></i>
-      <span>${escapeHTML(l.nome)}</span>
-    </label>`).join('') : '<p style="padding:16px;color:var(--text-muted)">Nenhuma lista criada.</p>';
-  $('listSheet').classList.add('open');
-  $('listOverlay').classList.add('open');
+  const isPreview = !!currentTitle?._isPreview;
+  const system = lists.filter(l => l.is_system);
+  const mine = lists.filter(l => !l.is_system);
+
+  const row = (l) => `
+    <label class="ml-row">
+      <input class="ml-input" type="checkbox" ${selected.has(String(l.id)) ? 'checked' : ''} data-list-id="${l.id}" ${isPreview ? 'disabled' : ''} onchange="onListToggle()" />
+      <span class="ml-icon"><i class="fas ${l.is_system ? 'fa-heart' : 'fa-list'}"></i></span>
+      <span class="ml-name">${escapeHTML(l.nome)}</span>
+      <span class="ml-check"><i class="fas fa-check"></i></span>
+    </label>`;
+  const group = (label, items) => items.length
+    ? `<div class="ml-group"><div class="ml-group-label">${label}</div>${items.map(row).join('')}</div>`
+    : '';
+  $('listCheckboxes').innerHTML = (system.length || mine.length)
+    ? group('Do sistema', system) + group('Minhas listas', mine)
+    : '<div class="ml-empty"><i class="fas fa-layer-group"></i><p>Nenhuma lista criada ainda.</p></div>';
+  $('listBlock')?.classList.toggle('is-preview', isPreview);
+  $('listPreviewHint')?.classList.toggle('hidden', !isPreview);
+  updateListSelection();
 }
 
-async function saveTitleLists() {
+function updateListSelection() {
+  const n = document.querySelectorAll('#listCheckboxes .ml-input:checked').length;
+  const count = $('listSelectedCount');
+  if (count) count.textContent = String(n);
+}
+
+// Sem botão: salva sozinho pouco depois do último toque. Guarda o id do título
+// para um timer pendente nunca gravar as listas de outro título.
+let listSaveTimer = null;
+let listSaveTitleId = null;
+function onListToggle() {
+  updateListSelection();
+  if (!currentTitle || currentTitle._isPreview) return;
+  listSaveTitleId = currentTitle.id;
+  clearTimeout(listSaveTimer);
+  listSaveTimer = setTimeout(() => {
+    if (String(currentTitle?.id) !== String(listSaveTitleId)) return;
+    saveTitleLists({ silent: true });
+  }, 500);
+}
+
+async function saveTitleLists(opts = {}) {
   if (!currentTitle || currentTitle._isPreview) {
-    closeListModal();
     showToast('Adicione o título antes de escolher listas');
     return;
   }
   const checked = new Set(
-    Array.from(document.querySelectorAll('#listCheckboxes input:checked')).map(c => String(c.dataset.listId))
+    Array.from(document.querySelectorAll('#listCheckboxes .ml-input:checked')).map(c => String(c.dataset.listId))
   );
   const current = new Set((currentTitle.lists || []).map(l => String(l.id)));
   // Calcula o diff — diferente do desktop, permite remover até a última lista.
   const toAdd = [...checked].filter(id => !current.has(id));
   const toRemove = [...current].filter(id => !checked.has(id));
+  if (!toAdd.length && !toRemove.length) return; // nada mudou: não grava nem avisa
   try {
     const addRes = await Promise.allSettled(toAdd.map(id => addItemToList(currentTitle.id, id)));
     const remRes = await Promise.allSettled(toRemove.map(id => removeItemFromList(currentTitle.id, id)));
@@ -2284,16 +2546,15 @@ async function saveTitleLists() {
       .concat(userLists.filter(l => addedOk.has(String(l.id))));
     const idx = state.items.findIndex(i => String(i.id) === String(currentTitle.id));
     if (idx >= 0) state.items[idx].lists = currentTitle.lists;
-    showToast('Listas atualizadas');
+    showToast(opts.silent ? 'Listas salvas' : 'Listas atualizadas');
   } catch (e) {
     console.warn('Erro ao atualizar listas:', e);
     showToast('Erro ao atualizar listas');
   } finally {
-    closeListModal();
+    // Recarrega os checkboxes com o estado já salvo, mantendo o bloco aberto.
+    openListModal();
   }
 }
-
-function closeListModal() { $('listSheet').classList.remove('open'); $('listOverlay').classList.remove('open'); }
 
 // ================================================================
 // LISTAS (criar / renomear / excluir / reordenar)
@@ -2657,6 +2918,7 @@ function logout() {
 // SCREEN SWITCHING
 // ================================================================
 function switchScreen(name) {
+  if (currentScreen === 'title' && name !== 'title' && name !== 'discover') resetMoreInfo();
   currentScreen = name;
   // O boot decidiu (sessão válida -> home; senão -> login): o splash sai.
   const splash = $('bootSplash');
@@ -2672,7 +2934,7 @@ function switchScreen(name) {
   $('bottomNav').classList.toggle('hidden', isLogin);
   // Listas e Histórico são sub-navegação (abrem pelo Perfil/Catálogo) — mantém
   // o destaque na aba de origem em vez de nenhuma, igual sub-navegação.
-  const tabToHighlight = name === 'lists' ? 'catalog' : name === 'history' ? 'profile' : name;
+  const tabToHighlight = name === 'lists' ? 'catalog' : name === 'history' ? 'profile' : name === 'discover' ? 'search' : name;
   document.querySelectorAll('.nav-tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.screen === tabToHighlight); });
   if (name === 'home') renderHome();
   if (name === 'catalog') renderCatalog();
@@ -2770,12 +3032,13 @@ Object.assign(window, {
   setCatalogFilter, setStatusFilter, toggleGroupByTier, renderProximos,
   toggleAdvChip, syncFilterSheetUI,
   handleSearch, loadMoreSearch, applySearchFilters, clearSearchFilters,
+  openDiscoverResults, goBackFromDiscover, loadMoreDiscover,
   navBackdrop, applyStep, startHold, stopHold,
   setStatus, setTier, saveTitle, goBackFromTitle, confirmDelete, cycleTier, cycleStatus,
-  openEpisodesModal, toggleSeason, closeEpisodesModal,
-  openTitleInfoModal, closeTitleInfoModal,
+  openEpisodesModal, toggleSeason, toggleEpisodesInline,
+  openTitleInfoModal,
   openConfirm, executeConfirm, closeConfirm,
-  openListModal, closeListModal, saveTitleLists,
+  openListModal, updateListSelection, onListToggle, saveTitleLists, toggleMoreInfo,
   openCollectionsSheet, closeCollectionsSheet, renderCollectionsList,
   saveCollection, editCollection, deleteCollection, moveCollection,
   renderColecaoOptions, setCollectionFilter, renderLists, openListCatalog,

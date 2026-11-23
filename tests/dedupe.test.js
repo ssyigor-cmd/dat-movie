@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDuplicateInCatalog, filterNotInCatalog } from '../src/lib/catalog.js';
+import { isDuplicateInCatalog, filterNotInCatalog, findInCatalogByTmdbId } from '../src/lib/catalog.js';
 
 describe('filterNotInCatalog - bug String(undefined)', () => {
   it('não filtra incorretamente quando catalog tem tmdb_id undefined/null', () => {
@@ -59,5 +59,34 @@ describe('isDuplicateInCatalog', () => {
   it('itens do catálogo com tmdb_id são ignorados no fallback', () => {
     const catalog = [{ tmdb_id: 123, nome: 'Naruto', tipo: 'anime', ano: 2002 }];
     expect(isDuplicateInCatalog({ tmdb_id: null, nome: 'Naruto', tipo: 'anime', ano: 2002 }, catalog)).toBe(false);
+  });
+});
+
+describe('findInCatalogByTmdbId — abrir resultado da busca sem duplicar', () => {
+  const catalog = [
+    { id: 'uuid-1', nome: 'Naruto', tmdb_id: 123, status: 'assistindo', episodio: 12 },
+    { id: 'uuid-2', nome: 'Sem TMDB', tmdb_id: null },
+  ];
+
+  it('acha o item pelo tmdb_id mesmo quando um é number e outro string', () => {
+    expect(findInCatalogByTmdbId(123, catalog)?.id).toBe('uuid-1');
+    expect(findInCatalogByTmdbId('123', catalog)?.id).toBe('uuid-1');
+  });
+
+  it('devolve o item de verdade, com seu progresso (não um preview vazio)', () => {
+    const found = findInCatalogByTmdbId(123, catalog);
+    expect(found.status).toBe('assistindo');
+    expect(found.episodio).toBe(12);
+  });
+
+  it('não confunde títulos sem tmdb_id', () => {
+    expect(findInCatalogByTmdbId(123, [{ tmdb_id: null }, { tmdb_id: '' }, { tmdb_id: undefined }])).toBe(null);
+  });
+
+  it('retorna null para id vazio ou catálogo inválido', () => {
+    expect(findInCatalogByTmdbId(null, catalog)).toBe(null);
+    expect(findInCatalogByTmdbId('', catalog)).toBe(null);
+    expect(findInCatalogByTmdbId(123, null)).toBe(null);
+    expect(findInCatalogByTmdbId(999, catalog)).toBe(null);
   });
 });

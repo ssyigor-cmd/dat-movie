@@ -45,6 +45,13 @@ describe('clever-endpoint contract', () => {
     it('permite tv/12345/similar', () => {
       expect(isAllowedEndpoint('tv/12345/similar')).toBe(true);
     });
+    it('permite person/123/tv_credits', () => {
+      expect(isAllowedEndpoint('person/123/tv_credits')).toBe(true);
+      expect(isAllowedEndpoint('person/123/combined_credits')).toBe(true);
+    });
+    it('rejeita person com id não numérico', () => {
+      expect(isAllowedEndpoint('person/abc/tv_credits')).toBe(false);
+    });
     it('rejeita endpoint vazio', () => {
       expect(isAllowedEndpoint('')).toBe(false);
     });
