@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <!-- App em tela cheia no iOS: sem black-translucent o sistema desenha a barra
+       de status preta por cima da pagina e o blur nunca aparece no notch. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#08080b" />
   <title>datmovie · Mobile</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon/favicon-32-dark.svg" />
   <link rel="alternate icon" href="assets/favicon/favicon.ico" sizes="any" />
