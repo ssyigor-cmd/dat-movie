@@ -1704,9 +1704,9 @@ function setTitlePosterBlur(posterUrl) {
   const blur = $('titleScreenBlur');
   if (!screen || !blur) return;
   if (posterUrl) {
-    // Véu sobre o blur: bem mais leve que antes. O blur continua dando cor ao
-    // fundo e à faixa do notch, mas sem apagar a imagem nítida do backdrop.
-    const veil = 'linear-gradient(180deg, rgba(8,8,11,0.16), rgba(8,8,11,0.42))';
+    // Véu sobre o blur: escurecido para dar mais contraste aos ícones de
+    // status e deixar a imagem nítida do backdrop se destacar do fundo.
+    const veil = 'linear-gradient(180deg, rgba(8,8,11,0.38), rgba(8,8,11,0.74))';
     blur.style.backgroundImage = `${veil}, url('${escapeHTML(posterUrl)}')`;
     screen.classList.add('has-poster-blur');
   } else {
