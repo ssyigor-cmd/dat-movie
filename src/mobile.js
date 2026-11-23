@@ -1706,7 +1706,7 @@ function setTitlePosterBlur(posterUrl) {
   if (posterUrl) {
     // Véu sobre o blur: escurecido para dar mais contraste aos ícones de
     // status e deixar a imagem nítida do backdrop se destacar do fundo.
-    const veil = 'linear-gradient(180deg, rgba(8,8,11,0.38), rgba(8,8,11,0.74))';
+    const veil = 'linear-gradient(180deg, rgba(8,8,11,0.72), rgba(8,8,11,0.74))';
     blur.style.backgroundImage = `${veil}, url('${escapeHTML(posterUrl)}')`;
     screen.classList.add('has-poster-blur');
   } else {
