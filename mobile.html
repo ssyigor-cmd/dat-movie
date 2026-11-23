@@ -305,7 +305,7 @@
        o blur de fundo cobre a área do notch com as mesmas cores do degradê da
        página. A imagem nítida só começa ABAIXO da área segura, para não tapar
        esse degradê — a transição é suavizada pela máscara do has-poster-blur. */
-    .title-backdrop { position:relative; z-index:1; margin-top:var(--safe-top); aspect-ratio:16/10; background:var(--bg-secondary); overflow:hidden; }
+    .title-backdrop { position:relative; z-index:1; margin-top:var(--safe-top); aspect-ratio:16/10; background:var(--bg-secondary); overflow:hidden; border-radius:var(--radius) var(--radius) 0 0; box-shadow:0 -8px 24px rgba(0,0,0,0.5); }
     .title-backdrop img { width:100%; height:100%; object-fit:cover; }
     .title-backdrop::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,var(--bg-primary) 5%,transparent 60%); }
     /* Com o blur ativo, a imagem do backdrop fica NÍTIDA e dissolve de forma
@@ -315,7 +315,7 @@
        linha horizontal visível entre o backdrop e o blur. */
     #titleScreen.has-poster-blur .title-backdrop { background:transparent; }
     #titleScreen.has-poster-blur .title-backdrop img { opacity:1; -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 88%, transparent 100%); mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 88%, transparent 100%); }
-    #titleScreen.has-poster-blur .title-backdrop::after { background:linear-gradient(to bottom, transparent 35%, rgba(8,8,11,0.62) 72%, rgba(8,8,11,0) 100%); }
+    #titleScreen.has-poster-blur .title-backdrop::after { background:linear-gradient(to bottom, transparent 35%, rgba(8,8,11,0.28) 72%, rgba(8,8,11,0) 100%); }
     .bd-nav-btn { position:absolute; top:50%; transform:translateY(-50%); width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.48); border:none; border-radius:var(--radius-pill); color:rgba(255,255,255,0.75); font-size:0.68rem; z-index:3; backdrop-filter:blur(6px); opacity:0.6; transition:opacity 0.2s, background 0.2s; }
     .bd-nav-btn:hover, .bd-nav-btn:focus-visible { opacity:1; background:rgba(0,0,0,0.55); }
     .bd-prev { left:8px; } .bd-next { right:8px; }
