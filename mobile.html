@@ -300,7 +300,7 @@
        (titleScreen) com as cores do pôster borradas — em vez de o fundo ser
        todo escuro. Camada fixa atrás do conteúdo (backdrop, ficha e body);
        scale(1.2) evita as franjas transparentes do blur nas bordas. */
-    .title-screen-blur { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:blur(16px) brightness(0.85); transform:scale(1.2); opacity:1; z-index:0; pointer-events:none; }
+    .title-screen-blur { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:blur(10px) brightness(0.85); transform:scale(1.12); opacity:1; z-index:0; pointer-events:none; }
     /* A seção sobe para a borda do aparelho (ver margin-top negativa acima) e
        o blur de fundo cobre a área do notch com as mesmas cores do degradê da
        página. A imagem nítida só começa ABAIXO da área segura, para não tapar
@@ -314,7 +314,7 @@
        borda inferior — se o escurecimento terminasse na borda, ele criaria uma
        linha horizontal visível entre o backdrop e o blur. */
     #titleScreen.has-poster-blur .title-backdrop { background:transparent; }
-    #titleScreen.has-poster-blur .title-backdrop img { opacity:1; -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 88%, transparent 100%); mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 88%, transparent 100%); }
+    #titleScreen.has-poster-blur .title-backdrop img { opacity:1; -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 8%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 94%, transparent 100%); mask-image:linear-gradient(to bottom, transparent 0%, #000 8%, #000 50%, rgba(0,0,0,0.72) 72%, rgba(0,0,0,0.35) 94%, transparent 100%); }
     #titleScreen.has-poster-blur .title-backdrop::after { background:linear-gradient(to bottom, transparent 35%, rgba(8,8,11,0.62) 72%, rgba(8,8,11,0) 100%); }
     .bd-nav-btn { position:absolute; top:50%; transform:translateY(-50%); width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.48); border:none; border-radius:var(--radius-pill); color:rgba(255,255,255,0.75); font-size:0.68rem; z-index:3; backdrop-filter:blur(6px); opacity:0.6; transition:opacity 0.2s, background 0.2s; }
     .bd-nav-btn:hover, .bd-nav-btn:focus-visible { opacity:1; background:rgba(0,0,0,0.55); }
