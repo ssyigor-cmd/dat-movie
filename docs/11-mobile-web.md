@@ -300,7 +300,7 @@ Notas sobre o boot/login:
 Histórico relevante:
 
 - Fundo da tela de detalhe com blur mais forte (`.title-screen-blur`: 10px →
-  26px, scale 1.12 → 1.32 para evitar bordas vazias);
+  16px, scale 1.12 → 1.2 para evitar bordas vazias);
 - Botão Episódios saiu do topo e foi para baixo da sinopse, voltando à pílula
   simples (sem o efeito "ticket" experimentado antes), com barra de progresso
   dinâmica ocupando o espaço livre à direita;
@@ -345,7 +345,7 @@ Histórico relevante:
 - Detalhe redesenhado (pôster 124px, logo 46px, selos equalizados em 24px);
 - Continuar Assistindo ordena pelos **títulos editados mais recentemente**
   (`dataAtualizacao || dataCriacao` decrescente, paridade com o desktop) e o
-  card passa a exibir o backdrop **desfocado** (`.continue-backdrop`, blur 6px +
+  card passa a exibir o backdrop **desfocado** (`.continue-backdrop`, blur 15px +
   brightness) com o **logo centralizado** (`.cont-logo`); sem logo, o nome
   segue sobre a imagem com o gradiente padrão;
 - Ano removido do detalhe (o selo foi ocupado pelo botão Detalhes — **o ano
