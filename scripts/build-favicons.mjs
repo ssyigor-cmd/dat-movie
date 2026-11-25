@@ -65,11 +65,11 @@ for (const { size } of pngs) {
 }
 copyFileSync(join(root, 'assets/favicon/favicon.ico'), join(out, 'favicon.ico'));
 
-// apple-touch-icon do iOS: PNG opaco 180x180, fundo papel chapado (tema claro)
+// apple-touch-icon do iOS: PNG opaco 180x180, fundo cinza gelo chapado (tema claro)
 const appleSvg = readFileSync(APPLE_SRC, 'utf8');
 const apple = new Resvg(appleSvg, {
   fitTo: { mode: 'width', value: APPLE_SIZE },
-  background: '#F4F1EA',
+  background: '#EAF2F7',
 });
 const applePng = apple.render().asPng();
 writeFileSync(join(root, 'assets/icon/apple-touch-icon.png'), applePng);

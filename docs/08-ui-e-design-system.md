@@ -158,32 +158,45 @@ override em `[data-theme="light"]`.
 
 | Papel | Token | Escuro | Claro |
 |---|---|---|---|
-| Fundo | `--bg-primary` | `#08080b` | `#F4F1EA` |
+| Fundo | `--bg-primary` | `#08080b` | `#EAF2F7` |
 | Superfície | `--bg-surface` | `#0D0D10` | `#FFFFFF` |
 | Elevado | `--bg-elevated` | `#121216` | `#FFFFFF` |
-| Hover elevado | `--bg-elevated-hover` | `#18181D` | `#EFEBE1` |
-| Poço | `--bg-secondary` / `--bg-well` | `#09090C` / `#0C0D0E` | `#ECE7DC` / `#E4DED1` |
-| Hover | `--bg-hover` | `#141418` | `#E6E0D3` |
-| Texto | `--text-primary` | `#F2EDE3` | `#1B1915` |
-| Texto secundário | `--text-secondary` | `#AEAFB2` | `#55524A` |
-| Texto muted | `--text-muted` | `#838589` | `#8A8478` |
-| Acento | `--accent` | `#E5D8BF` | `#7A663B` |
-| Tinta do acento | `--accent-ink` | `#08080b` | `#F4F1EA` |
-| Contorno | `--border-outline` | `#16161A` | `#D4D0C8` |
+| Hover elevado | `--bg-elevated-hover` | `#18181D` | `#E3EEF5` |
+| Poço | `--bg-secondary` / `--bg-well` | `#09090C` / `#0C0D0E` | `#DDEAF2` / `#CEE0EA` |
+| Hover | `--bg-hover` | `#141418` | `#D2E2EC` |
+| Texto | `--text-primary` | `#E8F2F8` | `#14212B` |
+| Texto secundário | `--text-secondary` | `#AEAFB2` | `#4E5E6B` |
+| Texto muted | `--text-muted` | `#838589` | `#74838F` |
+| Acento | `--accent` | `#D6E9F4` | `#35566B` |
+| Tinta do acento | `--accent-ink` | `#08080b` | `#EAF2F7` |
+| Contorno | `--border-outline` | `#16161A` | `#BFD2DE` |
 | Perigo | `--danger` | `#ef4444` | `#ef4444` |
 | Sucesso | `--success` | `#34d399` | `#34d399` |
 | Aviso | `--warning` | `#fbbf24` | `#fbbf24` |
+
+**Distribuição 60/30/10.** A tríade é preto de fundo, gelo e ardósia; os pesos
+trocam de lugar conforme o tema, mas a proporção não:
+
+| Peso | Papel | Escuro | Claro |
+|---|---|---|---|
+| 60% | dominante | `#08080b`, `#0D0D10`, `#121216` | `#EAF2F7`, `#FFFFFF` |
+| 30% | suporte | gelo em opacidade baixa (`--text-*`, `--ghost-*`) | `#DDEAF2`, `#BFD2DE`, `#4E5E6B` |
+| 10% | acento | `#D6E9F4` | `#35566B` |
+
+O gelo cheio não ocupa 30% da tela no escuro: ele aparece diluído na rampa de
+texto fraco e só vira cor cheia nos 10% de acento. No claro, o ardósia escuro
+é o acento porque o gelo cheio não teria contraste sobre o fundo gelado.
 
 Regras de cor:
 
 - **Bordas desligadas por padrão**: `--border` e `--border-strong` são
   `transparent`. A separação vem do tom; `--border-outline` só aparece onde dois
   blocos do mesmo tom se tocam.
-- **Acento único**: areia no escuro, areia escurecida no claro. Não há segunda
-  cor de marca. Cores de tier são a exceção saturada e só aparecem em selos,
+- **Acento único**: gelo claro no escuro, ardósia no claro.
+  Não há segunda cor de marca. Cores de tier são a exceção saturada e só aparecem em selos,
   grupos e opções de tier — nunca como fundo de área grande.
 - **Filete "nascer do sol"**: o único gradiente do sistema vive **apenas nos
-  assets de marca** (icon, favicon, lockups) — linear horizontal monocromatica, areia `#F2E9D5` -> bronze `#6E5F3C`. Não há gradiente na interface: o item
+  assets de marca** (icon, favicon, lockups) — linear horizontal monocromática, gelo `#EAF4FA` -> `#D6E9F4` -> `#7C9BAF` -> `#35566B`. Não há gradiente na interface: o item
   ativo do menu (`.nav-item.active::after`) e as tabs usam `--accent` sólido.
   O gradiente nunca aparece como fill, borda ou sombra.
 - **Tiers**: `S+ #FFD700`, `S #34d399`, `A #3b82f6`, `B #f99e16`, `C hsl(17 92%
@@ -226,7 +239,7 @@ contagem e o teste `homeLayout.test.js`.
 | `--transition-smooth` | `0.4s cubic-bezier(.4,0,.2,1)` |
 
 O tema claro reduz as sombras (`.10` e `.14` de opacidade) para não pesar sobre
-creme.
+gelo.
 
 ### 3.4 Alvos de clique e foco
 
@@ -278,7 +291,7 @@ logos do TMDb.
 
 ### 4.2 Marca e logos
 
-- `assets/logo/logotype-dark.svg` é areia e some no claro; no tema claro,
+- `assets/logo/logotype-dark.svg` é gelo e some no claro; no tema claro,
   `[data-theme="light"] .navbar-brand-logo { content: url(logotype-light.svg) }`
   troca a imagem renderizada. O mesmo vale para `stacked-light.svg` no login.
 - Logos do TMDb chegam como PNG branco com transparência. No escuro, o branco
@@ -515,7 +528,7 @@ Blocos:
 - Overlay de tela cheia com gradiente radial, `z-index: 300`.
 - Caixa de 380px, logo empilhado, formulário único.
 - Modo login/cadastro controlado por `data-auth-only="signup"` e `setAuthMode`.
-- Força de senha em 4 níveis (25/50/75/100%, vermelho/amarelo/areia/verde).
+- Força de senha em 4 níveis (25/50/75/100%, vermelho/amarelo/gelo/verde).
 - Erros por campo com `role="alert"`; mensagem geral com `aria-live="polite"`.
 - Botão de revelar senha com `aria-pressed`.
 
@@ -542,7 +555,7 @@ Blocos:
 - `role="dialog"` + `aria-modal="true"` + `aria-labelledby` nos modais.
 - `aria-live` em mensagens, subtítulo e toast.
 - `prefers-reduced-motion: reduce` zera animações e transições.
-- Contraste do acento no claro resolvido por token (`#7A663B`).
+- Contraste do acento no claro resolvido por token (`#35566B`).
 
 ### 8.2 Lacunas conhecidas
 
@@ -594,7 +607,7 @@ regra) e registre a mudança no `09-testes.md`.
 
 ## 11. O que preservar na evolução
 
-1. **Tokens e temas** — a identidade quente, o acento areia, o claro por
+1. **Tokens e temas** — a identidade fria, o acento gelo, o claro por
    override, `color-scheme`, anti-flash.
 2. **Tipografia em três papéis** — Inter/Sora/IBM Plex Mono, com mono só para
    dado técnico.

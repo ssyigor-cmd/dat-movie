@@ -22,7 +22,7 @@
     document.documentElement.dataset.theme = resolved;
     document.documentElement.style.colorScheme = resolved;
     var meta = document.getElementById('meta-theme');
-    if (meta) meta.setAttribute('content', resolved === 'light' ? '#F4F1EA' : '#101112');
+    if (meta) meta.setAttribute('content', resolved === 'light' ? '#EAF2F7' : '#101112');
     if (localStorage.getItem('dm-progress') === '0') {
       document.documentElement.classList.add('is-progress-hidden');
     }
@@ -50,14 +50,14 @@
   --bg-well: #0C0D0E;
   --bg-hover: #26282C;
 
-  --text-primary: #F2EDE3;
+  --text-primary: #E8F2F8;
   --text-secondary: #AEAFB2;
   --text-muted: #838589;
 
-  --accent: #E5D8BF;
-  --accent-hover: #F0E6D2;
+  --accent: #D6E9F4;
+  --accent-hover: #EAF5FC;
   --accent-ink: #101112;
-  --accent-soft: rgba(229, 216, 191, 0.1);
+  --accent-soft: rgba(214, 233, 244, 0.1);
 
   --border: transparent;
   --border-strong: transparent;
@@ -108,32 +108,32 @@
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --dur: 180ms;
-  --scrollbar-thumb: rgba(242, 237, 227, 0.15);
+  --scrollbar-thumb: rgba(232, 242, 248, 0.15);
 }
 
 :root[data-theme="light"] {
-  --bg-primary: #F4F1EA;
+  --bg-primary: #EAF2F7;
   --bg-surface: #FFFFFF;
   --bg-elevated: #FFFFFF;
-  --bg-elevated-hover: #EFEBE1;
-  --bg-secondary: #ECE7DC;
-  --bg-well: #E4DED1;
-  --bg-hover: #E6E0D3;
+  --bg-elevated-hover: #E3EEF5;
+  --bg-secondary: #DDEAF2;
+  --bg-well: #CEE0EA;
+  --bg-hover: #D2E2EC;
 
-  --text-primary: #1B1915;
-  --text-secondary: #55524A;
-  --text-muted: #665F53;
+  --text-primary: #14212B;
+  --text-secondary: #4E5E6B;
+  --text-muted: #6F7E8A;
 
-  --accent: #7A663B;
-  --accent-hover: #8A7444;
-  --accent-ink: #F4F1EA;
-  --accent-soft: rgba(122, 102, 59, 0.12);
+  --accent: #35566B;
+  --accent-hover: #446D86;
+  --accent-ink: #EAF2F7;
+  --accent-soft: rgba(53, 86, 107, 0.12);
 
-  --border-outline: #D4D0C8;
-  --shadow-sheet: 0 -12px 48px rgba(27, 25, 21, 0.22);
-  --shadow-stamp: 0 1px 4px rgba(27, 25, 21, 0.18);
-  --shadow-panel: 0 2px 12px rgba(27, 25, 21, 0.1);
-  --scrollbar-thumb: rgba(27, 25, 21, 0.2);
+  --border-outline: #BFD2DE;
+  --shadow-sheet: 0 -12px 48px rgba(20, 33, 43, 0.22);
+  --shadow-stamp: 0 1px 4px rgba(20, 33, 43, 0.18);
+  --shadow-panel: 0 2px 12px rgba(20, 33, 43, 0.1);
+  --scrollbar-thumb: rgba(20, 33, 43, 0.2);
 }
 
 /* ==========================================================================
@@ -2199,7 +2199,7 @@ function applyTheme(choice, persist = true) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
   const meta = $('#meta-theme');
-  if (meta) meta.setAttribute('content', resolved === 'light' ? '#F4F1EA' : '#101112');
+  if (meta) meta.setAttribute('content', resolved === 'light' ? '#EAF2F7' : '#101112');
   themeToggle.setAttribute('aria-pressed', resolved === 'light' ? 'true' : 'false');
   themeToggle.setAttribute('aria-label', `Tema: ${resolved === 'light' ? 'claro' : 'escuro'}${choice === 'system' ? ' (sistema)' : ''}. Toque para alternar`);
   themeIcon.innerHTML = resolved === 'light' ? SUN : MOON;

@@ -52,7 +52,7 @@ PARTE 0 — COMO USAR ESTE DOCUMENTO
 
 0.3 "Essência" (o que define o app): catálogo pessoal de séries, progresso
     honesto por temporada/episódio, curadoria por Tier (S+ a D), listas livres,
-    descoberta sem nota pública, tema quente com acento areia. Se algo não serve
+    descoberta sem nota pública, tema frio com acento cinza gelo. Se algo não serve
     a isso, é candidato a corte.
 
 0.4 Nada neste documento autoriza "redesenhar". A identidade visual é ativo, não
@@ -102,7 +102,7 @@ PARTE 1 — A ESSÊNCIA QUE NÃO PODE SER PERDIDA
         vezes na mesma. Listas de sistema não podem ser apagadas.
 
 1.5 IDENTIDADE QUE NÃO SE NEGOCIA
-    - Acento areia (#E5D8BF no escuro / #7A663B no claro) é a ÚNICA cor de marca.
+    - Acento cinza gelo (#D6E9F4 no escuro / #35566B no claro) é a ÚNICA cor de marca.
     - Tema escuro é o padrão; claro é override de token.
     - Três famílias: Inter (corpo), Sora (títulos), IBM Plex Mono (dado técnico).
     - Anatomia única de card: pôster 2/3, título SOBRE a imagem, barra no corpo.
@@ -281,11 +281,11 @@ valores; só ADICIONE o que for específico de iOS (safe area, tab bar).
     Poço / secundário         --bg-secondary        #151618
     Poço fundo                --bg-well             #0C0D0E
     Hover                     --bg-hover            #26282C
-    Texto primário            --text-primary        #F2EDE3
+    Texto primário            --text-primary        #E8F2F8
     Texto secundário          --text-secondary      #AEAFB2
     Texto muted               --text-muted          #838589
-    Acento (marca)            --accent              #E5D8BF
-    Acento hover              --accent-hover        #F0E6D2
+    Acento (marca)            --accent              #D6E9F4
+    Acento hover              --accent-hover        #EAF5FC
     Tinta sobre acento        --accent-ink          #101112
     Contorno                  --border-outline      #2A2C30
     Perigo                    --danger              #ef4444
@@ -293,20 +293,20 @@ valores; só ADICIONE o que for específico de iOS (safe area, tab bar).
     Sucesso                   --success             #34d399
 
 4.2 COR — TEMA CLARO (override de token; NUNCA regra por componente)
-    Fundo                     --bg-primary          #F4F1EA
+    Fundo                     --bg-primary          #EAF2F7
     Superfície                --bg-surface          #FFFFFF
     Elevado                   --bg-elevated         #FFFFFF
-    Hover elevado             --bg-elevated-hover   #EFEBE1
-    Secundário                --bg-secondary        #ECE7DC
-    Poço fundo                --bg-well             #E4DED1
-    Hover                     --bg-hover            #E6E0D3
-    Texto primário            --text-primary        #1B1915
-    Texto secundário          --text-secondary      #55524A
-    Texto muted               --text-muted          #8A8478
-    Acento                    --accent              #7A663B
-    Acento hover              --accent-hover        #8A7444
-    Tinta sobre acento        --accent-ink          #F4F1EA
-    Contorno                  --border-outline      #D4D0C8
+    Hover elevado             --bg-elevated-hover   #E3EEF5
+    Secundário                --bg-secondary        #DDEAF2
+    Poço fundo                --bg-well             #CEE0EA
+    Hover                     --bg-hover            #D2E2EC
+    Texto primário            --text-primary        #14212B
+    Texto secundário          --text-secondary      #4E5E6B
+    Texto muted               --text-muted          #74838F
+    Acento                    --accent              #35566B
+    Acento hover              --accent-hover        #446D86
+    Tinta sobre acento        --accent-ink          #EAF2F7
+    Contorno                  --border-outline      #BFD2DE
 
     Regras de cor:
     - Bordas DESLIGADAS por padrão (--border e --border-strong transparentes).
@@ -782,7 +782,7 @@ PARTE 11 — ACESSIBILIDADE
     - role="dialog" + aria-modal="true" + aria-labelledby nos modais/sheets.
     - aria-live em mensagens, subtítulo e toast.
     - prefers-reduced-motion: reduce zera animações.
-    - Contraste do acento no claro resolvido por token (#7A663B).
+    - Contraste do acento no claro resolvido por token (#35566B).
 
 11.2 LACUNAS A CORRIGIR NO MOBILE
     - Foco preso só em alguns modais; tornar global em sheets.
@@ -799,7 +799,7 @@ PARTE 11 — ACESSIBILIDADE
 
 11.4 CONTRASTE
     - Texto normal: contraste >= 4.5:1; texto grande: >= 3:1.
-    - Acento no claro usa #7A663B justamente para legibilidade.
+    - Acento no claro usa #35566B justamente para legibilidade.
     - Nunca texto em cor de Tier sem a tinta de contraste (--tier-*-ink).
 
 R-50. Foco visível e preso em sheets; fechamento por gesto/voltar/botão.
@@ -1021,8 +1021,8 @@ PARTE 15 — APÊNDICE
 
 15.5 TOKENS EM UMA LINHA (cola rápida)
     --bg-primary #101112 · --bg-surface #191A1C · --bg-elevated #222325 ·
-    --text-primary #F2EDE3 · --text-secondary #AEAFB2 · --text-muted #838589 ·
-    --accent #E5D8BF · --accent-ink #101112 · --border-outline #2A2C30 ·
+    --text-primary #E8F2F8 · --text-secondary #AEAFB2 · --text-muted #838589 ·
+    --accent #D6E9F4 · --accent-ink #101112 · --border-outline #2A2C30 ·
     --danger #ef4444 · --warning #fbbf24 · --success #34d399 ·
     --radius 10px · --radius-sm 6px · --radius-pill 999px ·
     --touch-target 44px · --fs-min 12px · --fs-min-comfort 14px ·

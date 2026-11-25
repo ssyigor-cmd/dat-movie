@@ -39,9 +39,9 @@
       --bg-primary: #08080b; --bg-surface: #0D0D10; --bg-elevated: #121216;
       --bg-elevated-hover: #18181D; --bg-secondary: #09090C; --bg-hover: #141418;
       --bg-well: #0C0D0E; --border: transparent; --border-strong: transparent; --border-outline: #16161A;
-      --text-primary: #F2EDE3; --text-secondary: #AEAFB2; --text-muted: #838589;
-      --accent: #E5D8BF; --accent-rgb: 229,216,191; --accent-hover: #F0E6D2;
-      --accent-ink: #08080b; --accent-soft: rgba(229,216,191,0.1);
+      --text-primary: #E8F2F8; --text-secondary: #AEAFB2; --text-muted: #838589;
+      --accent: #D6E9F4; --accent-rgb: 214,233,244; --accent-hover: #EAF5FC;
+      --accent-ink: #08080b; --accent-soft: rgba(214,233,244,0.1);
       --danger: #ef4444; --warning: #fbbf24; --success: #34d399;
       /* Cores dos links de "Sites" (bloco Detalhes do mobile) */
       --radius: 10px; --radius-sm: 6px; --radius-pill: 999px;
@@ -60,12 +60,12 @@
     }
     [data-theme="light"] {
       color-scheme: light;
-      --bg-primary: #F4F1EA; --bg-surface: #FFFFFF; --bg-elevated: #FFFFFF;
-      --bg-elevated-hover: #EFEBE1; --bg-secondary: #ECE7DC; --bg-hover: #E6E0D3;
-      --bg-well: #E4DED1; --border-outline: #D4D0C8;
-      --text-primary: #1B1915; --text-secondary: #55524A; --text-muted: #8A8478;
-      --accent: #7A663B; --accent-rgb: 122, 102, 59; --accent-hover: #8A7444; --accent-ink: #F4F1EA;
-      --accent-soft: rgba(122,102,59,0.12);
+      --bg-primary: #EAF2F7; --bg-surface: #FFFFFF; --bg-elevated: #FFFFFF;
+      --bg-elevated-hover: #E3EEF5; --bg-secondary: #DDEAF2; --bg-hover: #D2E2EC;
+      --bg-well: #CEE0EA; --border-outline: #BFD2DE;
+      --text-primary: #14212B; --text-secondary: #4E5E6B; --text-muted: #74838F;
+      --accent: #35566B; --accent-rgb: 53, 86, 107; --accent-hover: #446D86; --accent-ink: #EAF2F7;
+      --accent-soft: rgba(53,86,107,0.12);
       --shadow: 0 4px 16px rgba(0,0,0,0.10); --shadow-lg: 0 8px 24px rgba(0,0,0,0.14);
     }
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -301,7 +301,7 @@
        (titleScreen) com as cores do pôster borradas — em vez de o fundo ser
        todo escuro. Camada fixa atrás do conteúdo (backdrop, ficha e body);
        scale(1.2) evita as franjas transparentes do blur nas bordas. */
-    .title-screen-blur { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:blur(10px) brightness(0.85); transform:scale(1.12); opacity:1; z-index:0; pointer-events:none; }
+    .title-screen-blur { position:absolute; inset:0; background-size:cover; background-position:center; background-repeat:no-repeat; filter:blur(26px) brightness(0.85); transform:scale(1.32); opacity:1; z-index:0; pointer-events:none; }
     /* A seção sobe para a borda do aparelho (ver margin-top negativa acima) e
        o blur de fundo cobre a área do notch com as mesmas cores do degradê da
        página. A imagem nítida só começa ABAIXO da área segura, para não tapar
@@ -330,14 +330,16 @@
     .title-badge.tier { color:var(--accent); }
     .title-body { position:relative; z-index:1; padding:16px; }
     .title-section { margin-top:20px; }
-    #progressSection { margin-top:12px; }
-    #progressSection .title-section-label { margin-bottom:6px; }
+    #progressSection { margin-top:12px; --detail-gap:8px; }
+    #progressSection .stepper-row { gap:var(--detail-gap); }
+    #progressSection .ep-synopsis-box { margin-top:var(--detail-gap); }
+    #progressSection .episodes-row { margin-top:var(--detail-gap); }
     .title-section-label { font-family:var(--font-display); font-size:0.85rem; font-weight:600; margin-bottom:8px; }
     .tier-opt { padding:8px 14px; border-radius:var(--radius-pill); border:none; background:var(--bg-surface); color:var(--text-primary); font-size:0.78rem; cursor:pointer; font-weight:600; }
     .tier-opt:active { background:var(--bg-hover); }
     .tier-opt.active { background:var(--accent); color:var(--accent-ink); }
-    .stepper-row { display:flex; gap:8px; }
-    .stepper-box { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:10px 8px; background:var(--bg-elevated); border-radius:var(--radius); }
+    .stepper-row { display:flex; gap:4px; }
+    .stepper-box { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:8px 6px; background:var(--bg-elevated); border-radius:var(--radius); }
     .stepper-label-sm { font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; }
     .stepper-main { display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; }
     .stepper-display { flex:1; min-width:0; display:flex; align-items:baseline; justify-content:center; gap:2px; font-weight:800; line-height:1; }
@@ -363,16 +365,19 @@
     #actionsSection .badge-action.is-danger { color:var(--danger); }
     /* MAIS INFORMAÇÕES — um único acordeão no lugar de Detalhes/Listas/Episódios.
        O corpo usa grid 0fr→1fr: anima mesmo com conteúdo carregado depois. */
-    .more-info-section { margin-top:16px; }
-    .more-info-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:13px 14px; border:none; border-radius:var(--radius); background:var(--bg-elevated); color:var(--text-primary); font-family:var(--font-display); font-size:0.72rem; font-weight:600; cursor:pointer; transition:var(--transition); }
-    .more-info-toggle:active { background:var(--bg-hover); }
+    .more-info-section { margin-top:16px; padding-top:12px; border-top:1px solid var(--border-outline); }
+    .more-info-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:0; border:none; background:transparent; color:var(--text-muted); font-family:var(--font-display); font-size:0.72rem; font-weight:500; cursor:pointer; transition:color 0.2s; }
+    .more-info-toggle:active { color:var(--accent); }
     .more-info-toggle > span { display:flex; align-items:center; gap:8px; }
-    .more-info-toggle > span i { color:var(--accent); }
+    .more-info-toggle > span i { color:var(--text-muted); font-size:0.78rem; }
     .more-info-chevron { color:var(--text-muted); font-size:0.72rem; transition:transform 0.3s; }
     .more-info-toggle.open .more-info-chevron { transform:rotate(180deg); }
-    /* Episódios: botão na linha do título + conteúdo inline abaixo da sinopse */
-    .title-section-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
-    .title-section-head .title-section-label { margin-bottom:0; }
+    /* Episódios: botão + barra de progresso ocupando o resto da linha */
+    .episodes-row { display:flex; align-items:center; gap:10px; margin-top:8px; padding:8px 10px; background:var(--bg-elevated); border-radius:var(--radius); }
+    .episodes-row .episodes-toggle { flex:0 0 auto; background:var(--bg-elevated-hover); }
+    .episodes-row .title-progress { flex:1; min-width:0; display:flex; align-items:center; gap:8px; }
+    .episodes-row .progress-track { height:5px; background:var(--bg-secondary); }
+    .episodes-row .progress-pct { min-width:2.4em; text-align:right; color:var(--text-secondary); font-size:0.65rem; }
     .episodes-toggle { display:flex; align-items:center; gap:6px; padding:5px 10px; border:none; border-radius:var(--radius-pill); background:var(--bg-elevated); color:var(--text-secondary); font-family:var(--font-display); font-size:0.68rem; font-weight:600; cursor:pointer; transition:var(--transition); }
     .episodes-toggle:active { background:var(--bg-hover); }
     .episodes-toggle > i:first-child { color:var(--accent); }
@@ -420,7 +425,7 @@
   <style>
     /* BOTTOM NAV */
     .bottom-nav { position:fixed; bottom:calc(10px + var(--safe-bottom)); left:50%; transform:translateX(-50%); width:calc(100% - 24px); max-width:406px; height:var(--bottom-nav-h); padding-bottom:0; background:rgba(16,17,18,0.88); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid var(--border-outline); border-radius:var(--radius-pill); display:flex; align-items:stretch; justify-content:space-around; z-index:100; box-shadow:var(--shadow-lg); }
-    [data-theme="light"] .bottom-nav { background:rgba(244,241,234,0.92); }
+    [data-theme="light"] .bottom-nav { background:rgba(234,242,247,0.92); }
     .nav-tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:none; border:none; color:var(--accent); cursor:pointer; padding-top:8px; transition:var(--transition); position:relative; }
     .nav-tab i { font-size:1.15rem; color:var(--accent); }
     .nav-tab span { font-size:0.62rem; font-weight:500; }
@@ -748,14 +753,16 @@
       
       
       
-      <div class="title-section" id="progressSection"><div class="title-section-label">Progresso</div><div class="stepper-row">
+      <div class="title-section" id="progressSection"><div class="stepper-row">
         <div class="stepper-box"><span class="stepper-label-sm">Temporada</span><div class="stepper-main"><button class="stepper-btn" data-target="temp" data-step="-1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-minus"></i></button><div class="stepper-display"><span class="cur" id="tempDisplay">01</span><span class="sep">/</span><span class="max" id="tempMax">01</span></div><button class="stepper-btn" data-target="temp" data-step="1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-plus"></i></button></div></div>
         <div class="stepper-box"><span class="stepper-label-sm">Episódio</span><div class="stepper-main"><button class="stepper-btn" data-target="ep" data-step="-1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-minus"></i></button><div class="stepper-display"><span class="cur" id="epDisplay">07</span><span class="sep">/</span><span class="max" id="epMax">09</span></div><button class="stepper-btn" data-target="ep" data-step="1" onclick="applyStep(this)" onpointerdown="startHold(this)" onpointerup="stopHold()" onpointercancel="stopHold()" onpointerleave="stopHold()"><i class="fas fa-plus"></i></button></div></div>
-      </div></div>
-      <div class="title-section">
-        <div class="title-section-head"><div class="title-section-label">Episódio</div><button class="episodes-toggle" id="episodesToggle" type="button" onclick="toggleEpisodesInline()" aria-expanded="false" aria-controls="episodesInline"><i class="fas fa-film"></i> Episódios <i class="fas fa-chevron-down ep-chevron"></i></button></div>
-        <div class="ep-synopsis-box"><div class="ep-syn-head"><span class="ep-syn-title" id="epTitle">Selecione temporada e episódio</span><span class="ep-syn-date" id="epDate"></span></div><p class="ep-syn-text" id="epSynopsis">Selecione temporada e episódio para ver a sinopse.</p><div class="ep-loading hidden" id="epLoading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
-        <div class="episodes-inline" id="episodesInline"><div class="episodes-inline-inner"><div class="search-loading hidden" id="episodesLoading"><i class="fas fa-spinner fa-spin"></i><p>Carregando episódios...</p></div><div id="episodesContent" style="display:none"></div></div></div>
+      </div>
+      <div class="ep-synopsis-box"><div class="ep-syn-head"><span class="ep-syn-title" id="epTitle">Selecione temporada e episódio</span><span class="ep-syn-date" id="epDate"></span></div><p class="ep-syn-text" id="epSynopsis">Selecione temporada e episódio para ver a sinopse.</p><div class="ep-loading hidden" id="epLoading"><i class="fas fa-spinner fa-spin"></i> Carregando...</div></div>
+      <div class="episodes-row">
+        <button class="episodes-toggle" id="episodesToggle" type="button" onclick="toggleEpisodesInline()" aria-expanded="false" aria-controls="episodesInline"><i class="fas fa-film"></i> Episódios <i class="fas fa-chevron-down ep-chevron"></i></button>
+        <div class="title-progress"><div class="progress-track" id="titleProgressTrack" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="titleProgressFill" style="width:0%"></div></div><span class="progress-pct" id="titleProgressPct">0%</span></div>
+      </div>
+      <div class="episodes-inline" id="episodesInline"><div class="episodes-inline-inner"><div class="search-loading hidden" id="episodesLoading"><i class="fas fa-spinner fa-spin"></i><p>Carregando episódios...</p></div><div id="episodesContent" style="display:none"></div></div></div>
       </div>
       <div class="title-section more-info-section" id="moreInfoSection">
         <button class="more-info-toggle" id="moreInfoToggle" onclick="toggleMoreInfo()" aria-expanded="false" aria-controls="moreInfoBody"><span><i class="fas fa-circle-info"></i> Mais informações</span><i class="fas fa-chevron-down more-info-chevron"></i></button>

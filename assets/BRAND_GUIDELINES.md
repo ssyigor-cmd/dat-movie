@@ -35,30 +35,30 @@ runtime. Ao trocar um ativo, copie para os dois lugares, senÃ£o o build e o
 
 ## Color Palette
 
-A paleta Ã© quente e tem o areia como Ãºnica cor sÃ³lida de marca. O gradiente
-"nascer do sol" (faixa monocromo de areia ao bronze) Ã© a base da identidade, mas atua como
+A paleta Ã© fria e tem o gelo como Ãºnica cor sÃ³lida de marca. O gradiente
+"gelo" (faixa monocromo de gelo ao ardosia) Ã© a base da identidade, mas atua como
 **filete** â€” nunca como fill grande.
 
 ### Cores base
-- **Fundo (escuro)**: `#08080b` (carvÃ£o quente)
+- **Fundo (escuro)**: `#08080b` (carvÃ£o frio)
 - **CartÃ£o / superfÃ­cie (escuro)**: `#0D0D10`
 - **Controle aninhado (escuro)**: `#121216`
-- **Acento areia**: `#E5D8BF` (marca, progresso, foco)
-- **Texto claro (escuro)**: `#F2EDE3`
+- **Acento gelo**: `#D6E9F4` (marca, progresso, foco)
+- **Texto claro (escuro)**: `#E8F2F8`
 
 ### Cores base (tema claro)
-- **Fundo**: `#F4F1EA`
+- **Fundo**: `#EAF2F7`
 - **SuperfÃ­cie**: `#FFFFFF`
-- **Acento areia escurecido**: `#7A663B` (o creme cheio nÃ£o se lÃª como texto)
-- **Texto escuro**: `#1B1915`
+- **Acento gelo escurecido**: `#35566B` (o gelo claro cheio nÃ£o se lÃª como texto)
+- **Texto escuro**: `#14212B`
 
-### O filete "nascer do sol" (gradiente Ãºnico)
-Gradiente linear horizontal, uma Ãºnica direÃ§Ã£o: da areia ao bronze (rampa monocromatica).
+### O filete "gelo" (gradiente Ãºnico)
+Gradiente linear horizontal, uma Ãºnica direÃ§Ã£o: da gelo ao ardosia (rampa monocromatica).
 Stops exatos (fonte: `<linearGradient>` nos SVGs de assets â€” eles sÃ£o a fonte
 de verdade agora; o app nÃ£o tem mais token de gradiente):
 
 ```
-#F2E9D5 0%  ->  #E5D8BF 35%  ->  #A89467 70%  ->  #6E5F3C 100%
+#EAF4FA 0%  ->  #D6E9F4 35%  ->  #7C9BAF 70%  ->  #35566B 100%
 ```
 
 Usos: **somente no mark** â€” o filete na base dos assets (icon, favicon,
@@ -171,34 +171,34 @@ para contorno. A palavra datmovie nÃ£o aparece nos ativos de marca.
 ## Icon Design
 
 The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
-"nascer do sol" filete under it:
+"gelo" filete under it:
 
-- **Bowl**: rounded-square 27Ã—24 (rx 8.5), `#E5D8BF` no escuro / `#7A663B` no claro
-- **Counter**: square hole 10Ã—10 (rx 2.5), na cor do fundo (`#08080b` / `#F4F1EA`)
+- **Bowl**: rounded-square 27Ã—24 (rx 8.5), `#D6E9F4` no escuro / `#35566B` no claro
+- **Counter**: square hole 10Ã—10 (rx 2.5), na cor do fundo (`#08080b` / `#EAF2F7`)
 - **Stem**: rounded-rect 9.5Ã—40 (rx 4.75), mesma cor do bowl
-- **Filete**: gradiente Ãºnico nascer do sol, 56Ã—2.3 (rx 1.15) em y=74,
-  correndo de `#F2E9D5` a `#6E5F3C`; no favicon de 32px o filete sobe para
+- **Filete**: gradiente Ãºnico gelo, 56Ã—2.3 (rx 1.15) em y=74,
+  correndo de `#EAF4FA` a `#35566B`; no favicon de 32px o filete sobe para
   ~3.6 de espessura para legibilidade
-- **Geometry is theme-independent**: muda sÃ³ a cor do glifo (areia/bronze);
+- **Geometry is theme-independent**: muda sÃ³ a cor do glifo (gelo/ardosia);
   o filete Ã© idÃªntico nos dois temas
 - **Favicon / app icon**: o glifo vem sobre uma pastilha (fundo sÃ³lido
-  `#08080b` no escuro, `#F4F1EA` no claro), porque glifos transparentes
+  `#08080b` no escuro, `#EAF2F7` no claro), porque glifos transparentes
   somem na aba do navegador
 - **No text in the icon**: o glifo e o filete bastam
 
 ## Theme Implementation
 
 ### Dark Theme
-- Background: `#08080b` (carvÃ£o quente)
-- Glyph: `#E5D8BF` (areia)
-- Logotype/stacked text: `#F2EDE3`
-- Accent filete: gradiente nascer do sol (somente nos SVG de marca)
+- Background: `#08080b` (carvÃ£o frio)
+- Glyph: `#D6E9F4` (gelo)
+- Logotype/stacked text: `#E8F2F8`
+- Accent filete: gradiente gelo (somente nos SVG de marca)
 
 ### Light Theme
-- Background: `#F4F1EA`
-- Glyph: `#7A663B`
-- Logotype/stacked text: `#1B1915`
-- Accent filete: gradiente nascer do sol (somente nos SVG de marca)
+- Background: `#EAF2F7`
+- Glyph: `#35566B`
+- Logotype/stacked text: `#14212B`
+- Accent filete: gradiente gelo (somente nos SVG de marca)
 
 ## Usage Guidelines
 
@@ -227,7 +227,7 @@ The mark is a **geometric lowercase "d"** (the initial of datmovie) with a
   Ã­cone de atalho do iOS/iPadOS â€” gerados por `scripts/build-favicons.mjs`
   e versionados.
 - **apple-touch-icon** (`assets/icon/apple-touch-icon.png`, 180x180):
-  fundo papel claro (`#F4F1EA`), **opaco**, quadrado e sem cantos arredondados — o iOS aplica a máscara dele próprio. A marca é preto suave (`#141417`) com filete em degradê cinza escuro. Usado quando o usuário faz "Adicionar à Tela de Início" a partir do Safari. Declarado com
+  fundo gelo (`#EAF2F7`), **opaco**, quadrado e sem cantos arredondados — o iOS aplica a máscara dele próprio. A marca é ardosia suave (`#14212B`) com filete em degradê cinza escuro. Usado quando o usuário faz "Adicionar à Tela de Início" a partir do Safari. Declarado com
   `<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png" sizes="180x180">`.
 - Continua **sem** manifest/Web App layer â€” sÃ³ o Ã­cone do atalho.
 - Fora desses casos, todo ativo de marca Ã© SVG. Se algum dia precisar de

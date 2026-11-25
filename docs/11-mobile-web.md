@@ -110,21 +110,38 @@ O ponto mais denso do mobile. Anatomia atual:
   superfície ao redor; sem tier, mostra "N/A" no estilo neutro) — e
   *Status* (ponto de 9px + rótulo: assistindo/concluído/planejado/pausado).
   O antigo selo *Detalhes* saiu daqui e virou botão com texto;
-- **Progresso** (`#progressSection`): steppers Temporada/Episódio, com
-  `margin-top:12px` (as outras seções do detalhe usam 20px) para reduzir
-  o espaço acima do bloco. Toque curto = 1 passo;
+- **Steppers e sinopse** (`#progressSection`, sem rótulo visível): Temporada/
+  Episódio, com `margin-top:12px` (as outras seções do detalhe usam 20px)
+  para reduzir o espaço acima do bloco. Toque curto = 1 passo;
   **clique e segurar** = 1 passo aos 300ms e repetição a cada 100ms
   (`startHold`/`stopHold`). Os botões usam **pointer events**
   (`pointerdown/up/cancel/leave`) para funcionar no toque do iPhone — antes
   eram `mousedown/up/leave`, que não disparavam no iOS. `holdActive`/
   `holdFired` evitam o passo duplo no clique emitido ao soltar, e
   `touch-action:manipulation` + `user-select:none` evitam zoom/seleção
-  nativa. Os limites vêm da TMDB (`seasonMax`, `epMaxByTemp`).
+  nativa. Os limites vêm da TMDB (`seasonMax`, `epMaxByTemp`). A sinopse do
+  episódio e a lista inline também ficam dentro deste único bloco: o antigo
+  bloco "Episódio" (logo abaixo) foi fundido aqui; o rótulo "Progresso" foi
+  removido e `#episodesToggle` foi para baixo da sinopse, logo acima da lista
+  inline. Os quatro blocos — Temporada, Episódio, sinopse e progresso —
+  ficam equidistantes: `--detail-gap:8px` vale para o `gap` dos steppers e
+  para o `margin-top` da sinopse e da linha de progresso (o gap interno de
+  cada caixa segue em 4px). Ao lado do botão, uma barra de progresso ocupa
+  o resto da linha (`.progress-track` + `.progress-pct`) e acompanha os
+  steppers em tempo real (`updateTitleProgressBar()`, que usa
+  `calcularProgresso` com `curTemp`/`curEp`). Usa `.title-progress` (e não
+  `.progress-wrap`) justamente para não herdar a regra que esconde a barra
+  dos cards quando `showProgressBar` está desligado. A linha inteira é um
+  bloco no padrão do detalhe — fundo `--bg-elevated`, `radius` de 10px e
+  padding 8px/10px —, com o botão em `--bg-elevated-hover` e a trilha em
+  `--bg-secondary`.
 - **Botões de ação** (`.badge-action`: mono, `radius-sm`, `bg-surface`,
   `--text-secondary`), todos em linha (flex, `flex:1`):
   - logo **abaixo da sinopse do episódio**: `#moreInfoSection` com um único
-    botão **"Mais informações"** (`.more-info-toggle`, Sora 0.8rem/600 em
-    `--bg-elevated`, com chevron). Um toque expande/colapsa o acordeão
+    botão **"Mais informações"** (`.more-info-toggle`, Sora 0.72rem/500 em
+    `--text-muted`, sem fundo nem caixa: ícone `fa-circle-info` discreto na
+    mesma cor, texto e chevron, com uma linha divisória fina acima em
+    `--border-outline`). Um toque expande/colapsa o acordeão
     `#moreInfoBody` (grid `0fr → 1fr` em 0.35s, que acompanha o conteúdo
     carregado depois) e atualiza `aria-expanded`. Dentro dele, dois blocos
     empilhados: **Detalhes** e **Listas** (agrupadas em "Do sistema" e "Minhas
@@ -135,13 +152,15 @@ O ponto mais denso do mobile. Anatomia atual:
     uma vez por título (`loadMoreInfoContent()`) e limpo ao trocar de título
     ou sair da tela (`resetMoreInfo()`). Os antigos modais/bottom sheet
     (`#titleInfoModal`, `#episodesModal`, `#listSheet`) foram removidos;
-  - **Episódios** saiu do acordeão: o botão `#episodesToggle` fica na mesma
-    linha do título "Episódio" e expande `#episodesInline` logo abaixo da
-    sinopse, com o acordeão de temporadas (`toggleSeason`). Carregamento
-    próprio (`toggleEpisodesInline()`), uma vez por título;
+  - **Episódios** saiu do acordeão: `#episodesToggle` fica logo abaixo da
+    sinopse (pílula discreta em `--bg-elevated`, com chevron que gira ao
+    abrir), com a barra de progresso preenchendo a largura restante da linha;
+    expande `#episodesInline` em seguida, com o acordeão de temporadas
+    (`toggleSeason`). Carregamento próprio (`toggleEpisodesInline()`), uma
+    vez por título;
   - **no fim da página**: `#actionsSection` com **Salvar · Remover** (um
     do lado do outro). Sem rótulo e sem caixa: só a **cor** e a **fonte**
-    seguem os blocos Progresso/Episódio — `font-display` (Sora) 0.85rem/600,
+    seguem o bloco dos steppers — `font-display` (Sora) 0.85rem/600,
     fundo `--bg-elevated` e texto `--text-primary` (`Remover` mantém
     `--danger`). No preview a aparência é a mesma, com Adicionar/Cancelar;
   - O antigo bloco "Listas" (`.twin-row`/`.twin-block`) foi eliminado;
@@ -221,8 +240,8 @@ regra de cor sólida do desktop.
 ## 5. Identidade visual no mobile
 
 - O **único gradiente** do projeto segue existindo só como filete da logo
-  (rampa monocromática areia → bronze, `#F2E9D5 0%` → `#E5D8BF 35%` →
-  `#A89467 70%` → `#6E5F3C 100%` nos SVGs). **Não há gradiente na UI.**
+  (rampa monocromática gelo → ardósia, `#EAF4FA 0%` → `#D6E9F4 35%` →
+  `#7C9BAF 70%` → `#35566B 100%` nos SVGs). **Não há gradiente na UI.**
 - O item ativo da nav usa `--accent` sólido (2px pill, `.nav-tab.active::before`).
   **Nenhuma suíte trava esse contrato** — `tests/glow.test.js` lê só o
   `style.css` desktop; o mobile é verificado por revisão visual.
@@ -280,6 +299,17 @@ Notas sobre o boot/login:
 
 Histórico relevante:
 
+- Fundo da tela de detalhe com blur mais forte (`.title-screen-blur`: 10px →
+  26px, scale 1.12 → 1.32 para evitar bordas vazias);
+- Botão Episódios saiu do topo e foi para baixo da sinopse, voltando à pílula
+  simples (sem o efeito "ticket" experimentado antes), com barra de progresso
+  dinâmica ocupando o espaço livre à direita;
+- "Mais informações" perdeu o cartão de fundo: agora é ícone + texto menor
+  (0.72rem) com um divisor fino acima (padrão de cabeçalho de seção), com
+  chevron e acordeão inalterados;
+- Detalhe: Progresso e Episódio passaram a ser um único bloco — steppers
+  Temporada/Episódio, sinopse e lista inline juntos; o rótulo "Progresso" saiu
+  e o botão "Episódios" foi para baixo da sinopse;
 - Selo de tier no cabeçalho do detalhe: a cor da tier agora preenche o
   botão inteiro, sem o quadradinho interno nem a moldura de superfície;
 - Modal Detalhes ganhou paridade parcial com o desktop: faixa etária

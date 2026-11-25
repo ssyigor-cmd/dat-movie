@@ -2021,6 +2021,30 @@ function navBackdrop(dir) { showBackdrop(bdIndex + dir); startBackdropAutoRotate
 function startBackdropAutoRotate() { stopBackdropAutoRotate(); if (bdImages.length <= 1) return; bdAutoTimer = setInterval(() => { if (!document.hidden) showBackdrop(bdIndex + 1); }, 15000); }
 function stopBackdropAutoRotate() { if (bdAutoTimer) { clearInterval(bdAutoTimer); bdAutoTimer = null; } }
 
+// A barra acompanha os steppers em tempo real, usando a mesma regra de
+// progresso dos cards: o mapa de temporadas manda sobre o total gravado.
+function updateTitleProgressBar() {
+  const fill = $('titleProgressFill');
+  const track = $('titleProgressTrack');
+  const pct = $('titleProgressPct');
+  if (!fill || !track || !pct) return;
+  const base = currentTitle || {};
+  const mapa = Object.keys(base.seasonEpisodesMap || {}).length
+    ? base.seasonEpisodesMap
+    : epMaxByTemp;
+  const totalMapa = Object.values(mapa).reduce((s, n) => s + (Number(n) || 0), 0);
+  const progress = calcularProgresso({
+    ...base,
+    temporada: curTemp,
+    episodio: curEp,
+    seasonEpisodesMap: mapa,
+    totalEpisodios: totalMapa || base.totalEpisodios,
+  });
+  fill.style.width = `${progress}%`;
+  pct.textContent = `${progress}%`;
+  track.setAttribute('aria-valuenow', String(progress));
+}
+
 function updateSteppers() {
   $('tempDisplay').textContent = String(curTemp).padStart(2, '0');
   $('tempMax').textContent = String(seasonMax).padStart(2, '0');
@@ -2033,6 +2057,7 @@ function updateSteppers() {
     if (target === 'temp') { btn.disabled = step > 0 ? curTemp >= seasonMax : curTemp <= 1; }
     else { const m = epMaxByTemp[curTemp] || 1; btn.disabled = step > 0 ? curEp >= m : curEp <= 0; }
   });
+  updateTitleProgressBar();
 }
 
 function applyStep(btn) {

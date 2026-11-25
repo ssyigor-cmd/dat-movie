@@ -8,12 +8,12 @@
      tom — sem ele, o app fica claro com barra de rolagem escura. */
   color-scheme: dark;
 
-  /* Paleta base — identidade quente da repaginação.
-     Fundo em carvão quente (#08080b) com superfícies subindo em dois degraus:
-     cartão em #0D0D10 e controle aninhado em #121216. O acento areia
-     (#E5D8BF) é a única cor de marca do app. As bordas seguem desligadas —
+  /* Paleta base — identidade em cinza gelo.
+     Fundo em carvão frio (#08080b) com superfícies subindo em dois degraus:
+     cartão em #0D0D10 e controle aninhado em #121216. O acento cinza gelo
+     claro (#D6E9F4) é a única cor de marca do app. As bordas seguem desligadas —
      o bloco se declara pelo tom, não por um fio de 1px. */
-  --bg-primary: #08080b;       /* Background principal — carvão quente, a cor que a faixa de marca descreve */
+  --bg-primary: #08080b;       /* Background principal — carvão frio, a cor que a faixa de marca descreve */
   --bg-primary-rgb: 8, 8, 11;
   --bg-surface: #0D0D10;       /* Cards, painéis, inputs, botões base */
   --bg-elevated: #121216;      /* Dropdowns, modais, controles aninhados */
@@ -25,16 +25,16 @@
   --border-outline: #16161A;       /* Contorno visível para blocos "outline-only" — mais claro que bg-surface */
 
   /* Textos */
-  --text-primary: #F2EDE3;     /* Texto principal, branco quente */
+  --text-primary: #E8F2F8;     /* Texto principal, branco gelo */
   --text-secondary: #AEAFB2;   /* Texto secundário */
   --text-muted: #838589;       /* Texto muted/placeholder */
 
-  /* Acento único — areia */
-  --accent: #E5D8BF;
-  --accent-rgb: 229, 216, 191;
-  --accent-hover: #F0E6D2;
+  /* Acento único — cinza gelo claro */
+  --accent: #D6E9F4;
+  --accent-rgb: 214, 233, 244;
+  --accent-hover: #EAF5FC;
   --accent-ink: #08080b;
-  --accent-soft: rgba(229, 216, 191, 0.1);
+  --accent-soft: rgba(214, 233, 244, 0.1);
 
   /* Utilitários */
   --danger: #ef4444;
@@ -81,10 +81,10 @@
   --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-fast: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition: 0.2s ease;
-  --text: #F2EDE3;
+  --text: #E8F2F8;
   /* Só a barra de rolagem horizontal da Home. Chamava de `glow` sem nunca ter
      produzido brilho nenhum; o nome prometia um efeito que não existia. */
-  --scrollbar-thumb: rgba(242, 237, 227, 0.15);
+  --scrollbar-thumb: rgba(232, 242, 248, 0.15);
 
   /* ==============================================================
      PADRÃO DA HOME
@@ -191,21 +191,21 @@
 
   /* Superfícies fantasma do Title Page: painéis quase invisíveis que
      ganham profundidade por diferença de tom, não por sombra. */
-  --ghost-bg: rgba(242, 237, 227, 0.012);
+  --ghost-bg: rgba(232, 242, 248, 0.012);
   --ghost-border: transparent;
-  --ghost-bg-hover: rgba(242, 237, 227, 0.035);
-  --ghost-strong: rgba(242, 237, 227, 0.06);
+  --ghost-bg-hover: rgba(232, 242, 248, 0.035);
+  --ghost-strong: rgba(232, 242, 248, 0.06);
 
   /* Rampa de texto fraco. Antes eram oito alfas soltos (0.22 … 0.85);
      agora são cinco degraus com nome, e o claro só troca o alfa por
      preto — a hierarquia do Title Page sobrevive à troca de tema. O branco
-     da rampa é quente (o mesmo rgb de --text-primary), para a tinta não
+     da rampa é gelo (o mesmo rgb de --text-primary), para a tinta não
      destoar do resto da identidade. */
-  --text-faintest: rgba(242, 237, 227, 0.22);
-  --text-faint: rgba(242, 237, 227, 0.30);
-  --text-dim: rgba(242, 237, 227, 0.45);
-  --text-soft: rgba(242, 237, 227, 0.58);
-  --text-strong: rgba(242, 237, 227, 0.82);
+  --text-faintest: rgba(232, 242, 248, 0.22);
+  --text-faint: rgba(232, 242, 248, 0.30);
+  --text-dim: rgba(232, 242, 248, 0.45);
+  --text-soft: rgba(232, 242, 248, 0.58);
+  --text-strong: rgba(232, 242, 248, 0.82);
 
   /* Texto sobre foto: o card escurece a imagem com gradiente PRETO em
      qualquer tema, então aqui a cor não acompanha a rampa — no claro,
@@ -241,35 +241,35 @@
    fantasma e a rampa de texto fraco do Title Page, que eram
    `rgba(255,255,255,α)` na mão.
 
-   Convenção do bloco: papel quente de fundo sob tinta quase preta, acento
-   areia escurecido (contraste suficiente sobre o claro — o creme cheio não
-   se lê como texto), sombra mais rasa e `color-scheme: light` para os
+   Convenção do bloco: papel gelado de fundo sob tinta quase preta, acento
+   cinza gelo escurecido (contraste suficiente sobre o claro — o cinza claro
+   cheio não se lê como texto), sombra mais rasa e `color-scheme: light` para os
    controles nativos. */
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg-primary: #F4F1EA;
-  --bg-primary-rgb: 244, 241, 234;
+  --bg-primary: #EAF2F7;
+  --bg-primary-rgb: 234, 242, 247;
   --bg-surface: #FFFFFF;
   --bg-elevated: #FFFFFF;
-  --bg-elevated-hover: #EFEBE1;
-  --bg-secondary: #ECE7DC;
-  --bg-hover: #E6E0D3;
-  --bg-well: #E4DED1;
+  --bg-elevated-hover: #E3EEF5;
+  --bg-secondary: #DDEAF2;
+  --bg-hover: #D2E2EC;
+  --bg-well: #CEE0EA;
   --border: transparent;
   --border-strong: transparent;
-  --border-outline: #D4D0C8;       /* Contorno visível no tema claro — mais escuro que bg-surface */
+  --border-outline: #BFD2DE;       /* Contorno visível no tema claro — mais escuro que bg-surface */
 
-  --text-primary: #1B1915;
-  --text-secondary: #55524A;
-  --text-muted: #8A8478;
-  --text: #1B1915;
+  --text-primary: #14212B;
+  --text-secondary: #4E5E6B;
+  --text-muted: #74838F;
+  --text: #14212B;
 
-  --accent: #7A663B;
-  --accent-rgb: 122, 102, 59;
-  --accent-hover: #8A7444;
-  --accent-ink: #F4F1EA;
-  --accent-soft: rgba(122, 102, 59, 0.12);
+  --accent: #35566B;
+  --accent-rgb: 53, 86, 107;
+  --accent-hover: #446D86;
+  --accent-ink: #EAF2F7;
+  --accent-soft: rgba(53, 86, 107, 0.12);
   /* O filete nascer do sol também vale no tema claro (decisão de marca: o
      gradiente é a base da identidade). Definido no bloco :root principal. */
 
@@ -277,19 +277,19 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.14);
   --scrollbar-thumb: rgba(0, 0, 0, 0.20);
 
-  /* Fantasma: tinta clara vira tinta escura quente, mesma função. */
-  --ghost-bg: rgba(27, 25, 21, 0.02);
+  /* Fantasma: tinta clara vira tinta escura fria, mesma função. */
+  --ghost-bg: rgba(20, 33, 43, 0.02);
   --ghost-border: transparent;
-  --ghost-bg-hover: rgba(27, 25, 21, 0.045);
-  --ghost-strong: rgba(27, 25, 21, 0.09);
+  --ghost-bg-hover: rgba(20, 33, 43, 0.045);
+  --ghost-strong: rgba(20, 33, 43, 0.09);
 
-  /* Texto fraco: mesmo degrau, alfa da tinta escura quente. Um tique mais
+  /* Texto fraco: mesmo degrau, alfa da tinta escura fria. Um tique mais
      denso que o branco correspondente, porque preto sobre claro respira menos. */
-  --text-faintest: rgba(27, 25, 21, 0.40);
-  --text-faint: rgba(27, 25, 21, 0.50);
-  --text-dim: rgba(27, 25, 21, 0.55);
-  --text-soft: rgba(27, 25, 21, 0.68);
-  --text-strong: rgba(27, 25, 21, 0.85);
+  --text-faintest: rgba(20, 33, 43, 0.40);
+  --text-faint: rgba(20, 33, 43, 0.50);
+  --text-dim: rgba(20, 33, 43, 0.55);
+  --text-soft: rgba(20, 33, 43, 0.68);
+  --text-strong: rgba(20, 33, 43, 0.85);
 
   --danger-ghost-bg: rgba(239, 68, 68, 0.06);
   --danger-ghost-border: rgba(239, 68, 68, 0.20);
@@ -301,10 +301,10 @@
 }
 
 /* A marca tem variante para cada tema (assets/BRAND_GUIDELINES.md): os
-   arquivos `-dark` são areia e somem sobre as superfícies claras da
+   arquivos `-dark` são cinza gelo e somem sobre as superfícies claras da
    navbar e do login. O `content` troca a imagem renderizada junto com o
    `data-theme` — o script anti-flash pinta o atributo antes do CSS, então
-   não existe frame com a marca areia no tema claro, e sem depender do JS
+   não existe frame com a marca cinza gelo no tema claro, e sem depender do JS
    carregar. */
 [data-theme="light"] .navbar-brand-logo { content: url('assets/logo/logotype-light.svg'); }
 [data-theme="light"] .auth-logo-img { content: url('assets/logo/stacked-light.svg'); }

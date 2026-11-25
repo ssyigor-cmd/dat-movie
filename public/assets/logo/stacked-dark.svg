@@ -1,9 +1,9 @@
-﻿<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- stacked (dark, login): sÃ³ o glifo "d" areia + filete nascer do sol, sem nome -->
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- stacked (dark, login): sÃ³ o glifo "d" gelo + filete gelo, sem nome -->
   <g transform="translate(9.5,-2.5) scale(1.6)">
-    <rect x="25" y="42" width="27" height="24" rx="8.5" fill="#E5D8BF"/>
+    <rect x="25" y="42" width="27" height="24" rx="8.5" fill="#D6E9F4"/>
     <rect x="33.5" y="50.5" width="10" height="10" rx="2.5" fill="#08080b"/>
-    <rect x="54" y="26" width="9.5" height="40" rx="4.75" fill="#E5D8BF"/>
+    <rect x="54" y="26" width="9.5" height="40" rx="4.75" fill="#D6E9F4"/>
     <rect x="16" y="74" width="7" height="2.3" fill="#FFFFFF"/>
     <rect x="23" y="74" width="7" height="2.3" fill="#FBBF24"/>
     <rect x="30" y="74" width="7" height="2.3" fill="#3B82F6"/>

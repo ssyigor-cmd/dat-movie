@@ -165,7 +165,7 @@ function applyTheme() {
   for (const radio of document.querySelectorAll('input[name="themeChoice"]')) {
     radio.checked = radio.value === state.theme;
   }
-  // O favicon é a mesma marca e, na aba clara, as faixas areia somem na
+  // O favicon é a mesma marca e, na aba clara, as faixas gelo somem na
   // barra de tarefas — o único dos ativos da marca que não dá para trocar
   // por CSS, porque `content` não muda o `href` de um <link>.
   const favicon = document.querySelector('link[rel="icon"]');
