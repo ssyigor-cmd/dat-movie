@@ -8,6 +8,7 @@ import { callTMDB, fetchTitleLogo } from '../lib/api.js';
 import { escapeHTML, formatDateBR } from '../lib/catalog.js';
 import { US_RATING_BR, pickContentRating } from '../lib/contentRating.js';
 import { flagEmoji, flagUrl } from '../lib/flags.js';
+import { translateKeyword } from '../lib/keywordTranslations.js';
 // Reexportadas porque a suíte de testes as importa daqui.
 export { flagEmoji, flagUrl };
 import { lockScreen, unlockScreen, trapFocus, releaseFocusTrap } from './uiHelpers.js';
@@ -126,10 +127,11 @@ function ageBadge(rating) {
  * @param {string[]} items
  * @returns {string} HTML, ou vazio sem itens.
  */
-function pills(items) {
+function pills(items, opts = {}) {
   const list = (items || []).map((s) => String(s).trim()).filter(Boolean);
   if (!list.length) return '';
-  return `<span class="ti-pills">${list.map((g) => `<span class="ti-pill">${escapeHTML(g)}</span>`).join('')}</span>`;
+  const cls = opts.clickable ? 'ti-pill ti-pill--link' : 'ti-pill';
+  return `<span class="ti-pills">${list.map((g) => `<button type="button" class="${cls}" data-search="${escapeHTML(g)}">${escapeHTML(g)}</button>`).join('')}</span>`;
 }
 
 /**
@@ -231,7 +233,7 @@ function grid(cells) {
  */
 export function setupTitleInfoModal(elements, callbacks = {}) {
   const { titleInfoModal, titleInfoClose, titleInfoTitle, titleInfoLoading, titleInfoContent, titleInfoLogoWrap, titleInfoLogoImg } = elements;
-  const { onToast, onResolveTmdbId } = callbacks;
+  const { onToast, onResolveTmdbId, onSearch } = callbacks;
 
   function hideTitleInfoLogo() {
     if (!titleInfoLogoWrap || !titleInfoLogoImg) return;
@@ -297,7 +299,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       if (!tmdbId) throw new Error('Sem TMDB ID');
 
       const [details, credits, logoUrl] = await Promise.all([
-        callTMDB(`tv/${tmdbId}`, { append_to_response: 'content_ratings' }, 'pt-BR'),
+        callTMDB(`tv/${tmdbId}`, { append_to_response: 'content_ratings,keywords' }, 'pt-BR'),
         callTMDB(`tv/${tmdbId}/aggregate_credits`, {}, 'pt-BR').catch(() => null),
         fetchTitleLogo(tmdbId, 'tv').catch(() => null)
       ]);
@@ -318,6 +320,7 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       const companyCards = (details.production_companies || []).filter(c => c?.name).slice(0, 6);
       const cast = (credits?.cast || []).filter(c => c.name).slice(0, 12);
       const genres = (details.genres || []).map(g => g.name).filter(Boolean);
+      const keywords = (details.keywords?.results || []).map(k => translateKeyword(k.name || '')).filter(Boolean).slice(0, 12);
       const runtime = Array.isArray(details.episode_run_time) && details.episode_run_time.length
         ? `${Math.min(...details.episode_run_time)} min`
         : '';
@@ -374,14 +377,15 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
       // longo em cartão de linha inteira (`wide`).
       const statusTone = STATUS_TONE[details.status] || '';
       const ficha = grid([
-        cell('Gênero', pills(genres), { html: true, wide: true }),
+        cell('Gênero', pills(genres, { clickable: !!onSearch }), { html: true, wide: true }),
         cell('Status', statusPt, statusTone ? { suffix: `<span class="ti-dot ${statusTone}"></span>` } : {}),
         cell('Faixa etária', ageBadge(age), { html: true }),
         cell('Estreia', estreia),
         cell(endDateLabel(details.status), encerramento),
         cell('Origem', flagImg, { html: true }),
         cell('Duração', runtime),
-        cell('Tipo', typePt)
+        cell('Tipo', typePt),
+        cell('Palavras-chave', pills(keywords, { clickable: !!onSearch }), { html: true, wide: true })
       ]);
       html += section('Detalhes', 'fa-list', ficha);
 
@@ -427,6 +431,14 @@ export function setupTitleInfoModal(elements, callbacks = {}) {
 
       titleInfoContent.innerHTML = html;
       applyFlagFallbacks(titleInfoContent);
+      if (onSearch) {
+        titleInfoContent.querySelectorAll('[data-search]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const query = btn.getAttribute('data-search');
+            if (query) onSearch(query);
+          });
+        });
+      }
       const castRails = titleInfoContent.querySelectorAll('.ti-cast');
       castRails.forEach((rail) => rail.addEventListener('scroll', () => syncCastFade(rail), { passive: true }));
       titleInfoLoading.style.display = 'none';

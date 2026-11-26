@@ -438,6 +438,11 @@ export function setupSearchPage({ onOpenTitle } = {}) {
     /** Reexecuta a busca atual (usado após adicionar título, por exemplo). */
     refresh() {
       run({ reset: true });
+    },
+    /** Define a consulta e executa a busca. */
+    search(query) {
+      if (input) input.value = query || '';
+      run({ reset: true });
     }
   };
 }

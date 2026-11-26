@@ -9,7 +9,7 @@
  */
 
 import { callTMDB, fetchTitleLogo } from '../lib/api.js';
-import { getTierClass, formatDateBR, totalDeEpisodiosDaSerie } from '../lib/catalog.js';
+import { calcularProgresso, getTierClass, formatDateBR, totalDeEpisodiosDaSerie } from '../lib/catalog.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { nextImage, prevImage, filterImagesByLanguage, dedupeImages, sortImagesByWidth } from '../lib/imageNavigation.js';
 import { resolveSeasonPosterUrl, shouldUseSeasonArt } from '../lib/seasonArt.js';
@@ -155,6 +155,7 @@ function renderTitlePage(item, container) {
   // D) Main Direita: Backdrop horizontal + Episódio (Temporada | Episódio | Sinopse)
   // E) Sidebar: Status | Listas/Episódios | Salvar/Remover
   container.innerHTML = `
+    <div class="tp-bg-blur${item.imagem ? ' is-ready' : ''}" id="tpBgBlur" aria-hidden="true"${item.imagem ? ` style="background-image:url('${String(item.imagem).replace(/'/g, "\\'")}')"` : ''}></div>
     <!-- A) HUD SUPERIOR — tier como marcador de livro rente ao limite -->
     <div class="tp-hud">
       <div class="tp-hud-top tp-pill" style="position:relative; overflow:visible;">
@@ -171,17 +172,8 @@ function renderTitlePage(item, container) {
             <div id="titleDates" style="font-size:0.62rem; color:var(--text-faint); display:none; align-items:center; gap:6px;"><i class="fas fa-calendar-alt" style="font-size:0.6rem; opacity:0.7;"></i><span id="titleStartDate">—</span><span style="opacity:0.4;">—</span><span id="titleEndDate">—</span><span id="titleStatusDot" style="width:4px; height:4px; border-radius:50%; background:var(--text-muted); opacity:0.5; display:inline-block;"></span><span id="titleStatusLabel" style="font-size:0.62rem;">—</span></div>
           </div>
         </div>
-        <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:0; right:44px; display:flex; align-items:flex-start; justify-content:center; z-index:2;">
-          ${item.tier ? `<div class="tier-stamp ${tierClass}" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; cursor:pointer; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">${item.tier}</div>` : `<div class="tier-stamp" id="tpTierStamp" style="width:30px; height:38px; font-size:0.7rem; padding:6px 0 9px; background:var(--bg-elevated); color:var(--text-muted); border:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 2px 8px rgba(0,0,0,0.35);">Tier</div>`}
-          <div id="tpTierDropdown" style="display:none; position:absolute; top:30px; right:0; background:var(--bg-elevated); border:1px solid var(--border-strong); border-radius:var(--radius); padding:6px; flex-direction:column; gap:4px; z-index:50; box-shadow:var(--shadow-lg); min-width:80px;">
-            <button class="tier-option" data-tier="S+" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S+</button>
-            <button class="tier-option" data-tier="S" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">S</button>
-            <button class="tier-option" data-tier="A" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">A</button>
-            <button class="tier-option" data-tier="B" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">B</button>
-            <button class="tier-option" data-tier="C" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">C</button>
-            <button class="tier-option" data-tier="D" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">D</button>
-            <button class="tier-option" data-tier="" style="padding:8px 14px; border-radius:var(--radius-sm); border:none; background:transparent; color:var(--text-primary); cursor:pointer;">N/A</button>
-          </div>
+        <div class="tp-tier-block" id="tpTierTopWrap" style="position:absolute; top:50%; right:44px; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; z-index:2;">
+          <button type="button" class="tier-stamp tp-tier-badge${tierClass ? ` ${tierClass}` : ''}" id="tpTierStamp" aria-label="Alterar tier">${item.tier || 'N/A'}</button>
         </div>
       </div>
     </div>
@@ -246,7 +238,12 @@ function renderTitlePage(item, container) {
                 <span id="titleEpTitle" style="font-size:0.82rem; font-weight:600; color:var(--text-primary); flex:1; min-width:0;">Sinopse do episódio</span>
                 <span id="titleEpDate" style="font-size:0.68rem; color:var(--text-muted); white-space:nowrap;"></span>
               </div>
-              <p id="titleSynopsisEp" style="margin:0; font-size:0.78rem; line-height:1.45; color:var(--text-secondary); display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">Selecione temporada e episódio para ver a sinopse.</p>
+              <p id="titleSynopsisEp" style="margin:0; font-size:0.78rem; line-height:1.45; color:var(--text-secondary); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">Selecione temporada e episódio para ver a sinopse.</p>
+              <div style="display:flex; align-items:center; gap:10px; margin-top:auto; padding-top:8px; border-top:1px solid var(--border-outline);">
+                <span style="font-size:0.62rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Progresso</span>
+                <div class="progress-track" id="tpProgressTrack" role="progressbar" aria-label="Progresso" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="flex:1;"><div class="progress-bar" id="tpProgressFill" style="width:0%"></div></div>
+                <span class="progress-pct" id="tpProgressPct" style="min-width:2.6em; text-align:right;">0%</span>
+              </div>
               <div id="titleEpLoading" style="display:none; position:absolute; top:8px; right:8px; font-size:0.6rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i></div>
             </div>
           </div>
@@ -267,7 +264,7 @@ function renderTitlePage(item, container) {
         </div>
         <!-- D2) Categoria: Coleções -->
         <div class="tp-side-card">
-          <div class="tp-side-card-head"><i class="fas fa-layer-group"></i> Coleções</div>
+          <div class="tp-side-card-head"><i class="fas fa-layer-group"></i> Listas</div>
           <button id="tpListBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-layer-group"></i> Listas</button>
           <button id="tpEpisodesBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-film"></i> Episódios</button>
           <button id="tpDetailsBtn" class="dm-action-btn" style="width:100%; justify-content:center;"><i class="fas fa-circle-info"></i> Detalhes</button>
@@ -287,15 +284,6 @@ function renderTitlePage(item, container) {
       </div>
     </div>
 
-    <select id="titlePageTier" style="display:none;">
-      <option value="" ${!item.tier?'selected':''}>Sem tier</option>
-      <option value="S+" ${item.tier==='S+'?'selected':''}>S+</option>
-      <option value="S" ${item.tier==='S'?'selected':''}>S</option>
-      <option value="A" ${item.tier==='A'?'selected':''}>A</option>
-      <option value="B" ${item.tier==='B'?'selected':''}>B</option>
-      <option value="C" ${item.tier==='C'?'selected':''}>C</option>
-      <option value="D" ${item.tier==='D'?'selected':''}>D</option>
-    </select>
   `;
 
   // ==============================================================
@@ -312,55 +300,25 @@ function renderTitlePage(item, container) {
     });
   });
 
-  // — Tier
+  // — Tier (ciclo, similar ao mobile)
+  const TIER_CYCLE = ['S+', 'S', 'A', 'B', 'C', 'D', ''];
   const tierStamp = container.querySelector('#tpTierStamp');
-  const tierDropdown = container.querySelector('#tpTierDropdown');
-  const tierSelect = container.querySelector('#titlePageTier');
   let currentTier = item.tier || '';
   function updateTierUI(tier) {
     currentTier = tier || '';
-    if (tierSelect) tierSelect.value = tier || '';
     if (tierStamp) {
-      tierStamp.textContent = tier || 'Tier';
-      tierStamp.className = tier ? `tier-stamp ${getTierClass(tier)}` : 'tier-stamp';
-      // mantém design do HUD (pill discreto) — sem absolute
-      tierStamp.style.background = tier ? '' : 'var(--bg-elevated)';
-      tierStamp.style.color = tier ? '' : 'var(--text-muted)';
-      tierStamp.style.border = tier ? '' : '1px solid var(--border)';
-      tierStamp.style.position = 'relative';
-      tierStamp.style.top = 'auto';
-      tierStamp.style.right = 'auto';
-      // Tamanho do selo aqui é maior que o dos cards: este fica no HUD, ao
-      // lado do título, e a 22x28 ficava pequeno demais para ler. O
-      // clip-path do .tier-stamp é em porcentagem, então a fita acompanha o
-      // crescimento sozinha. Aumento de ~36% nos três eixos, mantendo a
-      // proporção do original.
-      tierStamp.style.width = '30px';
-      tierStamp.style.height = '38px';
-      tierStamp.style.fontSize = '0.7rem';
-      tierStamp.style.cursor = 'pointer';
-      tierStamp.style.display = 'flex';
-      tierStamp.style.alignItems = 'flex-start';
-      tierStamp.style.justifyContent = 'center';
-      tierStamp.style.padding = '6px 0 9px';
-      tierStamp.style.flexShrink = '0';
+      tierStamp.textContent = tier || 'N/A';
+      tierStamp.className = tier ? `tier-stamp tp-tier-badge ${getTierClass(tier)}` : 'tier-stamp tp-tier-badge';
+      tierStamp.setAttribute('aria-label', tier ? `Tier ${tier}. Clique para alterar` : 'Sem tier. Clique para definir');
     }
   }
-  if (tierStamp && tierDropdown) {
+  if (tierStamp) {
     tierStamp.addEventListener('click', (e) => {
       e.stopPropagation();
-      tierDropdown.style.display = tierDropdown.style.display === 'flex' ? 'none' : 'flex';
+      const idx = TIER_CYCLE.indexOf(currentTier);
+      const next = TIER_CYCLE[(idx + 1) % TIER_CYCLE.length];
+      updateTierUI(next);
     });
-    tierDropdown.querySelectorAll('.tier-option').forEach(opt => {
-      opt.addEventListener('click', (e) => {
-        e.stopPropagation();
-        updateTierUI(opt.dataset.tier);
-        tierDropdown.style.display = 'none';
-      });
-    });
-    document.addEventListener('click', (e) => {
-      if (!tierStamp.contains(e.target) && !tierDropdown.contains(e.target)) tierDropdown.style.display = 'none';
-    }, { once: false });
   }
 
   // — Steppers & Sinopse
@@ -396,6 +354,25 @@ function renderTitlePage(item, container) {
     return { min: 0, max, value: curEp };
   }
 
+  function updateTitleProgressBar() {
+    const fill = container.querySelector('#tpProgressFill');
+    const track = container.querySelector('#tpProgressTrack');
+    const pct = container.querySelector('#tpProgressPct');
+    if (!fill || !track || !pct) return;
+    const mapa = seasonLimits.maxEpByTemp || {};
+    const totalMapa = Object.values(mapa).reduce((s, n) => s + (Number(n) || 0), 0);
+    const progress = calcularProgresso({
+      ...item,
+      temporada: curTemp,
+      episodio: curEp,
+      seasonEpisodesMap: mapa,
+      totalEpisodios: totalMapa || item.totalEpisodios,
+    });
+    fill.style.width = `${progress}%`;
+    pct.textContent = `${progress}%`;
+    track.setAttribute('aria-valuenow', String(progress));
+  }
+
   function updateStepperButtons() {
     stepperBtns.forEach(btn => {
       const { min, max, value } = stepperState(btn);
@@ -405,6 +382,7 @@ function renderTitlePage(item, container) {
       btn.style.opacity = blocked ? '0.3' : '';
       btn.style.cursor = blocked ? 'not-allowed' : 'pointer';
     });
+    updateTitleProgressBar();
   }
 
   function updateEpMax() {
@@ -463,6 +441,14 @@ function renderTitlePage(item, container) {
       } else backdropCounter.style.display = 'none';
     }
   }
+  function setTitleBlur(filePath) {
+    if (!filePath) return;
+    const blur = container.querySelector('#tpBgBlur');
+    if (!blur) return;
+    blur.style.backgroundImage = `url(https://image.tmdb.org/t/p/w780${filePath})`;
+    blur.classList.add('is-ready');
+  }
+
   function showBackdropAt(idx) {
     if (!backdropEl || backdropImages.length === 0) return;
     currentBackdropIndex = ((idx % backdropImages.length) + backdropImages.length) % backdropImages.length;
@@ -470,6 +456,7 @@ function renderTitlePage(item, container) {
     backdropEl.src = `https://image.tmdb.org/t/p/w1280${fp}`;
     backdropEl.style.display = 'block';
     if (backdropPh) backdropPh.style.display = 'none';
+    setTitleBlur(fp);
     refreshBackdropControls();
   }
   if (backdropPrev) backdropPrev.addEventListener('click', (e) => { e.stopPropagation(); navegarPara(prevImage(currentBackdropIndex, backdropImages.length)); });
@@ -546,33 +533,47 @@ function renderTitlePage(item, container) {
     }
   }
 
-  // clique-e-segure: 300ms até o primeiro repeat, depois a cada 100ms
+  // clique-e-segure: 300ms até o primeiro repeat, depois a cada 100ms.
+  // Pointer events cobrem mouse/touch/pen e evitam passo duplo no toque.
   let holdTimer = null;
   let holdInterval = null;
-  let holdFired = false;
+  let holdBtn = null;
   function stopHold() {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
     if (holdInterval) { clearInterval(holdInterval); holdInterval = null; }
+    if (holdBtn) {
+      if (holdBtn.dataset.holdActive === '1') holdBtn.dataset.holdFired = '1';
+      holdBtn.dataset.holdActive = '0';
+      holdBtn = null;
+    }
   }
   function startHold(btn) {
     stopHold();
-    holdFired = false;
+    holdBtn = btn;
+    btn.dataset.holdActive = '0';
+    btn.dataset.holdFired = '0';
     holdTimer = setTimeout(() => {
       holdTimer = null;
+      btn.dataset.holdActive = '1';
       applyStep(btn);
-      holdFired = true;
+      btn.dataset.holdFired = '1';
       holdInterval = setInterval(() => applyStep(btn), 100);
     }, 300);
   }
 
   stepperBtns.forEach(btn => {
+    btn.style.touchAction = 'manipulation';
     btn.addEventListener('click', () => {
-      if (holdFired) { holdFired = false; return; }
+      if (btn.dataset.holdFired === '1') { btn.dataset.holdFired = '0'; return; }
       applyStep(btn);
     });
-    btn.addEventListener('mousedown', () => startHold(btn));
-    btn.addEventListener('mouseup', stopHold);
-    btn.addEventListener('mouseleave', stopHold);
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      startHold(btn);
+    });
+    btn.addEventListener('pointerup', stopHold);
+    btn.addEventListener('pointercancel', stopHold);
+    btn.addEventListener('pointerleave', stopHold);
   });
 
   // — Salvar / Remover / Adicionar (com listas)

@@ -2611,7 +2611,7 @@ function renderCollectionsList() {
         <button onclick="editCollection('${l.id}')" aria-label="Renomear"><i class="fas fa-pen"></i></button>
         <button onclick="deleteCollection('${l.id}')" aria-label="Excluir"><i class="fas fa-trash"></i></button>
       </span>
-    </div>`).join('') : '<p class="home-hint">Nenhuma coleção criada.</p>';
+    </div>`).join('') : '<p class="home-hint">Nenhuma lista criada.</p>';
 }
 
 async function reloadUserLists() {
@@ -2621,19 +2621,19 @@ async function reloadUserLists() {
 async function saveCollection() {
   const input = $('collectionNameInput');
   const nome = (input.value || '').trim();
-  if (!nome) { showToast('Digite um nome para a coleção'); return; }
+  if (!nome) { showToast('Digite um nome para a lista'); return; }
   if (nome.length > 100) { showToast('Nome muito longo (máx. 100)'); return; }
   try {
     if (editingCollectionId) {
       await renameList(editingCollectionId, nome);
-      showToast('Coleção renomeada!');
+      showToast('Lista renomeada!');
     } else {
       await createList(nome);
-      showToast('Coleção criada!');
+      showToast('Lista criada!');
     }
     editingCollectionId = null;
     input.value = '';
-    $('collectionFormTitle').textContent = 'Nova coleção';
+    $('collectionFormTitle').textContent = 'Nova lista';
     $('collectionSaveBtn').textContent = 'Adicionar';
     await reloadUserLists();
     renderCollectionsList();
@@ -2649,7 +2649,7 @@ function editCollection(id) {
   if (!l) return;
   editingCollectionId = String(id);
   $('collectionNameInput').value = l.nome;
-  $('collectionFormTitle').textContent = 'Renomear coleção';
+  $('collectionFormTitle').textContent = 'Renomear lista';
   $('collectionSaveBtn').textContent = 'Salvar';
   $('collectionNameInput').focus();
 }
@@ -2657,7 +2657,7 @@ function editCollection(id) {
 function deleteCollection(id) {
   const l = (state.userLists || []).find(x => String(x.id) === String(id));
   if (!l) return;
-  openConfirm('Excluir coleção', `Tem certeza que deseja excluir "${l.nome}"?`, async () => {
+  openConfirm('Excluir lista', `Tem certeza que deseja excluir "${l.nome}"?`, async () => {
     try {
       await deleteList(id);
       await reloadUserLists();
@@ -2666,7 +2666,7 @@ function deleteCollection(id) {
       renderCollectionsList();
       renderColecaoOptions();
       renderLists();
-      showToast('Coleção excluída!');
+      showToast('Lista excluída!');
     } catch (e) {
       showToast('Erro: ' + (e.message || 'Não foi possível excluir'));
     }

@@ -834,7 +834,7 @@ function renderNavbar() {
   const todosBtn = document.createElement('button');
   todosBtn.className = `nav-item ${state.currentTab === 'all' && !state.currentListId ? 'active' : ''}`;
   todosBtn.dataset.tab = 'all';
-  todosBtn.innerHTML = '<i class="fas fa-th"></i> <span>Catálogo</span>';
+  todosBtn.innerHTML = '<i class="fas fa-layer-group"></i> <span>Coleção</span>';
   todosBtn.addEventListener('click', () => setActiveTab('all', null));
   fragment.appendChild(todosBtn);
 
@@ -846,7 +846,7 @@ function renderNavbar() {
   wishlistBtn.dataset.tab = 'planejado';
   wishlistBtn.dataset.system = 'true';
   if (wishlist) { wishlistBtn.dataset.listId = wishlist.id; }
-  wishlistBtn.innerHTML = '<i class="fas fa-calendar-alt"></i> <span>Próximos</span>';
+  wishlistBtn.innerHTML = '<i class="fas fa-bookmark"></i> <span>Watchlist</span>';
   wishlistBtn.addEventListener('click', () => setActiveTab('planejado', null));
   fragment.appendChild(wishlistBtn);
 
@@ -1180,6 +1180,13 @@ const titleInfoModalAPI = setupTitleInfoModal({
   titleInfoLogoImg: $('titleInfoLogoImg')
 }, {
   onToast: showToast,
+  onSearch: (query) => {
+    const q = String(query || '').trim();
+    if (!q) return;
+    titleInfoModalAPI.close();
+    setActiveTab('pesquisa', null);
+    setTimeout(() => searchPageApi?.search(q), 0);
+  },
   onResolveTmdbId: async (item) => {
     try {
       const searchData = await callTMDB('search/tv', { query: item.nome }, 'pt-BR');
@@ -1610,14 +1617,14 @@ async function render() {
   
   // Determinar label baseado na aba ou lista atual
   if (state.currentTab === 'all') {
-    label = 'Catálogo';
+    label = 'Coleção';
   } else if (state.currentTab === 'planejado') {
-    label = 'Próximos';
+    label = 'Watchlist';
   } else if (state.currentListId) {
     const currentList = state.userLists.find(l => l.id === state.currentListId);
     label = currentList ? currentList.nome : 'Lista';
   } else {
-    label = 'Catálogo';
+    label = 'Coleção';
   }
   
   headerListName.textContent = label;
@@ -1632,7 +1639,7 @@ async function render() {
     let sub = '';
     if (state.currentListId) {
       const lst = state.userLists.find(l => l.id === state.currentListId);
-      sub = lst ? `Coleção "${lst.nome}"` : subtitles['list'];
+      sub = lst ? `Lista "${lst.nome}"` : subtitles['list'];
     } else {
       sub = subtitles[state.currentTab] || '';
     }
